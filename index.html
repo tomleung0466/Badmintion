@@ -119,14 +119,7 @@
                 <form onsubmit="handleFormSubmit(event)" class="space-y-4 text-xs">
                     <div>
                         <label class="block text-gray-500 mb-1 font-medium">選擇香港具體分區</label>
-                        <select id="form-region" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-medium" required>
-                            <option value="觀塘區">觀塘區</option>
-                            <option value="將軍澳">將軍澳</option>
-                            <option value="沙田區">沙田區</option>
-                            <option value="大埔區">大埔區</option>
-                            <option value="荃灣區">荃灣區</option>
-                            <option value="灣仔區">灣仔區</option>
-                        </select>
+                        <select id="form-region" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-medium" required></select>
                     </div>
                     <div>
                         <label class="block text-gray-500 mb-1 font-medium">體育館名稱</label>
@@ -314,15 +307,10 @@
                     <span class="font-bold text-sm">選擇地區</span>
                     <button onclick="confirmPickerRegion()" class="text-sm font-bold text-emerald-600">完成</button>
                 </div>
-                <!-- 滾筒滾動區域 -->
-                <div class="h-44 overflow-y-scroll snap-y snap-mandatory text-center py-16" id="picker-scroller">
-                    <div class="snap-center h-10 flex items-center justify-center font-medium text-gray-400" data-val="all">全港地區</div>
-                    <div class="snap-center h-10 flex items-center justify-center font-medium text-gray-400" data-val="觀塘區">觀塘區</div>
-                    <div class="snap-center h-10 flex items-center justify-center font-medium text-gray-400" data-val="將軍澳">將軍澳</div>
-                    <div class="snap-center h-10 flex items-center justify-center font-medium text-gray-400" data-val="沙田區">沙田區</div>
-                    <div class="snap-center h-10 flex items-center justify-center font-medium text-gray-400" data-val="大埔區">大埔區</div>
-                    <div class="snap-center h-10 flex items-center justify-center font-medium text-gray-400" data-val="荃灣區">荃灣區</div>
-                    <div class="snap-center h-10 flex items-center justify-center font-medium text-gray-400" data-val="灣仔區">灣仔區</div>
+                <!-- 滾筒滾動區域（十八區 + 全港） -->
+                <div class="relative">
+                    <div class="pointer-events-none absolute inset-x-4 top-1/2 z-10 h-10 -translate-y-1/2 rounded-lg border-y border-emerald-200 bg-emerald-50/30"></div>
+                    <div id="picker-scroller" class="h-64 max-h-[50vh] overflow-y-auto overscroll-contain snap-y snap-mandatory scroll-smooth py-[calc(50%-1.25rem)] text-center"></div>
                 </div>
             </div>
         </div>
@@ -337,8 +325,82 @@
             { id: 2, region: "沙田區", venue: "源禾路體育館", courts: 1, hours: 2, fee: 45, hostRating: "4.7", contact: "Chris 61234567", joined: false }
         ];
 
+        const HONG_KONG_18_DISTRICTS = [
+            '中西區', '東區', '南區', '灣仔區',
+            '油尖旺區', '深水埗區', '九龍城區', '黃大仙區', '觀塘區',
+            '荃灣區', '葵青區', '屯門區', '元朗區', '北區',
+            '大埔區', '沙田區', '西貢區', '離島區'
+        ];
+
         let matches = JSON.parse(localStorage.getItem('uber_badminton_matches')) || defaultMatches;
         let currentFilter = 'all';
+        let pickerScrollListenerAttached = false;
+
+        function initRegionPickers() {
+            const formRegion = document.getElementById('form-region');
+            formRegion.innerHTML = HONG_KONG_18_DISTRICTS.map(d => `<option value="${d}">${d}</option>`).join('');
+
+            const scroller = document.getElementById('picker-scroller');
+            scroller.innerHTML = [
+                { val: 'all', label: '全港地區' },
+                ...HONG_KONG_18_DISTRICTS.map(d => ({ val: d, label: d }))
+            ].map(({ val, label }) =>
+                `<div class="picker-item snap-center flex h-10 items-center justify-center text-sm font-medium text-gray-400" data-val="${val}">${label}</div>`
+            ).join('');
+        }
+
+        function updatePickerHighlight() {
+            const scroller = document.getElementById('picker-scroller');
+            const items = scroller.querySelectorAll('.picker-item');
+            const centerY = scroller.getBoundingClientRect().top + scroller.clientHeight / 2;
+            let closest = null;
+            let minDist = Infinity;
+
+            items.forEach(item => {
+                const rect = item.getBoundingClientRect();
+                const dist = Math.abs(rect.top + rect.height / 2 - centerY);
+                item.classList.remove('text-black', 'font-bold', 'text-base');
+                item.classList.add('text-gray-400');
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = item;
+                }
+            });
+
+            if (closest) {
+                closest.classList.remove('text-gray-400');
+                closest.classList.add('text-black', 'font-bold', 'text-base');
+            }
+        }
+
+        function getPickerSelection() {
+            const scroller = document.getElementById('picker-scroller');
+            const items = scroller.querySelectorAll('.picker-item');
+            const centerY = scroller.getBoundingClientRect().top + scroller.clientHeight / 2;
+            let closest = items[0];
+            let minDist = Infinity;
+
+            items.forEach(item => {
+                const rect = item.getBoundingClientRect();
+                const dist = Math.abs(rect.top + rect.height / 2 - centerY);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = item;
+                }
+            });
+
+            return closest ? closest.dataset.val : 'all';
+        }
+
+        function scrollPickerToValue(value) {
+            const scroller = document.getElementById('picker-scroller');
+            const target = scroller.querySelector(`.picker-item[data-val="${value}"]`) || scroller.querySelector('.picker-item');
+            if (!target) return;
+
+            const offset = target.offsetTop - (scroller.clientHeight - target.offsetHeight) / 2;
+            scroller.scrollTop = offset;
+            updatePickerHighlight();
+        }
 
         // 渲染搵波打列表
         function renderMatches() {
@@ -482,29 +544,29 @@
         // 滾筒選擇器顯示開關
         function toggleScrollPicker(show) {
             document.getElementById('scroll-picker').classList.toggle('hidden', !show);
-            if(show) {
-                // 模擬高亮中間選中的項目
-                const divs = document.querySelectorAll('#picker-scroller div');
-                document.getElementById('picker-scroller').addEventListener('scroll', () => {
-                    divs.forEach(d => d.classList.add('text-gray-400'));
-                    // 簡化模擬：滾動時讓文字有點變化
-                });
+            const scroller = document.getElementById('picker-scroller');
+
+            if (show) {
+                if (!pickerScrollListenerAttached) {
+                    scroller.addEventListener('scroll', updatePickerHighlight, { passive: true });
+                    pickerScrollListenerAttached = true;
+                }
+                requestAnimationFrame(() => scrollPickerToValue(currentFilter));
             }
         }
 
         // 確認滾筒選中的地區
         function confirmPickerRegion() {
-            // 這裡做一個精簡的模擬選擇（實際 App 中會偵測滾到哪裡）
-            const regions = ['all', '觀塘區', '將軍澳', '沙田區', '大埔區', '荃灣區', '灣仔區'];
-            // 隨機或根據預設模擬選擇
-            let selected = document.getElementById('form-region').value; // 借用發佈表格的選值做模擬
+            const selected = getPickerSelection();
             currentFilter = selected;
-            document.getElementById('current-region-text').innerHTML = `📍 地區：${selected}`;
+            const label = selected === 'all' ? '全港地區' : selected;
+            document.getElementById('current-region-text').innerHTML = `📍 地區：${label}`;
             toggleScrollPicker(false);
             renderMatches();
         }
 
         // 初始化第一次執行
+        initRegionPickers();
         document.getElementById('form-venue').addEventListener('change', handleVenueSelectionChange);
         renderMatches();
     </script>
