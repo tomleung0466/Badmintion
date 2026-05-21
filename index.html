@@ -9,6 +9,13 @@
 </head>
 <body class="bg-gray-50 min-h-screen flex justify-center text-gray-900 font-sans">
 
+    <!-- ==================== App 啟動畫面 (Splash Screen) ==================== -->
+    <div id="splash-screen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black opacity-100 transition-opacity duration-1000 ease-out">
+        <span class="text-7xl mb-6 select-none" aria-hidden="true">🏸</span>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight text-center px-6">港羽聯 - 搵波打</h1>
+        <p class="text-xs text-gray-400 mt-3 tracking-[0.2em] uppercase">羽毛球同好會</p>
+    </div>
+
     <!-- 手機寬度容器 (Uber 極簡風格) -->
     <div class="w-full max-w-md bg-white shadow-xl min-h-screen relative flex flex-col border-x border-gray-100">
         
@@ -648,7 +655,20 @@
             renderMatches();
         }
 
+        // App 啟動畫面：2 秒後淡出，3 秒後完全移除
+        function initSplashScreen() {
+            const splash = document.getElementById('splash-screen');
+            setTimeout(() => {
+                splash.classList.add('opacity-0', 'pointer-events-none');
+            }, 2000);
+            setTimeout(() => {
+                splash.style.display = 'none';
+                splash.setAttribute('aria-hidden', 'true');
+            }, 3000);
+        }
+
         // 初始化第一次執行
+        initSplashScreen();
         initRegionPickers();
         resetPublishForm();
         renderMatches();
