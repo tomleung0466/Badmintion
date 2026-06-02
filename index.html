@@ -25,13 +25,13 @@
             <div class="flex items-start justify-between gap-3 mb-2">
                 <h1 class="text-4xl md:text-5xl font-black tracking-tight">港羽聯 - 搵波打</h1>
                 <div class="shrink-0 text-right">
-                    <button id="auth-open-btn" type="button" onclick="openAuthModal()" class="bg-black text-white text-[11px] font-bold px-3.5 py-2 rounded-full shadow-sm">
+                    <button id="loginBtn" type="button" class="bg-black text-white text-[11px] font-bold px-3.5 py-2 rounded-full shadow-sm">
                         登入 / 註冊
                     </button>
                     <div id="auth-user-wrap" class="hidden items-center gap-2">
                         <img id="auth-user-avatar" class="w-6 h-6 rounded-full object-cover border border-gray-200 hidden" alt="avatar">
                         <span id="auth-user-email" class="text-[10px] text-gray-600 max-w-[130px] truncate"></span>
-                        <button id="auth-logout-btn" type="button" onclick="logoutCurrentUser()" class="bg-gray-900 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-full shadow-sm">
+                        <button id="auth-logout-btn" type="button" class="bg-gray-900 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-full shadow-sm">
                             登出
                         </button>
                     </div>
@@ -442,13 +442,13 @@
     <!-- Firebase Google 登入 Modal -->
     <div id="auth-modal" class="hidden fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-5">
         <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl relative">
-            <button type="button" onclick="closeAuthModal()" class="absolute top-3 right-3 text-gray-400 text-sm font-bold">✕</button>
+            <button id="auth-close-btn" type="button" class="absolute top-3 right-3 text-gray-400 text-sm font-bold">✕</button>
             <h4 id="auth-modal-title" class="text-base font-extrabold mb-1">會員登入 / 註冊</h4>
             <p class="text-[11px] text-gray-400 mb-4">使用 Google 帳號綁定你的港羽聯記錄</p>
 
             <p id="auth-error" class="hidden mt-3 text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-2"></p>
 
-            <button id="auth-google-btn" type="button" onclick="loginWithGoogle()" class="w-full bg-black text-white font-bold py-3 rounded-xl shadow mt-4 text-sm flex items-center justify-center gap-3">
+            <button id="auth-google-btn" type="button" class="w-full bg-black text-white font-bold py-3 rounded-xl shadow mt-4 text-sm flex items-center justify-center gap-3">
                 <span class="inline-flex w-6 h-6 rounded-full bg-white text-black items-center justify-center font-black text-sm">G</span>
                 <span>使用 Google 帳號登入</span>
             </button>
