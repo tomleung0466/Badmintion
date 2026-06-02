@@ -22,7 +22,21 @@
         
         <!-- ==================== 頁面 1：搵波打 ==================== -->
         <div id="page-match" class="flex-1 p-5 pb-24">
-            <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-2">港羽聯 - 搵波打</h1>
+            <div class="flex items-start justify-between gap-3 mb-2">
+                <h1 class="text-4xl md:text-5xl font-black tracking-tight">港羽聯 - 搵波打</h1>
+                <div class="shrink-0 text-right">
+                    <button id="auth-open-btn" type="button" onclick="openAuthModal()" class="bg-black text-white text-[11px] font-bold px-3.5 py-2 rounded-full shadow-sm">
+                        登入 / 註冊
+                    </button>
+                    <div id="auth-user-wrap" class="hidden items-center gap-2">
+                        <img id="auth-user-avatar" class="w-6 h-6 rounded-full object-cover border border-gray-200 hidden" alt="avatar">
+                        <span id="auth-user-email" class="text-[10px] text-gray-600 max-w-[130px] truncate"></span>
+                        <button id="auth-logout-btn" type="button" onclick="logoutCurrentUser()" class="bg-gray-900 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-full shadow-sm">
+                            登出
+                        </button>
+                    </div>
+                </div>
+            </div>
             <p class="text-xs text-gray-400 mb-6">羽毛球同好會</p>
 
             <!-- 地區篩選 (模擬高級滾筒選擇器按鈕) -->
@@ -300,14 +314,11 @@
                     </div>
                     <div>
                         <label class="block text-gray-500 mb-1 font-medium">球技要求</label>
-                        <select id="form-skill-level" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm text-gray-900" required>
-                            <option value="歡樂級 (純娛樂/未掌握基本擊球)">歡樂級 (純娛樂/未掌握基本擊球)</option>
-                            <option value="初級 (能打中球/懂基本規則)">初級 (能打中球/懂基本規則)</option>
-                            <option value="初中級 (有來回球/開始懂走位)" selected>初中級 (有來回球/開始懂走位)</option>
-                            <option value="中級 (擊球穩定/懂雙打跑位)">中級 (擊球穩定/懂雙打跑位)</option>
-                            <option value="中高級 (速度力量兼備/有戰術)">中高級 (速度力量兼備/有戰術)</option>
-                            <option value="高級 (比賽選手級/強力殺球抗衡)">高級 (比賽選手級/強力殺球抗衡)</option>
-                        </select>
+                        <button type="button" onclick="openFormPicker('skill')" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center">
+                            <span id="form-skill-level-text">請滾動選擇球技要求</span>
+                            <span class="text-gray-400">▼</span>
+                        </button>
+                        <input type="hidden" id="form-skill-level" required>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
@@ -428,6 +439,23 @@
         </div>
     </div>
 
+    <!-- Firebase Google 登入 Modal -->
+    <div id="auth-modal" class="hidden fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-5">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl relative">
+            <button type="button" onclick="closeAuthModal()" class="absolute top-3 right-3 text-gray-400 text-sm font-bold">✕</button>
+            <h4 id="auth-modal-title" class="text-base font-extrabold mb-1">會員登入 / 註冊</h4>
+            <p class="text-[11px] text-gray-400 mb-4">使用 Google 帳號綁定你的港羽聯記錄</p>
+
+            <p id="auth-error" class="hidden mt-3 text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-2"></p>
+
+            <button id="auth-google-btn" type="button" onclick="loginWithGoogle()" class="w-full bg-black text-white font-bold py-3 rounded-xl shadow mt-4 text-sm flex items-center justify-center gap-3">
+                <span class="inline-flex w-6 h-6 rounded-full bg-white text-black items-center justify-center font-black text-sm">G</span>
+                <span>使用 Google 帳號登入</span>
+            </button>
+        </div>
+    </div>
+
+    <script type="module" src="js/auth.js"></script>
     <script src="js/app.js"></script>
     <script src="js/matches.js"></script>
 </body>
