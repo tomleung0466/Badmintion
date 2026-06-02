@@ -5,8 +5,8 @@
 
 // 預設模擬數據 (包含評分與 2+2)
         let defaultMatches = [
-            { id: 1, region: "觀塘區", venue: "藍田體育館", playDate: todayISO, courts: 2, hours: 2, fee: 50, hostRating: "4.9", contact: "阿明 91234567", joined: false, maxSlots: 6, currentPlayers: 5, waitingList: [], fpsId: "91234567", paymeLink: "payme.hsbc/阿明_港羽聯", paymentStatus: null, userStatus: 'none', applicantName: null, skillLevel: "中級 (擊球穩定/懂雙打跑位)" },
-            { id: 2, region: "沙田區", venue: "源禾路體育館", playDate: tomorrowISO, courts: 1, hours: 2, fee: 45, hostRating: "4.7", contact: "Chris 61234567", joined: false, maxSlots: 6, currentPlayers: 5, waitingList: [], fpsId: "61234567", paymeLink: "payme.hsbc/Chris_港羽聯", paymentStatus: null, userStatus: 'none', applicantName: null, skillLevel: "初中級 (有來回球/開始懂走位)" }
+            { id: 1, region: "觀塘區", venue: "藍田體育館", playDate: todayISO, courts: 2, hours: 2, fee: 50, hostRating: "4.9", contact: "阿明 91234567", joined: false, maxSlots: 6, currentPlayers: 5, waitingList: [], fpsId: "91234567", paymeLink: "payme.hsbc/阿明_港羽聯", paymentStatus: null, userStatus: 'none', applicantName: null, applicantUid: null, applicantEmail: null, hostUid: null, hostEmail: null, skillLevel: "中級 (擊球穩定/懂雙打跑位)" },
+            { id: 2, region: "沙田區", venue: "源禾路體育館", playDate: tomorrowISO, courts: 1, hours: 2, fee: 45, hostRating: "4.7", contact: "Chris 61234567", joined: false, maxSlots: 6, currentPlayers: 5, waitingList: [], fpsId: "61234567", paymeLink: "payme.hsbc/Chris_港羽聯", paymentStatus: null, userStatus: 'none', applicantName: null, applicantUid: null, applicantEmail: null, hostUid: null, hostEmail: null, skillLevel: "初中級 (有來回球/開始懂走位)" }
         ];
 
         const VENUES_BY_DISTRICT = {
@@ -107,6 +107,10 @@
                 }
 
                 if (!m.skillLevel) m.skillLevel = '不限水平';
+                if (m.applicantUid === undefined) m.applicantUid = null;
+                if (m.applicantEmail === undefined) m.applicantEmail = null;
+                if (m.hostUid === undefined) m.hostUid = null;
+                if (m.hostEmail === undefined) m.hostEmail = null;
 
                 if (m.maxSlots < 1) m.maxSlots = 1;
                 if (m.currentPlayers < 0) m.currentPlayers = 0;
@@ -132,6 +136,7 @@
         let formSelectedRegion = '';
         let formSelectedVenue = '';
         let formSelectedBrand = '';
+        let formSelectedSkillLevel = DEFAULT_SKILL_LEVEL;
         let pendingPaymentMatchId = null;
 
         function getHostPaymentInfo(match) {
@@ -311,6 +316,9 @@
                     { val: PRIVATE_VENUE_VALUE, label: PRIVATE_VENUE_LABEL }
                 ];
             }
+            if (mode === 'skill') {
+                return SKILL_LEVELS.map(s => ({ val: s, label: s }));
+            }
             return SHUTTLE_BRANDS.map(b => ({ val: b, label: b }));
         }
 
@@ -365,18 +373,19 @@
             formSelectedRegion = '';
             formSelectedVenue = '';
             formSelectedBrand = '';
+            formSelectedSkillLevel = DEFAULT_SKILL_LEVEL;
             document.getElementById('form-region').value = '';
             document.getElementById('form-venue').value = '';
             document.getElementById('form-brand').value = '';
+            document.getElementById('form-skill-level').value = DEFAULT_SKILL_LEVEL;
             const maxSlotsInput = document.getElementById('form-maxslots');
             if (maxSlotsInput) maxSlotsInput.value = '6';
             const currentPlayersInput = document.getElementById('form-current-players');
             if (currentPlayersInput) currentPlayersInput.value = '1';
-            const skillLevelInput = document.getElementById('form-skill-level');
-            if (skillLevelInput) skillLevelInput.value = DEFAULT_SKILL_LEVEL;
             document.getElementById('form-region-text').textContent = '請滾動選擇分區';
             document.getElementById('form-venue-text').textContent = '請先選擇分區';
             document.getElementById('form-brand-text').textContent = '請滾動選擇品牌';
+            document.getElementById('form-skill-level-text').textContent = getSkillLevelShortLabel(DEFAULT_SKILL_LEVEL);
             document.getElementById('form-venue-note').value = '';
             document.getElementById('form-shuttle-model').value = '';
             formSelectedDate = todayISO;
@@ -397,14 +406,16 @@
             }
 
             formPickerMode = mode;
-            const titles = { region: '選擇分區', venue: '選擇體育館', brand: '選擇羽毛球品牌' };
+            const titles = { region: '選擇分區', venue: '選擇體育館', brand: '選擇羽毛球品牌', skill: '選擇球技要求' };
             document.getElementById('form-picker-title').textContent = titles[mode];
 
             const scrollTo = mode === 'region'
                 ? (formSelectedRegion || HONG_KONG_18_DISTRICTS[0])
                 : mode === 'venue'
                     ? (formSelectedVenue || (VENUES_BY_DISTRICT[formSelectedRegion] || [])[0])
-                    : (formSelectedBrand || SHUTTLE_BRANDS[0]);
+                    : mode === 'brand'
+                        ? (formSelectedBrand || SHUTTLE_BRANDS[0])
+                        : (formSelectedSkillLevel || DEFAULT_SKILL_LEVEL);
 
             renderFormPickerScroller(mode, scrollTo);
             toggleFormPicker(true);
@@ -446,6 +457,10 @@
                 formSelectedBrand = selected;
                 document.getElementById('form-brand').value = selected;
                 document.getElementById('form-brand-text').textContent = selected;
+            } else if (formPickerMode === 'skill') {
+                formSelectedSkillLevel = selected;
+                document.getElementById('form-skill-level').value = selected;
+                document.getElementById('form-skill-level-text').textContent = getSkillLevelShortLabel(selected);
             }
 
             toggleFormPicker(false);
@@ -621,6 +636,8 @@
             }
 
             const currentUserName = getCurrentUserName();
+            const authUid = window.firebaseAuthUid || null;
+            const authEmail = window.firebaseAuthUser?.email || null;
             if (!Array.isArray(match.waitingList)) match.waitingList = [];
             match.waitingList = match.waitingList.filter(n => n !== currentUserName);
 
@@ -629,6 +646,8 @@
             match.paymentStatus = 'pending_verification';
             match.paymentProofName = file.name;
             match.applicantName = currentUserName;
+            match.applicantUid = authUid;
+            match.applicantEmail = authEmail;
 
             const reader = new FileReader();
             reader.onload = () => {
@@ -661,6 +680,8 @@
             match.paymentProofName = null;
             match.paymentProofDataUrl = null;
             match.applicantName = null;
+            match.applicantUid = null;
+            match.applicantEmail = null;
 
             if (wasVerified) {
                 match.currentPlayers = Math.max(0, Number(match.currentPlayers ?? 0) - 1);
@@ -749,9 +770,13 @@
                 match.paymentStatus = 'verified';
                 match.joined = true;
                 match.currentPlayers = Math.min(maxSlots, Number(match.currentPlayers ?? 0) + 1);
-                currentUser.creditPoints = (currentUser.creditPoints ?? 105) + 5;
-                saveCurrentUser();
-                if (typeof updateProfileUI === 'function') updateProfileUI();
+                if (match.applicantUid && typeof awardCreditPointsForUid === 'function') {
+                    awardCreditPointsForUid(match.applicantUid, 5, match.applicantName || '波友');
+                } else {
+                    currentUser.creditPoints = (currentUser.creditPoints ?? 105) + 5;
+                    saveCurrentUser();
+                    if (typeof updateProfileUI === 'function') updateProfileUI();
+                }
                 alert(`已確認放位！${match.applicantName || '波友'} 正式佔位，信用積分 +5。`);
             } else {
                 match.userStatus = 'none';
@@ -760,6 +785,8 @@
                 match.paymentProofName = null;
                 match.paymentProofDataUrl = null;
                 match.applicantName = null;
+                match.applicantUid = null;
+                match.applicantEmail = null;
                 alert('已拒絕此付款申請。');
             }
 
@@ -846,6 +873,10 @@
                 paymentStatus: null,
                 userStatus: 'none',
                 applicantName: null,
+                applicantUid: null,
+                applicantEmail: null,
+                hostUid: window.firebaseAuthUid || null,
+                hostEmail: window.firebaseAuthUser?.email || null,
                 fpsId: (() => {
                     const contact = document.getElementById('form-contact').value;
                     const phone = contact.match(/\d{8}/);

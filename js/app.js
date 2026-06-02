@@ -45,28 +45,67 @@ let pickerScrollListenerAttached = false;
 /* ---------- 登入用家（Demo） ---------- */
 const CURRENT_USER_STORAGE_KEY = 'uber_badminton_user';
 const CURRENT_USER_NAME_STORAGE_KEY = 'uber_badminton_username';
+const USER_PROFILES_STORAGE_KEY = 'uber_badminton_user_profiles';
 
 let currentUser = { name: '波友_阿強', creditPoints: 105 };
 let isAdminMode = false;
 
-function loadCurrentUser() {
-    const saved = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
-    if (saved) {
-        try {
-            const parsed = JSON.parse(saved);
-            if (parsed && typeof parsed === 'object') {
-                currentUser = { ...currentUser, ...parsed };
-            }
-        } catch (_) { /* ignore */ }
+function getActiveUserProfileKey(authUser) {
+    if (authUser && authUser.uid) return authUser.uid;
+    return 'guest';
+}
+
+function readUserProfiles() {
+    try {
+        return JSON.parse(localStorage.getItem(USER_PROFILES_STORAGE_KEY)) || {};
+    } catch (_) {
+        return {};
     }
+}
+
+function writeUserProfiles(profiles) {
+    localStorage.setItem(USER_PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+}
+
+function loadCurrentUser() {
+    const authUser = window.firebaseAuthUser || null;
+    const profileKey = getActiveUserProfileKey(authUser);
+    const profiles = readUserProfiles();
+    const savedProfile = profiles[profileKey];
+
+    currentUser = { name: '波友_阿強', creditPoints: 105 };
+    if (savedProfile && typeof savedProfile === 'object') {
+        currentUser = { ...currentUser, ...savedProfile };
+    } else {
+        const saved = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed && typeof parsed === 'object') {
+                    currentUser = { ...currentUser, ...parsed };
+                }
+            } catch (_) { /* ignore */ }
+        }
+    }
+
     const legacyName = localStorage.getItem(CURRENT_USER_NAME_STORAGE_KEY);
     if (legacyName && legacyName.trim() && legacyName.trim() !== '我') {
         currentUser.name = legacyName.trim();
+    }
+    if (authUser && authUser.email) {
+        const fallbackPrefix = authUser.email.split('@')[0] || '波友';
+        const displayBase = authUser.displayName || fallbackPrefix;
+        currentUser.name = `波友_${displayBase}`;
     }
     saveCurrentUser();
 }
 
 function saveCurrentUser() {
+    const authUser = window.firebaseAuthUser || null;
+    const profileKey = getActiveUserProfileKey(authUser);
+    const profiles = readUserProfiles();
+    profiles[profileKey] = { ...currentUser };
+    writeUserProfiles(profiles);
     localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(currentUser));
     localStorage.setItem(CURRENT_USER_NAME_STORAGE_KEY, currentUser.name);
 }
@@ -74,6 +113,32 @@ function saveCurrentUser() {
 function getCurrentUserName() {
     return currentUser.name || '波友_阿強';
 }
+
+function handleAuthUserChange(user) {
+    loadCurrentUser();
+    updateProfileUI();
+}
+
+window.handleAuthUserChange = handleAuthUserChange;
+
+function awardCreditPointsForUid(uid, amount = 0, fallbackName = '波友') {
+    if (!uid || !Number.isFinite(amount) || amount === 0) return;
+    const profiles = readUserProfiles();
+    const profile = profiles[uid] && typeof profiles[uid] === 'object'
+        ? profiles[uid]
+        : { name: fallbackName, creditPoints: 105 };
+    profile.creditPoints = Number(profile.creditPoints ?? 105) + amount;
+    profiles[uid] = profile;
+    writeUserProfiles(profiles);
+
+    if (window.firebaseAuthUser && window.firebaseAuthUser.uid === uid) {
+        currentUser = { ...currentUser, ...profile };
+        saveCurrentUser();
+        updateProfileUI();
+    }
+}
+
+window.awardCreditPointsForUid = awardCreditPointsForUid;
 
 function updateProfileUI() {
     const nameEl = document.getElementById('profile-display-name');
