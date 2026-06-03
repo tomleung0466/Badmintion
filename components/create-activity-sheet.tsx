@@ -110,19 +110,19 @@ export function CreateActivitySheet({
     <>
       <Drawer.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-black/40 z-50" />
-          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 mt-24 flex flex-col rounded-t-[20px] bg-card max-h-[92vh]">
-            <div className="flex-1 rounded-t-[20px] bg-card overflow-hidden flex flex-col">
+          <Drawer.Overlay className="fixed inset-0 z-50 bg-[#333333]/20" />
+          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 mt-24 flex max-h-[92vh] flex-col rounded-t-[20px] border-t border-border bg-card">
+            <div className="flex flex-1 flex-col overflow-hidden rounded-t-[20px] bg-card">
               {/* Handle */}
               <div className="mx-auto mt-3 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/20" />
 
               {/* Header */}
-              <div className="px-6 py-4 border-b border-border">
-                <h3 className="text-xl font-bold text-foreground text-center">
+              <div className="border-b border-border px-6 py-5">
+                <h3 className="text-center text-xl font-medium leading-[1.6] tracking-[0.05em] text-foreground">
                   發佈場地
                 </h3>
-                <p className="text-sm text-muted-foreground text-center mt-1">
-                  填寫資料，讓球友加入你的活動
+                <p className="mt-1 text-center text-sm tracking-[0.05em] text-muted-foreground">
+                  填寫資料，讓球友加入你的場次
                 </p>
               </div>
 
@@ -131,13 +131,13 @@ export function CreateActivitySheet({
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {/* District */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-foreground">
+                    <Label className="text-sm font-medium tracking-[0.05em] text-foreground">
                       地區
                     </Label>
                     <button
                       type="button"
                       onClick={() => setShowDistrictPicker(true)}
-                      className="w-full flex items-center justify-between px-4 py-3.5 bg-secondary rounded-xl text-left transition-colors hover:bg-secondary/80"
+                      className="flex w-full items-center justify-between rounded-xl border border-border bg-background px-4 py-3.5 text-left transition-colors hover:bg-secondary"
                     >
                       <span
                         className={
@@ -154,7 +154,7 @@ export function CreateActivitySheet({
 
                   {/* Venue */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-foreground">
+                    <Label className="text-sm font-medium tracking-[0.05em] text-foreground">
                       體育館
                     </Label>
                     <Input
@@ -163,14 +163,14 @@ export function CreateActivitySheet({
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, venue: e.target.value }))
                       }
-                      className="h-12 px-4 bg-secondary border-0 rounded-xl text-foreground placeholder:text-muted-foreground"
+                      className="h-12 rounded-xl border-border bg-background px-4 text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
 
                   {/* Date and Time */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-foreground">
+                      <Label className="text-sm font-medium tracking-[0.05em] text-foreground">
                         日期
                       </Label>
                       <Input
@@ -179,11 +179,11 @@ export function CreateActivitySheet({
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, date: e.target.value }))
                         }
-                        className="h-12 px-4 bg-secondary border-0 rounded-xl text-foreground"
+                        className="h-12 rounded-xl border-border bg-background px-4 text-foreground"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-foreground">
+                      <Label className="text-sm font-medium tracking-[0.05em] text-foreground">
                         時間
                       </Label>
                       <Input
@@ -192,14 +192,14 @@ export function CreateActivitySheet({
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, time: e.target.value }))
                         }
-                        className="h-12 px-4 bg-secondary border-0 rounded-xl text-foreground placeholder:text-muted-foreground"
+                        className="h-12 rounded-xl border-border bg-background px-4 text-foreground placeholder:text-muted-foreground"
                       />
                     </div>
                   </div>
 
                   {/* Shuttlecock */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-foreground">
+                    <Label className="text-sm font-medium tracking-[0.05em] text-foreground">
                       用球
                     </Label>
                     <div className="grid grid-cols-2 gap-2">
@@ -214,10 +214,10 @@ export function CreateActivitySheet({
                                 shuttlecock: option,
                               }))
                             }
-                            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                            className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
                               formData.shuttlecock === option
-                                ? "bg-foreground text-background"
-                                : "bg-secondary text-foreground hover:bg-secondary/80"
+                                ? "border-foreground bg-foreground text-background"
+                                : "border-border bg-background text-foreground hover:bg-secondary"
                             }`}
                           >
                             {option}
@@ -230,7 +230,7 @@ export function CreateActivitySheet({
                   {/* Price and Slots */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-foreground">
+                      <Label className="text-sm font-medium tracking-[0.05em] text-foreground">
                         每人費用
                       </Label>
                       <div className="relative">
@@ -247,12 +247,12 @@ export function CreateActivitySheet({
                               pricePerPerson: e.target.value,
                             }))
                           }
-                          className="h-12 pl-8 pr-4 bg-secondary border-0 rounded-xl text-foreground placeholder:text-muted-foreground"
+                          className="h-12 rounded-xl border-border bg-background pl-8 pr-4 text-foreground placeholder:text-muted-foreground"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-foreground">
+                      <Label className="text-sm font-medium tracking-[0.05em] text-foreground">
                         總人數
                       </Label>
                       <Input
@@ -265,14 +265,14 @@ export function CreateActivitySheet({
                             totalSlots: e.target.value,
                           }))
                         }
-                        className="h-12 px-4 bg-secondary border-0 rounded-xl text-foreground placeholder:text-muted-foreground"
+                        className="h-12 rounded-xl border-border bg-background px-4 text-foreground placeholder:text-muted-foreground"
                       />
                     </div>
                   </div>
 
                   {/* Contact Phone */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-foreground">
+                    <Label className="text-sm font-medium tracking-[0.05em] text-foreground">
                       聯絡電話
                     </Label>
                     <Input
@@ -285,7 +285,7 @@ export function CreateActivitySheet({
                           contactPhone: e.target.value,
                         }))
                       }
-                      className="h-12 px-4 bg-secondary border-0 rounded-xl text-foreground placeholder:text-muted-foreground"
+                      className="h-12 rounded-xl border-border bg-background px-4 text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
 
@@ -294,7 +294,7 @@ export function CreateActivitySheet({
                     <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full h-14 bg-foreground hover:bg-foreground/90 text-background font-bold text-base rounded-xl transition-all disabled:opacity-70"
+                      className="h-14 w-full rounded-xl border border-border bg-secondary text-base font-medium tracking-[0.08em] text-foreground transition-colors hover:bg-[#e9e9e6] disabled:opacity-70"
                     >
                       {isSubmitting ? (
                         <span className="flex items-center gap-2">
@@ -321,7 +321,7 @@ export function CreateActivitySheet({
                           發佈中...
                         </span>
                       ) : (
-                        "發佈活動"
+                        "發佈場次"
                       )}
                     </Button>
                   </div>
@@ -338,15 +338,15 @@ export function CreateActivitySheet({
         onOpenChange={(open) => !open && setShowDistrictPicker(false)}
       >
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-black/40 z-[60]" />
-          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[60] mt-24 flex flex-col rounded-t-[20px] bg-card">
+          <Drawer.Overlay className="fixed inset-0 z-[60] bg-[#333333]/20" />
+          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[60] mt-24 flex flex-col rounded-t-[20px] border-t border-border bg-card">
             <div className="flex-1 rounded-t-[20px] bg-card">
               {/* Handle */}
               <div className="mx-auto mt-3 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/20" />
 
               {/* Header */}
-              <div className="px-6 py-4 border-b border-border">
-                <h3 className="text-lg font-bold text-foreground text-center">
+              <div className="border-b border-border px-6 py-4">
+                <h3 className="text-center text-lg font-medium tracking-[0.05em] text-foreground">
                   選擇地區
                 </h3>
               </div>
@@ -360,10 +360,10 @@ export function CreateActivitySheet({
                       setFormData((prev) => ({ ...prev, district }))
                       setShowDistrictPicker(false)
                     }}
-                    className={`w-full px-6 py-4 text-left transition-colors ${
+                    className={`w-full px-6 py-4 text-left tracking-[0.05em] transition-colors ${
                       formData.district === district
-                        ? "bg-secondary font-semibold text-foreground"
-                        : "text-foreground hover:bg-secondary/50"
+                        ? "bg-secondary font-medium text-foreground"
+                        : "text-foreground hover:bg-secondary"
                     }`}
                   >
                     {district}

@@ -82,24 +82,26 @@ export function DistrictPicker({
   return (
     <Drawer.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 bg-black/40 z-50" />
-        <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 mt-24 flex flex-col rounded-t-[20px] bg-card">
+        <Drawer.Overlay className="fixed inset-0 z-50 bg-[#333333]/20" />
+        <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 mt-24 flex flex-col rounded-t-[20px] border-t border-border bg-card">
           <div className="flex-1 rounded-t-[20px] bg-card">
             {/* Handle */}
             <div className="mx-auto mt-3 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/20" />
             
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <div className="flex items-center justify-between border-b border-border px-6 py-4">
               <button
                 onClick={onClose}
-                className="text-muted-foreground text-base font-medium"
+                className="text-base font-medium tracking-[0.05em] text-muted-foreground transition-colors hover:text-foreground"
               >
                 取消
               </button>
-              <h3 className="text-lg font-bold text-foreground">選擇地區</h3>
+              <h3 className="text-lg font-medium tracking-[0.05em] text-foreground">
+                選擇地區
+              </h3>
               <button
                 onClick={handleConfirm}
-                className="text-emerald font-bold text-base"
+                className="text-base font-medium tracking-[0.05em] text-foreground transition-colors hover:text-muted-foreground"
               >
                 確定
               </button>
@@ -108,7 +110,7 @@ export function DistrictPicker({
             {/* Scroll Picker */}
             <div className="relative h-[240px] overflow-hidden">
               {/* Selection Highlight */}
-              <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-12 bg-secondary rounded-xl pointer-events-none z-0" />
+              <div className="pointer-events-none absolute left-4 right-4 top-1/2 z-0 h-12 -translate-y-1/2 rounded-xl border border-border bg-secondary" />
               
               {/* Gradient Overlays */}
               <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-card to-transparent pointer-events-none z-10" />
@@ -128,9 +130,9 @@ export function DistrictPicker({
                   <button
                     key={district}
                     onClick={() => handleItemClick(index)}
-                    className={`w-full h-12 flex items-center justify-center snap-center transition-all duration-200 ${
+                    className={`flex h-12 w-full snap-center items-center justify-center tracking-[0.05em] transition-all duration-200 ${
                       index === activeIndex
-                        ? "text-foreground text-xl font-bold"
+                        ? "text-xl font-medium text-foreground"
                         : "text-muted-foreground text-base"
                     }`}
                   >

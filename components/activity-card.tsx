@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import type { Activity } from "@/types/activity"
-import { MapPin, Clock, Phone } from "lucide-react"
 
 interface ActivityCardProps {
   activity: Activity
@@ -12,7 +11,6 @@ interface ActivityCardProps {
 export function ActivityCard({ activity, onRegister }: ActivityCardProps) {
   const [isLoading, setIsLoading] = useState(false)
   const isFull = activity.remainingSlots === 0
-  const isAlmostFull = activity.remainingSlots <= 2 && activity.remainingSlots > 0
 
   const handleRegister = async () => {
     if (isFull || isLoading) return
@@ -25,75 +23,53 @@ export function ActivityCard({ activity, onRegister }: ActivityCardProps) {
   }
 
   return (
-    <div className="bg-card rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-border/50">
-      {/* Main Content */}
+    <article className="overflow-hidden rounded-xl border border-border bg-card transition-colors duration-300 hover:bg-[#fcfcfc]">
       <div className="p-5">
-        {/* Top Row: District Tag & Slots */}
-        <div className="flex items-center justify-between mb-3">
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald bg-emerald/10 px-2.5 py-1 rounded-full">
-            <MapPin className="h-3 w-3" />
-            {activity.district}
-          </span>
-          <span
-            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-              isFull
-                ? "bg-destructive/10 text-destructive"
-                : isAlmostFull
-                  ? "bg-amber-500/10 text-amber-600"
-                  : "bg-emerald/10 text-emerald"
-            }`}
-          >
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs tracking-[0.16em] text-muted-foreground">
+              日期時間
+            </p>
+            <h3 className="mt-1 text-lg font-medium leading-[1.6] tracking-[0.05em] text-foreground">
+              {activity.dateTime}
+            </h3>
+          </div>
+          <span className="shrink-0 rounded-full border border-border px-3 py-1 text-xs tracking-[0.08em] text-muted-foreground">
             {isFull ? "已滿額" : `剩餘 ${activity.remainingSlots} 位`}
           </span>
         </div>
 
-        {/* Venue Name */}
-        <h3 className="text-xl font-bold text-foreground mb-4 tracking-tight">
-          {activity.venue}
-        </h3>
+        <dl className="grid gap-3 border-y border-border py-4 text-sm leading-[1.6] tracking-[0.05em]">
+          <div className="flex items-baseline justify-between gap-4">
+            <dt className="text-muted-foreground">地點</dt>
+            <dd className="text-right font-medium text-foreground">
+              {activity.district} · {activity.venue}
+            </dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <dt className="text-muted-foreground">費用</dt>
+            <dd className="font-medium text-foreground">
+              ${activity.pricePerPerson} / 人
+            </dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <dt className="text-muted-foreground">名額</dt>
+            <dd className="font-medium text-foreground">
+              {isFull ? "已滿額" : `剩餘 ${activity.remainingSlots} 位`}
+            </dd>
+          </div>
+        </dl>
 
-        {/* Details */}
-        <div className="space-y-2.5 mb-4">
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4 text-emerald shrink-0" />
-            <span>{activity.dateTime}</span>
-          </div>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <svg
-              className="h-4 w-4 text-emerald shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v12M6 12h12" />
-            </svg>
-            <span>用球：{activity.shuttlecock}</span>
-          </div>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <Phone className="h-4 w-4 text-emerald shrink-0" />
-            <span>{activity.contactPhone}</span>
-          </div>
-        </div>
-
-        {/* Price & Register Row */}
-        <div className="flex items-center justify-between pt-4 border-t border-border">
-          <div>
-            <span className="text-2xl font-bold text-foreground">
-              ${activity.pricePerPerson}
-            </span>
-            <span className="text-sm text-muted-foreground ml-1">/人</span>
-          </div>
+        <div className="pt-5">
           <button
             onClick={handleRegister}
             disabled={isFull || isLoading}
-            className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-200 min-w-[120px] ${
+            className={`w-full rounded-lg border px-6 py-3 text-sm font-medium tracking-[0.08em] transition-colors duration-200 ${
               isFull
-                ? "bg-muted text-muted-foreground cursor-not-allowed"
+                ? "cursor-not-allowed border-border bg-muted text-muted-foreground"
                 : isLoading
-                  ? "bg-foreground text-background"
-                  : "bg-foreground text-background hover:bg-foreground/90 active:scale-95"
+                  ? "border-border bg-secondary text-foreground"
+                  : "border-border bg-secondary text-foreground hover:bg-[#e9e9e6] active:bg-muted"
             }`}
           >
             {isLoading ? (
@@ -128,6 +104,6 @@ export function ActivityCard({ activity, onRegister }: ActivityCardProps) {
           </button>
         </div>
       </div>
-    </div>
+    </article>
   )
 }

@@ -175,10 +175,10 @@
 
         function getCalendarCollapsedLabel(mode) {
             const iso = mode === 'home' ? homeSelectedDate : formSelectedDate;
-            if (mode === 'home' && !iso) return '📅 全部日期';
+            if (mode === 'home' && !iso) return '全部日期';
             const display = formatDateDisplay(iso);
-            if (iso === todayISO) return `📅 ${display}（今日）`;
-            return `📅 ${display}`;
+            if (iso === todayISO) return `${display}（今日）`;
+            return display;
         }
 
         function updateCalendarCollapsedText(mode) {
@@ -485,55 +485,46 @@
 
             filtered.forEach(match => {
                 const card = document.createElement('div');
-                card.className = "bg-gray-50 rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between relative";
+                card.className = "bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]";
                 const maxSlots = Number(match.maxSlots ?? 6);
                 const currentPlayers = Number(match.currentPlayers ?? 0);
                 const waitingList = Array.isArray(match.waitingList) ? match.waitingList : [];
                 const isFull = currentPlayers >= maxSlots;
+                const remainingSlots = Math.max(0, maxSlots - currentPlayers);
                 const currentUserName = getCurrentUserName();
                 const isWaiting = waitingList.includes(currentUserName);
-                const skillLevel = match.skillLevel || '不限水平';
-                const skillShort = getSkillLevelShortLabel(skillLevel);
-                const skillBadgeClass = getSkillLevelBadgeClass(skillLevel);
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
+                    <div class="flex justify-between items-start gap-4 mb-5">
                         <div>
-                            <div class="flex flex-wrap items-center gap-1.5">
-                                <span class="bg-gray-200 text-gray-700 text-[10px] px-2.5 py-0.5 rounded-full font-bold">${match.region}</span>
-                                <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold ${skillBadgeClass}" title="${skillLevel}">🏸 ${skillShort}</span>
-                            </div>
-                            ${match.playDate ? `<p class="text-[10px] text-emerald-600 font-bold mt-1.5">📅 ${formatDateDisplay(match.playDate)}</p>` : ''}
-                            <h4 class="text-base font-bold text-gray-900 mt-1">${match.venue}</h4>
+                            <p class="text-[10px] tracking-[0.18em] text-[#777777]">日期時間</p>
+                            <h4 class="text-base font-medium leading-relaxed tracking-[0.05em] text-[#333333] mt-1">
+                                ${match.playDate ? formatDateDisplay(match.playDate) : '日期待定'} · ${match.hours || 2} 小時
+                            </h4>
                         </div>
-                        <div class="text-right">
-                            <span class="text-sm font-extrabold text-gray-900">HK$ ${match.fee}</span>
-                            <p class="text-[10px] text-amber-500 font-bold mt-1">⭐ ${match.hostRating}</p>
-                        </div>
+                        <span class="shrink-0 rounded-full border border-[#E5E5E5] px-3 py-1 text-[10px] tracking-[0.08em] text-[#777777]">
+                            ${isFull ? '已滿額' : `剩餘 ${remainingSlots} 位`}
+                        </span>
                     </div>
-                    
-                    <!-- 2+2 靈魂術語顯示 -->
-                    <div class="my-3 bg-white border border-gray-100 rounded-xl p-3 flex justify-around text-center shadow-2xs">
-                        <div>
-                            <p class="text-[10px] text-gray-400">規格</p>
-                            <p class="text-sm font-extrabold text-black mt-0.5">${match.courts} + ${match.hours}</p>
+
+                    <div class="border-y border-[#E5E5E5] py-4 space-y-3 text-sm tracking-[0.05em] leading-relaxed">
+                        <div class="flex justify-between gap-4">
+                            <span class="text-[#777777]">地點</span>
+                            <span class="text-right font-medium text-[#333333]">${match.region} · ${match.venue}</span>
                         </div>
-                        <div class="w-px bg-gray-100"></div>
-                        <div>
-                            <p class="text-[10px] text-gray-400">詳情</p>
-                            <p class="text-[11px] font-medium text-gray-600 mt-0.5">${match.courts}個場 / ${match.hours}小時</p>
+                        <div class="flex justify-between gap-4">
+                            <span class="text-[#777777]">費用</span>
+                            <span class="font-medium text-[#333333]">HK$ ${match.fee} / 人</span>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <span class="text-[#777777]">名額</span>
+                            <span class="font-medium text-[#333333]">${isFull ? '已滿額' : `剩餘 ${remainingSlots} 位`}</span>
                         </div>
                     </div>
 
-                    ${match.shuttleBrand ? `<p class="text-[11px] text-gray-500 mb-2">🏸 用球：${match.shuttleBrand} ${match.shuttleModel || ''}</p>` : ''}
-                    <p class="text-[11px] text-gray-400 mb-2">📞 聯絡場主：${match.contact}</p>
-                    <p class="text-[11px] ${isFull ? 'text-gray-600' : 'text-gray-500'} font-bold mb-3">
-                        名額：${isFull ? '已爆滿 ' : ''}${currentPlayers}/${maxSlots} 人
-                    </p>
-
-                    <div class="flex gap-2 flex-wrap">
+                    <div class="flex gap-2 flex-wrap pt-5">
                         <button
                             onclick="bookMatch(${match.id}, this)"
-                            class="flex-1 min-w-[140px] ${(match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') ? 'bg-gray-200 text-gray-400' : 'bg-black text-white'} font-bold py-2.5 rounded-xl text-xs transition shadow-sm"
+                            class="flex-1 min-w-[140px] ${(match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') ? 'bg-[#F4F4F2] text-[#777777]' : 'bg-[#F4F4F2] text-[#333333] hover:bg-[#E9E9E6]'} border border-[#E5E5E5] font-medium py-2.5 rounded-lg text-xs tracking-[0.08em] transition-colors"
                             ${(match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') ? 'disabled' : ''}
                         >
                             ${
@@ -546,8 +537,8 @@
                                         : '確認留位'
                             }
                         </button>
-                        ${(match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') ? `<button onclick="cancelBooking(${match.id})" class="bg-gray-200 text-gray-700 font-bold px-3 py-2.5 rounded-xl text-xs shadow-sm">臨時取消</button>` : ''}
-                        ${match.userStatus === 'verified' ? `<button onclick="rateHost(${match.id})" class="bg-amber-500 text-white font-bold px-3 py-2.5 rounded-xl text-xs shadow-sm min-w-[90px]">⭐ 評分</button>` : ''}
+                        ${(match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') ? `<button onclick="cancelBooking(${match.id})" class="bg-white text-[#333333] border border-[#E5E5E5] font-medium px-3 py-2.5 rounded-lg text-xs tracking-[0.08em]">臨時取消</button>` : ''}
+                        ${match.userStatus === 'verified' ? `<button onclick="rateHost(${match.id})" class="bg-white text-[#333333] border border-[#E5E5E5] font-medium px-3 py-2.5 rounded-lg text-xs tracking-[0.08em] min-w-[90px]">評分</button>` : ''}
                     </div>
                 `;
                 listContainer.appendChild(card);

@@ -3,43 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VibeUp | 波友 - 尋找你的活動玩伴</title>
+    <title>羽毛球場次報名</title>
     <!-- 引入美化畫面的工具 Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-gray-50 min-h-screen flex justify-center text-gray-900 font-sans">
+<body class="bg-[#F9F9F9] min-h-screen flex justify-center text-[#333333] font-sans">
 
     <!-- ==================== App 啟動畫面 (Splash Screen) ==================== -->
-    <div id="splash-screen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black opacity-100 transition-opacity duration-1000 ease-out">
-        <span class="text-7xl mb-6 select-none" aria-hidden="true">✨</span>
-        <p class="text-[10px] text-gray-500 tracking-[0.35em] uppercase font-semibold mb-2">VibeUp</p>
-        <h1 class="text-3xl md:text-4xl font-black text-white tracking-tight text-center px-6">波友</h1>
-        <p class="text-xs text-gray-400 mt-3">尋找你的活動玩伴</p>
+    <div id="splash-screen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white opacity-100 transition-opacity duration-1000 ease-out">
+        <p class="text-[10px] text-[#777777] tracking-[0.35em] uppercase font-medium mb-2">BADMINTON SESSIONS</p>
+        <h1 class="text-3xl md:text-4xl font-medium text-[#333333] tracking-[0.05em] leading-relaxed text-center px-6">羽毛球場次報名</h1>
+        <p class="text-xs text-[#777777] mt-3 tracking-[0.12em]">日期、地點、費用、名額</p>
     </div>
 
     <!-- 手機寬度容器 (Uber 極簡風格) -->
-    <div class="w-full max-w-md bg-white shadow-xl min-h-screen relative flex flex-col border-x border-gray-100">
+    <div class="w-full max-w-md bg-white min-h-screen relative flex flex-col border-x border-[#E5E5E5]">
         
         <!-- ==================== 頁面 1：活動 ==================== -->
         <div id="page-match" class="flex-1 p-5 pb-24">
             <div class="flex items-start justify-between gap-3 mb-2">
                 <div class="min-w-0 flex-1">
-                    <div class="flex items-baseline gap-1.5 flex-wrap">
-                        <span class="text-[11px] font-bold tracking-[0.22em] uppercase text-gray-400">VibeUp</span>
-                        <span class="text-gray-300 text-sm font-light">|</span>
-                        <span class="text-2xl md:text-3xl font-black tracking-tight text-gray-900 leading-none">波友</span>
-                    </div>
-                    <p class="text-xs text-gray-400 mt-1.5">尋找你的活動玩伴</p>
+                    <p class="text-[11px] font-medium tracking-[0.28em] uppercase text-[#777777]">BADMINTON SESSIONS</p>
+                    <h1 class="text-2xl md:text-3xl font-medium tracking-[0.05em] text-[#333333] leading-relaxed">羽毛球場次報名</h1>
+                    <p class="text-xs text-[#777777] mt-1.5 tracking-[0.08em]">只顯示場次所需的清晰資料</p>
                 </div>
                 <div class="shrink-0 text-right">
-                    <button id="loginBtn" type="button" class="bg-black text-white text-[11px] font-bold px-3.5 py-2 rounded-full shadow-sm">
+                    <button id="loginBtn" type="button" class="bg-[#F4F4F2] text-[#333333] border border-[#E5E5E5] text-[11px] font-medium px-3.5 py-2 rounded-full">
                         登入 / 註冊
                     </button>
                     <div id="auth-user-wrap" class="hidden items-center gap-2">
                         <img id="auth-user-avatar" class="w-6 h-6 rounded-full object-cover border border-gray-200 hidden" alt="avatar">
                         <span id="auth-user-email" class="text-[10px] text-gray-600 max-w-[130px] truncate"></span>
-                        <button id="auth-logout-btn" type="button" class="bg-gray-900 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-full shadow-sm">
+                        <button id="auth-logout-btn" type="button" class="bg-[#F4F4F2] text-[#333333] border border-[#E5E5E5] text-[10px] font-medium px-2.5 py-1.5 rounded-full">
                             登出
                         </button>
                     </div>
@@ -47,18 +43,18 @@
             </div>
 
             <!-- 地區篩選 (模擬高級滾筒選擇器按鈕) -->
-            <button onclick="toggleScrollPicker(true)" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center mb-4 shadow-sm">
-                <span id="current-region-text">📍 全港地區 (滾動選擇)</span>
+            <button onclick="toggleScrollPicker(true)" class="w-full bg-white border border-[#E5E5E5] rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center mb-4">
+                <span id="current-region-text">全港場次</span>
                 <span class="text-gray-400">▼</span>
             </button>
 
             <!-- 日期篩選日曆（預設收起，顯示當日） -->
-            <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-6 shadow-sm">
+            <div class="bg-white border border-[#E5E5E5] rounded-xl p-3 mb-6">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-bold text-gray-700">📅 打球日期</span>
-                    <button type="button" id="home-calendar-clear" onclick="clearHomeDateFilter()" class="text-[10px] font-bold text-emerald-600">顯示全部</button>
+                    <span class="text-xs font-medium text-[#333333] tracking-[0.08em]">打球日期</span>
+                    <button type="button" id="home-calendar-clear" onclick="clearHomeDateFilter()" class="text-[10px] font-medium text-[#777777]">顯示全部</button>
                 </div>
-                <button type="button" onclick="toggleCalendarExpand('home')" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center shadow-sm">
+                <button type="button" onclick="toggleCalendarExpand('home')" class="w-full bg-[#F9F9F9] border border-[#E5E5E5] rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center">
                     <span id="home-calendar-collapsed-text"></span>
                     <span id="home-calendar-chevron" class="text-gray-400 text-xs">▼</span>
                 </button>
@@ -81,7 +77,7 @@
             </div>
 
             <!-- 懸浮發佈按鈕 (+) -->
-            <button id="publish-fab-btn" onclick="toggleBottomSheet(true)" class="fixed bottom-24 right-6 bg-black text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-2xl font-light hover:scale-105 active:scale-95 transition-transform z-40">
+            <button id="publish-fab-btn" onclick="toggleBottomSheet(true)" class="fixed bottom-24 right-6 bg-white text-[#333333] border border-[#E5E5E5] w-14 h-14 rounded-full flex items-center justify-center text-2xl font-light transition-colors z-40">
                 ＋
             </button>
         </div>
@@ -152,15 +148,15 @@
                 🛠️ 按此切換至「場主管理模式」
             </button>
 
-            <h1 class="text-3xl font-extrabold tracking-tight mb-1">積分榜</h1>
-            <p class="text-xs text-gray-400 mb-6">個人信用與全港排行</p>
+            <h1 class="text-3xl font-extrabold tracking-[0.05em] mb-1">我的場次</h1>
+            <p class="text-xs text-gray-400 mb-6">個人信用與場次記錄</p>
 
             <!-- 登入用家資料 -->
             <div class="bg-gray-50 rounded-2xl p-5 border border-gray-200 shadow-sm mb-6">
                 <div class="flex items-center gap-4 mb-4">
                     <div id="profile-avatar" class="w-16 h-16 bg-black text-white rounded-full flex items-center justify-center text-xl font-extrabold shadow-md shrink-0">強</div>
                     <div>
-                        <p class="text-[10px] text-gray-400 font-medium">VibeUp 會員</p>
+                        <p class="text-[10px] text-gray-400 font-medium">羽毛球場次會員</p>
                         <h2 id="profile-display-name" class="text-lg font-extrabold text-gray-900">波友_阿強</h2>
                     </div>
                 </div>
@@ -173,7 +169,7 @@
             <!-- 球會大排行 -->
             <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                    <h3 class="text-sm font-extrabold text-gray-900">VibeUp 全港波友信用排行 Top 5</h3>
+                    <h3 class="text-sm font-extrabold text-gray-900">全港波友信用排行 Top 5</h3>
                     <p class="text-[10px] text-gray-400 mt-0.5">按信用積分排序</p>
                 </div>
                 <div class="overflow-x-auto">
@@ -245,7 +241,7 @@
         <!-- ==================== 底部固定導航欄 (Uber風格) ==================== -->
         <footer class="bg-white/90 backdrop-blur border-t border-gray-100 py-2 flex justify-around text-[9px] font-medium text-gray-400 fixed bottom-0 w-full max-w-md z-50 shadow-lg">
             <button id="nav-match" onclick="switchPage('match')" class="text-black flex flex-col items-center gap-0.5 min-w-0 flex-1 px-0.5">
-                <span class="text-base">🏸</span><span>活動</span>
+                <span class="text-base">🏸</span><span>場次</span>
             </button>
             <button id="nav-market" onclick="switchPage('market')" class="hidden flex flex-col items-center gap-0.5 min-w-0 flex-1 px-0.5">
                 <span class="text-base">🛒</span><span>用品交易</span>
@@ -254,7 +250,7 @@
                 <span class="text-base">🎓</span><span>搵教練</span>
             </button>
             <button id="nav-profile" onclick="switchPage('profile')" class="flex flex-col items-center gap-0.5 min-w-0 flex-1 px-0.5">
-                <span class="text-base">📊</span><span class="leading-tight text-center">積分榜/個人</span>
+                <span class="text-base">📊</span><span class="leading-tight text-center">我的場次</span>
             </button>
         </footer>
 
@@ -265,7 +261,7 @@
             <!-- 面板主體 -->
             <div class="bg-white w-full max-w-md rounded-t-2xl p-6 shadow-2xl relative z-10 max-h-[85vh] overflow-y-auto">
                 <div class="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-5"></div>
-                <h3 class="text-xl font-extrabold mb-4">🏸 發佈 VibeUp 活動</h3>
+                <h3 class="text-xl font-medium tracking-[0.05em] mb-4">發佈羽毛球場次</h3>
                 
                 <form onsubmit="handleFormSubmit(event)" class="space-y-4 text-xs">
                     <div>
@@ -357,7 +353,7 @@
                             <input type="text" id="form-contact" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm" required>
                         </div>
                     </div>
-                    <button type="submit" class="w-full bg-black text-white font-bold py-3.5 rounded-xl shadow mt-4 text-sm tracking-wide">
+                    <button type="submit" class="w-full bg-[#F4F4F2] text-[#333333] border border-[#E5E5E5] font-medium py-3.5 rounded-xl mt-4 text-sm tracking-wide">
                         確認發佈
                     </button>
                 </form>
@@ -450,8 +446,8 @@
     <div id="auth-modal" class="hidden fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-5">
         <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl relative">
             <button id="auth-close-btn" type="button" class="absolute top-3 right-3 text-gray-400 text-sm font-bold">✕</button>
-            <h4 id="auth-modal-title" class="text-base font-extrabold mb-1">加入 VibeUp | 波友</h4>
-            <p class="text-[11px] text-gray-400 mb-4">用 Google 帳號登入，綁定你的活動與誠信記錄</p>
+            <h4 id="auth-modal-title" class="text-base font-extrabold mb-1">加入羽毛球場次報名</h4>
+            <p class="text-[11px] text-gray-400 mb-4">用 Google 帳號登入，綁定你的場次與誠信記錄</p>
 
             <p id="auth-error" class="hidden mt-3 text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-2"></p>
 

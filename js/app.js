@@ -196,7 +196,7 @@ function updateWheelHighlight(scrollerId, itemClass) {
     items.forEach(item => {
         const rect = item.getBoundingClientRect();
         const dist = Math.abs(rect.top + rect.height / 2 - centerY);
-        item.classList.remove('text-black', 'font-bold', 'text-base');
+        item.classList.remove('text-gray-800', 'font-medium', 'text-base');
         item.classList.add('text-gray-400');
         if (dist < minDist) {
             minDist = dist;
@@ -206,7 +206,7 @@ function updateWheelHighlight(scrollerId, itemClass) {
 
     if (closest) {
         closest.classList.remove('text-gray-400');
-        closest.classList.add('text-black', 'font-bold', 'text-base');
+        closest.classList.add('text-gray-800', 'font-medium', 'text-base');
     }
 }
 
@@ -256,7 +256,7 @@ function scrollPickerToValue(value) {
 function initRegionPickers() {
     const scroller = document.getElementById('picker-scroller');
     scroller.innerHTML = [
-        { val: 'all', label: '全港地區' },
+        { val: 'all', label: '全港場次' },
         ...HONG_KONG_18_DISTRICTS.map(d => ({ val: d, label: d }))
     ].map(({ val, label }) =>
         `<div class="wheel-item snap-center flex h-10 items-center justify-center text-sm font-medium text-gray-400" data-val="${val}">${label}</div>`
@@ -280,7 +280,7 @@ function confirmPickerRegion() {
     const selected = getPickerSelection();
     currentFilter = selected;
     const label = selected === 'all' ? '全港地區' : selected;
-    document.getElementById('current-region-text').innerHTML = `📍 地區：${label}`;
+    document.getElementById('current-region-text').textContent = `地區：${label}`;
     toggleScrollPicker(false);
     renderMatches();
 }

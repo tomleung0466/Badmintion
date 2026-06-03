@@ -96,14 +96,17 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-background pb-24">
+    <main className="min-h-screen bg-background pb-24 text-foreground">
       {/* Hero Header */}
-      <header className="px-6 pt-12 pb-6">
-        <h1 className="text-4xl font-black text-foreground tracking-tight text-balance">
-          搵波打
+      <header className="px-6 pt-14 pb-8">
+        <p className="mb-3 text-[11px] tracking-[0.28em] text-muted-foreground">
+          BADMINTON SESSIONS
+        </p>
+        <h1 className="text-4xl font-medium tracking-[0.05em] leading-[1.6] text-balance">
+          羽毛球場次報名
         </h1>
-        <p className="text-muted-foreground mt-2 text-base">
-          發現你附近的羽毛球活動
+        <p className="mt-2 text-sm leading-[1.8] tracking-[0.05em] text-muted-foreground">
+          乾淨清晰地查看日期、地點、費用與剩餘名額
         </p>
       </header>
 
@@ -111,12 +114,12 @@ export default function Home() {
       <div className="px-6 pb-6">
         <button
           onClick={() => setIsPickerOpen(true)}
-          className="flex items-center justify-between w-full px-5 py-4 bg-card rounded-2xl border border-border shadow-sm transition-all hover:shadow-md active:scale-[0.99]"
+          className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-secondary active:bg-muted"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald/10 rounded-full flex items-center justify-center">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background">
               <svg
-                className="w-5 h-5 text-emerald"
+                className="h-4 w-4 text-muted-foreground"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -135,8 +138,8 @@ export default function Home() {
               </svg>
             </div>
             <div className="text-left">
-              <p className="text-xs text-muted-foreground">目前地區</p>
-              <p className="text-base font-semibold text-foreground">
+              <p className="text-xs tracking-[0.12em] text-muted-foreground">目前地區</p>
+              <p className="text-base font-medium tracking-[0.05em] text-foreground">
                 {selectedDistrict}
               </p>
             </div>
@@ -147,12 +150,12 @@ export default function Home() {
 
       {/* Activities Count */}
       <div className="px-6 pb-4">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm tracking-[0.05em] text-muted-foreground">
           找到{" "}
-          <span className="font-semibold text-foreground">
+          <span className="font-medium text-foreground">
             {filteredActivities.length}
           </span>{" "}
-          個活動
+          個場次
         </p>
       </div>
 
@@ -162,10 +165,10 @@ export default function Home() {
       {/* Floating Action Button */}
       <button
         onClick={() => setIsSheetOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-foreground text-background rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95 z-40"
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-colors hover:bg-secondary active:bg-muted"
         aria-label="發佈場地"
       >
-        <Plus className="w-7 h-7" strokeWidth={2.5} />
+        <Plus className="h-6 w-6" strokeWidth={1.8} />
       </button>
 
       {/* District Picker */}

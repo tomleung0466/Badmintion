@@ -12,7 +12,7 @@ export function ActivityList({ activities, onRegister }: ActivityListProps) {
   if (activities.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-6">
-        <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mb-4">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-border bg-card">
           <svg
             className="w-8 h-8 text-muted-foreground"
             fill="none"
@@ -27,16 +27,18 @@ export function ActivityList({ activities, onRegister }: ActivityListProps) {
             />
           </svg>
         </div>
-        <p className="text-lg font-semibold text-foreground mb-1">暫無活動</p>
-        <p className="text-sm text-muted-foreground text-center">
-          此地區暫時沒有羽毛球活動
+        <p className="mb-1 text-lg font-medium tracking-[0.05em] text-foreground">
+          暫無場次
+        </p>
+        <p className="text-center text-sm tracking-[0.05em] text-muted-foreground">
+          此地區暫時沒有羽毛球場次
         </p>
       </div>
     )
   }
 
   return (
-    <div className="px-4 space-y-4">
+    <div className="space-y-3 px-5">
       {activities.map((activity) => (
         <ActivityCard
           key={activity.id}
