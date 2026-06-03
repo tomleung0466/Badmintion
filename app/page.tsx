@@ -100,13 +100,13 @@ export default function Home() {
       {/* Hero Header */}
       <header className="px-6 pt-14 pb-8">
         <p className="mb-3 text-[11px] tracking-[0.28em] text-muted-foreground">
-          BADMINTON SESSIONS
+          MATCHING
         </p>
         <h1 className="text-4xl font-medium tracking-[0.05em] leading-[1.6] text-balance">
-          羽毛球場次報名
+          VibeUp
         </h1>
-        <p className="mt-2 text-sm leading-[1.8] tracking-[0.05em] text-muted-foreground">
-          乾淨清晰地查看日期、地點、費用與剩餘名額
+        <p className="text-base font-medium tracking-[0.12em] text-foreground">
+          波友
         </p>
       </header>
 

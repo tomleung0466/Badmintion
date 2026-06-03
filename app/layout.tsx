@@ -7,8 +7,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: '港羽聯 Badminton HK - 羽毛球搵波打',
-  description: '香港羽毛球愛好者的首選平台，輕鬆搵波打、發佈場地、結識球友',
+  title: 'VibeUp 波友 - Badminton Matching',
+  description: 'VibeUp 波友讓香港羽毛球愛好者輕鬆查看場次、報名留位、結識球友',
   generator: 'v0.app',
   icons: {
     icon: [
