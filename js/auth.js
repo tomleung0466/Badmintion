@@ -14,6 +14,13 @@ import {
     signOut,
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAt_w77WsAWdVl6-waXdqtErHlerqUX5-Y",
@@ -31,6 +38,7 @@ try {
 } catch (_) { /* ignore */ }
 
 const auth = getAuth(app);
+const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: "select_account" });
 
@@ -111,6 +119,55 @@ function showWelcomeMessage(user) {
     alert(`歡迎回來，${name}！\n一起在同城搵玩伴、開波上浮 vibe 🏸`);
 }
 
+function buildUserProfile(user) {
+    const fallbackName = user.email?.split("@")[0] || "波友";
+    return {
+        uid: user.uid,
+        displayName: user.displayName || fallbackName,
+        email: user.email || null,
+        photoURL: user.photoURL || null,
+        provider: "google",
+        appName: "VibeUp 波友",
+        recentAttendance: {
+            attended: 3,
+            total: 3,
+            label: "3／3"
+        },
+        updatedAt: serverTimestamp()
+    };
+}
+
+async function ensureUserProfileAndAttendance(user) {
+    if (!user?.uid) return;
+
+    const userRef = doc(db, "users", user.uid);
+    const attendanceRef = doc(db, "users", user.uid, "attendance", "recent");
+    const userSnap = await getDoc(userRef);
+    const now = serverTimestamp();
+
+    await setDoc(
+        userRef,
+        {
+            ...buildUserProfile(user),
+            ...(userSnap.exists() ? {} : { createdAt: now })
+        },
+        { merge: true }
+    );
+
+    await setDoc(
+        attendanceRef,
+        {
+            attended: 3,
+            total: 3,
+            label: "3／3",
+            records: [],
+            updatedAt: now,
+            ...(userSnap.exists() ? {} : { createdAt: now })
+        },
+        { merge: true }
+    );
+}
+
 async function loginWithGoogle() {
     const googleBtn = byId("auth-google-btn");
     const loginBtn = byId("loginBtn");
@@ -173,7 +230,7 @@ function initAuth() {
             setAuthError(mapAuthError(err?.code));
         });
 
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, async user => {
         window.firebaseAuthUid = user ? user.uid : null;
         window.firebaseAuthUser = user
             ? {
@@ -190,6 +247,13 @@ function initAuth() {
         updateAuthHeader(user);
         if (typeof window.handleAuthUserChange === "function") {
             window.handleAuthUserChange(user);
+        }
+        if (user) {
+            try {
+                await ensureUserProfileAndAttendance(user);
+            } catch (err) {
+                console.error("建立用戶檔案或出席紀錄失敗:", err);
+            }
         }
     });
 }
