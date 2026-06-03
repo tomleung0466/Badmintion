@@ -1,5 +1,5 @@
 /**
- * auth.js — Firebase Google 登入（ES Module）
+ * auth.js — VibeUp | 波友：Firebase Google 登入（ES Module）
  * 僅使用 addEventListener，不依賴 HTML onclick。
  * 須於 app.js、matches.js 之後載入。
  */
@@ -105,6 +105,12 @@ function closeAuthModal() {
     }
 }
 
+function showWelcomeMessage(user) {
+    if (!user) return;
+    const name = user.displayName || user.email?.split("@")[0] || "VibeUp 波友";
+    alert(`歡迎回來，${name}！\n一起在同城搵玩伴、開波上浮 vibe 🏸`);
+}
+
 async function loginWithGoogle() {
     const googleBtn = byId("auth-google-btn");
     const loginBtn = byId("loginBtn");
@@ -112,8 +118,9 @@ async function loginWithGoogle() {
         setAuthError("");
         if (googleBtn) googleBtn.disabled = true;
         if (loginBtn) loginBtn.disabled = true;
-        await signInWithPopup(auth, provider);
+        const result = await signInWithPopup(auth, provider);
         closeAuthModal();
+        showWelcomeMessage(result.user);
     } catch (err) {
         if (err?.code === "auth/popup-blocked" || err?.code === "auth/operation-not-supported-in-this-environment") {
             setAuthError("彈窗受限，正在改用 Google 跳轉登入...");
@@ -158,9 +165,13 @@ function bindAuthUI() {
 function initAuth() {
     bindAuthUI();
 
-    getRedirectResult(auth).catch(err => {
-        setAuthError(mapAuthError(err?.code));
-    });
+    getRedirectResult(auth)
+        .then(result => {
+            if (result?.user) showWelcomeMessage(result.user);
+        })
+        .catch(err => {
+            setAuthError(mapAuthError(err?.code));
+        });
 
     onAuthStateChanged(auth, user => {
         window.firebaseAuthUid = user ? user.uid : null;

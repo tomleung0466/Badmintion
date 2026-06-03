@@ -5,8 +5,8 @@
 
 // 預設模擬數據 (包含評分與 2+2)
         let defaultMatches = [
-            { id: 1, region: "觀塘區", venue: "藍田體育館", playDate: todayISO, courts: 2, hours: 2, fee: 50, hostRating: "4.9", contact: "阿明 91234567", joined: false, maxSlots: 6, currentPlayers: 5, waitingList: [], fpsId: "91234567", paymeLink: "payme.hsbc/阿明_港羽聯", paymentStatus: null, userStatus: 'none', applicantName: null, applicantUid: null, applicantEmail: null, hostUid: null, hostEmail: null, skillLevel: "中級 (擊球穩定/懂雙打跑位)" },
-            { id: 2, region: "沙田區", venue: "源禾路體育館", playDate: tomorrowISO, courts: 1, hours: 2, fee: 45, hostRating: "4.7", contact: "Chris 61234567", joined: false, maxSlots: 6, currentPlayers: 5, waitingList: [], fpsId: "61234567", paymeLink: "payme.hsbc/Chris_港羽聯", paymentStatus: null, userStatus: 'none', applicantName: null, applicantUid: null, applicantEmail: null, hostUid: null, hostEmail: null, skillLevel: "初中級 (有來回球/開始懂走位)" }
+            { id: 1, region: "觀塘區", venue: "藍田體育館", playDate: todayISO, courts: 2, hours: 2, fee: 50, hostRating: "4.9", contact: "阿明 91234567", joined: false, maxSlots: 6, currentPlayers: 5, waitingList: [], fpsId: "91234567", paymeLink: "payme.hsbc/阿明_VibeUp", paymentStatus: null, userStatus: 'none', applicantName: null, applicantUid: null, applicantEmail: null, hostUid: null, hostEmail: null, skillLevel: "中級 (擊球穩定/懂雙打跑位)" },
+            { id: 2, region: "沙田區", venue: "源禾路體育館", playDate: tomorrowISO, courts: 1, hours: 2, fee: 45, hostRating: "4.7", contact: "Chris 61234567", joined: false, maxSlots: 6, currentPlayers: 5, waitingList: [], fpsId: "61234567", paymeLink: "payme.hsbc/Chris_VibeUp", paymentStatus: null, userStatus: 'none', applicantName: null, applicantUid: null, applicantEmail: null, hostUid: null, hostEmail: null, skillLevel: "初中級 (有來回球/開始懂走位)" }
         ];
 
         const VENUES_BY_DISTRICT = {
@@ -84,7 +84,7 @@
                     const phone = (m.contact || '').match(/\d{8}/);
                     m.fpsId = phone ? phone[0] : '91234567';
                 }
-                if (!m.paymeLink) m.paymeLink = 'payme.hsbc/港羽聯_demo';
+                if (!m.paymeLink) m.paymeLink = 'payme.hsbc/VibeUp_demo';
 
                 if (!m.userStatus) {
                     if (m.paymentStatus === 'pending_verification') {
@@ -143,7 +143,7 @@
             const phone = (match.contact || '').match(/\d{8}/);
             return {
                 fpsId: match.fpsId || (phone ? phone[0] : '91234567'),
-                paymeLink: match.paymeLink || 'payme.hsbc/港羽聯_demo'
+                paymeLink: match.paymeLink || 'payme.hsbc/VibeUp_demo'
             };
         }
 
@@ -575,12 +575,12 @@
 
             // 已滿額：加入後備名單
             if (match.waitingList.includes(currentUserName)) {
-                alert('你已經加入後備名單（Waiting List）。');
+                alert('你已在後備名單上啦，有位會即刻通知你！');
                 renderMatches();
                 return;
             }
             match.waitingList.push(currentUserName);
-            alert('已加入後備名單（Waiting List）！');
+            alert('已加入後備名單！有位釋放會優先叫你開波 🏸');
             renderMatches();
         }
 
@@ -655,14 +655,14 @@
                 saveMatches();
                 togglePaymentSheet(false);
                 renderMatches();
-                alert('已提交付款截圖，等待場主核實放位。');
+                alert('截圖已送出！等場主確認後你就正式入隊，VibeUp 見 🙌');
             };
             reader.onerror = () => {
                 match.paymentProofDataUrl = null;
                 saveMatches();
                 togglePaymentSheet(false);
                 renderMatches();
-                alert('已提交付款截圖，等待場主核實放位。');
+                alert('截圖已送出！等場主確認後你就正式入隊，VibeUp 見 🙌');
             };
             reader.readAsDataURL(file);
         }
@@ -690,9 +690,9 @@
             if (wasVerified && Array.isArray(match.waitingList) && match.waitingList.length > 0) {
                 match.waitingList.shift();
                 match.currentPlayers = Math.min(Number(match.maxSlots ?? 6), match.currentPlayers + 1);
-                alert('波友取消了！系統已自動將後備名單的第一位波友補上正選！');
+                alert('已釋放名額，後備名單第一位波友自動補位！');
             } else {
-                alert('已取消留位。');
+                alert('已取消留位，期待下次同你開波！');
             }
 
             saveMatches();
@@ -777,7 +777,7 @@
                     saveCurrentUser();
                     if (typeof updateProfileUI === 'function') updateProfileUI();
                 }
-                alert(`已確認放位！${match.applicantName || '波友'} 正式佔位，信用積分 +5。`);
+                alert(`放位成功！${match.applicantName || '波友'} 已加入場次，誠信積分 +5 ✨`);
             } else {
                 match.userStatus = 'none';
                 match.paymentStatus = null;
@@ -787,7 +787,7 @@
                 match.applicantName = null;
                 match.applicantUid = null;
                 match.applicantEmail = null;
-                alert('已拒絕此付款申請。');
+                alert('已拒絕此申請，名額已釋放給其他波友。');
             }
 
             saveMatches();
@@ -799,7 +799,7 @@
         function rateHost(id) {
             let stars = prompt("請為本次活動及場主評分（請輸入 1 至 5 粒星）：", "5");
             if (stars >= 1 && stars <= 5) {
-                alert(`感謝你的 ${stars} 星評價！雙向評分已記錄。如有惡意缺席者，系統將自動加入黑名單。`);
+                alert(`多謝 ${stars} 星好評！你的回饋會幫 VibeUp 波友搵到更靠譜的玩伴 🙌`);
             } else if (stars !== null) {
                 alert("請輸入正確的 1 至 5 數字。");
             }
@@ -884,7 +884,7 @@
                 })(),
                 paymeLink: (() => {
                     const contact = document.getElementById('form-contact').value.trim().split(/\s+/)[0] || '場主';
-                    return `payme.hsbc/${contact}_港羽聯`;
+                    return `payme.hsbc/${contact}_VibeUp`;
                 })()
             };
             matches.unshift(newMatch);
