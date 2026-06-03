@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>港羽聯 - 搵波打</title>
+    <!-- 引入美化畫面的工具 Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex justify-center text-gray-900 font-sans">
+
+    <!-- 手機寬度容器 (Uber 極簡風格) -->
+    <div class="w-full max-w-md bg-white shadow-xl min-h-screen relative flex flex-col border-x border-gray-100">
+        
+        <!-- ==================== 頁面 1：搵波打 ==================== -->
+        <div id="page-match" class="flex-1 p-5 pb-24">
+            <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-2">港羽聯 - 搵波打</h1>
+            <p class="text-xs text-gray-400 mb-6">羽毛球同好會</p>
+
+            <!-- 地區篩選 (模擬高級滾筒選擇器按鈕) -->
+            <button onclick="toggleScrollPicker(true)" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center mb-6 shadow-sm">
+                <span id="current-region-text">📍 全港地區 (滾動選擇)</span>
+                <span class="text-gray-400">▼</span>
+            </button>
+
+            <!-- 活動列表 -->
+            <div id="matches-list" class="space-y-4">
+                <!-- 資料會由 JavaScript 自動生成 -->
+            </div>
+
+            <!-- 懸浮發佈按鈕 (+) -->
+            <button onclick="toggleBottomSheet(true)" class="fixed bottom-24 right-6 bg-black text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-2xl font-light hover:scale-105 active:scale-95 transition-transform z-40">
+                ＋
+            </button>
+        </div>
+
+        <!-- ==================== 頁面 2：二手交易 ==================== -->
+        <div id="page-market" class="hidden flex-1 p-5 pb-24">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight mb-1">用品交易</h1>
+                    <p class="text-xs text-gray-400">球友二手市集</p>
+                </div>
+                <button onclick="alert('發佈用品功能開發中！')" class="bg-black text-white text-xs font-bold px-4 py-2 rounded-full shadow">
+                    + 賣野
+                </button>
+            </div>
+            
+            <!-- 商品網格 -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-gray-50 rounded-xl p-3 border border-gray-100 shadow-sm">
+                    <div class="w-full h-28 bg-gray-200 rounded-lg mb-2 flex items-center justify-center text-gray-400 text-xs">📷 拍面相片</div>
+                    <h4 class="font-bold text-xs">Yonex Astrox 88D Pro</h4>
+                    <p class="text-[10px] text-gray-400 my-1">新舊：95%新 (少瑕疵)</p>
+                    <div class="flex justify-between items-center mt-2">
+                        <span class="text-xs font-extrabold text-emerald-600">HK$ 850</span>
+                        <span class="text-[9px] bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">旺角交收</span>
+                    </div>
+                </div>
+                <div class="bg-gray-50 rounded-xl p-3 border border-gray-100 shadow-sm">
+                    <div class="w-full h-28 bg-gray-200 rounded-lg mb-2 flex items-center justify-center text-gray-400 text-xs">📷 鞋面相片</div>
+                    <h4 class="font-bold text-xs">Lining 羽毛球鞋 (Size 42)</h4>
+                    <p class="text-[10px] text-gray-400 my-1">新舊：90%新 (只著過兩次)</p>
+                    <div class="flex justify-between items-center mt-2">
+                        <span class="text-xs font-extrabold text-emerald-600">HK$ 300</span>
+                        <span class="text-[9px] bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">沙田交收</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 頁面 3：搵教練 ==================== -->
+        <div id="page-coach" class="hidden flex-1 p-5 pb-24">
+            <h1 class="text-3xl font-extrabold tracking-tight mb-2">搵教練</h1>
+            <p class="text-xs text-gray-400 mb-6">星級導師專區</p>
+
+            <div class="space-y-3">
+                <!-- 教練 1 -->
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-bold text-sm shadow">陳Sir</div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-bold text-sm">陳大文 教練</h4>
+                            <span class="text-xs text-amber-500">⭐ 5.0 (32)</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-0.5">資歷：前香港青年隊代表 / 8年教學經驗</p>
+                        <p class="text-[11px] text-gray-500 mt-1">📍 地區：九龍區、將軍澳</p>
+                        <div class="flex justify-between items-center mt-3 pt-2 border-t border-gray-200/50">
+                            <span class="text-xs font-extrabold text-gray-700">HK$ 350 / 小時</span>
+                            <button onclick="alert('正在啟動 WhatsApp 聯絡教練...')" class="bg-emerald-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow">WhatsApp 預約</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 底部固定導航欄 (Uber風格) ==================== -->
+        <footer class="bg-white/90 backdrop-blur border-t border-gray-100 py-3 flex justify-around text-[10px] font-medium text-gray-400 fixed bottom-0 w-full max-w-md z-50 shadow-lg">
+            <button id="nav-match" onclick="switchPage('match')" class="text-black flex flex-col items-center gap-1">
+                <span class="text-lg">🏸</span><span>搵波打</span>
+            </button>
+            <button id="nav-market" onclick="switchPage('market')" class="flex flex-col items-center gap-1">
+                <span class="text-lg">🛒</span><span>用品交易</span>
+            </button>
+            <button id="nav-coach" onclick="switchPage('coach')" class="flex flex-col items-center gap-1">
+                <span class="text-lg">🎓</span><span>搵教練</span>
+            </button>
+        </footer>
+
+        <!-- ==================== 彈出層 A：底部滑出發佈面板 (Bottom Sheet) ==================== -->
+        <div id="bottom-sheet" class="hidden fixed inset-0 bg-black/40 z-50 flex items-end justify-center transition-opacity">
+            <!-- 點擊背景關閉 -->
+            <div class="absolute inset-0" onclick="toggleBottomSheet(false)"></div>
+            <!-- 面板主體 -->
+            <div class="bg-white w-full max-w-md rounded-t-2xl p-6 shadow-2xl relative z-10 max-h-[85vh] overflow-y-auto">
+                <div class="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-5"></div>
+                <h3 class="text-xl font-extrabold mb-4">🏸 發佈羽毛球場</h3>
+                
+                <form onsubmit="handleFormSubmit(event)" class="space-y-4 text-xs">
+                    <div>
+                        <label class="block text-gray-500 mb-1 font-medium">選擇香港具體分區</label>
+                        <button type="button" onclick="openFormPicker('region')" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center">
+                            <span id="form-region-text">請滾動選擇分區</span>
+                            <span class="text-gray-400">▼</span>
+                        </button>
+                        <input type="hidden" id="form-region" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-500 mb-1 font-medium">體育館名稱</label>
+                        <button type="button" id="form-venue-btn" onclick="openFormPicker('venue')" disabled class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center opacity-50 cursor-not-allowed">
+                            <span id="form-venue-text">請先選擇分區</span>
+                            <span class="text-gray-400">▼</span>
+                        </button>
+                        <input type="hidden" id="form-venue" required>
+                    </div>
+                    <div id="venue-note-wrap" class="hidden">
+                        <label class="block text-gray-500 mb-1 font-medium">備註 / 具體地點</label>
+                        <input type="text" id="form-venue-note" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-gray-500 mb-1 font-medium">羽毛球品牌</label>
+                        <button type="button" onclick="openFormPicker('brand')" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center">
+                            <span id="form-brand-text">請滾動選擇品牌</span>
+                            <span class="text-gray-400">▼</span>
+                        </button>
+                        <input type="hidden" id="form-brand" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-500 mb-1 font-medium">羽毛球型號</label>
+                        <input type="text" id="form-shuttle-model" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-gray-500 mb-1 font-medium">場地數目 (面)</label>
+                            <input type="number" id="form-courts" min="1" step="1" inputmode="numeric" pattern="[0-9]*" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-500 mb-1 font-medium">打波時數 (小時)</label>
+                            <input type="number" id="form-hours" min="1" step="1" inputmode="numeric" pattern="[0-9]*" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm" required>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-gray-500 mb-1 font-medium">每人費用 (HK$)</label>
+                            <input type="number" id="form-fee" min="0" step="1" inputmode="numeric" pattern="[0-9]*" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-500 mb-1 font-medium">聯絡人名字/電話</label>
+                            <input type="text" id="form-contact" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-black text-white font-bold py-3.5 rounded-xl shadow mt-4 text-sm tracking-wide">
+                        確認發佈
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ==================== 彈出層 B：發佈表單滾筒選擇器 ==================== -->
+        <div id="form-picker" class="hidden fixed inset-0 bg-black/40 z-[60] flex items-end justify-center">
+            <div class="absolute inset-0" onclick="toggleFormPicker(false)"></div>
+            <div class="bg-white w-full max-w-md rounded-t-2xl shadow-2xl relative z-10">
+                <div class="flex justify-between items-center px-5 py-4 border-b border-gray-100">
+                    <button type="button" onclick="toggleFormPicker(false)" class="text-sm text-gray-400">取消</button>
+                    <span id="form-picker-title" class="font-bold text-sm">選擇</span>
+                    <button type="button" onclick="confirmFormPicker()" class="text-sm font-bold text-emerald-600">完成</button>
+                </div>
+                <div class="relative">
+                    <div class="pointer-events-none absolute inset-x-4 top-1/2 z-10 h-10 -translate-y-1/2 rounded-lg border-y border-emerald-200 bg-emerald-50/30"></div>
+                    <div id="form-picker-scroller" class="h-56 max-h-[45vh] overflow-y-auto overscroll-contain snap-y snap-mandatory scroll-smooth py-[calc(50%-1.25rem)] text-center"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 彈出層 C：首頁地區滾筒選擇器 ==================== -->
+        <div id="scroll-picker" class="hidden fixed inset-0 bg-black/40 z-50 flex items-end justify-center">
+            <div class="absolute inset-0" onclick="toggleScrollPicker(false)"></div>
+            <div class="bg-white w-full max-w-md rounded-t-2xl shadow-2xl relative z-10">
+                <div class="flex justify-between items-center px-5 py-4 border-b border-gray-100">
+                    <button onclick="toggleScrollPicker(false)" class="text-sm text-gray-400">取消</button>
+                    <span class="font-bold text-sm">選擇地區</span>
+                    <button onclick="confirmPickerRegion()" class="text-sm font-bold text-emerald-600">完成</button>
+                </div>
+                <!-- 滾筒滾動區域（十八區 + 全港） -->
+                <div class="relative">
+                    <div class="pointer-events-none absolute inset-x-4 top-1/2 z-10 h-10 -translate-y-1/2 rounded-lg border-y border-emerald-200 bg-emerald-50/30"></div>
+                    <div id="picker-scroller" class="h-64 max-h-[50vh] overflow-y-auto overscroll-contain snap-y snap-mandatory scroll-smooth py-[calc(50%-1.25rem)] text-center"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==================== 核心智慧邏輯 (JavaScript) ==================== -->
+    <script>
+        // 預設模擬數據 (包含評分與 2+2)
+        let defaultMatches = [
+            { id: 1, region: "觀塘區", venue: "藍田體育館", courts: 2, hours: 2, fee: 50, hostRating: "4.9", contact: "阿明 91234567", joined: false },
+            { id: 2, region: "沙田區", venue: "源禾路體育館", courts: 1, hours: 2, fee: 45, hostRating: "4.7", contact: "Chris 61234567", joined: false }
+        ];
+
+        const HONG_KONG_18_DISTRICTS = [
+            '中西區', '東區', '南區', '灣仔區',
+            '油尖旺區', '深水埗區', '九龍城區', '黃大仙區', '觀塘區',
+            '荃灣區', '葵青區', '屯門區', '元朗區', '北區',
+            '大埔區', '沙田區', '西貢區', '離島區'
+        ];
+
+        const VENUES_BY_DISTRICT = {
+            '中西區': ['士美非路體育館', '中山紀念公園體育館', '上環體育館', '石塘咀體育館', '香港公園體育館'],
+            '東區': ['柴灣體育館', '港島東體育館', '渣華道體育館', '鰂魚涌體育館', '西灣河體育館', '小西灣體育館'],
+            '南區': ['黃竹坑體育館', '赤柱體育館', '鴨脷洲體育館', '香港仔體育館', '漁光道體育館'],
+            '灣仔區': ['黃泥涌體育館', '駱克道體育館', '港灣道體育館'],
+            '油尖旺區': ['花園街體育館', '官涌體育館', '大角咀體育館', '界限街一號體育館', '九龍公園體育館', '界限街二號體育館'],
+            '深水埗區': ['北河街體育館', '深水埗體育館', '石硤尾公園體育館', '保安道體育館', '荔枝角公園體育館', '長沙灣體育館'],
+            '黃大仙區': ['牛池灣體育館', '摩士公園體育館', '東啟德體育館', '蒲崗村道體育館', '竹園體育館', '彩虹道體育館', '彩虹道羽毛球中心'],
+            '九龍城區': ['佛光街體育館', '土瓜灣體育館', '九龍城體育館', '紅磡市政大廈體育館'],
+            '觀塘區': ['瑞和街體育館', '順利邨體育館', '牛頭角道體育館', '振華道體育館', '鯉魚門體育館', '曉光街體育館', '彩榮路體育館', '九龍灣體育館', '藍田(南)體育館'],
+            '葵青區': ['北葵涌鄧肇堅體育館', '林士德體育館', '楓樹窩體育館', '大窩口體育館', '青衣體育館', '青衣西南體育館', '長發體育館', '荔景體育館'],
+            '荃灣區': ['荃灣體育館', '蕙荃體育館', '荃灣西約體育館', '荃景圍體育館', '楊屋道體育館'],
+            '屯門區': ['友愛體育館', '兆麟體育館', '大興體育館', '良田體育館', '賽馬會屯門蝴蝶灣體育館'],
+            '元朗區': ['元朗體育館', '天暉路體育館', '屏山天水圍體育館', '天瑞體育館', '天水圍體育館', '鳳琴街體育館'],
+            '沙田區': ['車公廟體育館', '圓洲角體育館', '源禾路體育館', '恆安體育館', '美林體育館', '馬鞍山體育館', '顯徑體育館'],
+            '大埔區': ['太和體育館', '大埔體育館', '大埔墟體育館', '富亨體育館', '東昌街體育館', '富善體育館'],
+            '北區': ['保榮路體育館', '天平體育館', '龍琛路體育館', '和興體育館'],
+            '西貢區': ['翠林體育館', '將軍澳體育館', '坑口體育館', '調景嶺體育館', '香港單車館', '寶林體育館'],
+            '離島區': ['梅窩體育館', '坪洲體育館', '海傍街體育館', '長洲體育館', '東涌文東路體育館']
+        };
+
+        const PRIVATE_VENUE_VALUE = '__private_other__';
+        const PRIVATE_VENUE_LABEL = '🏢 私人會所 / 學校 / 其他地方';
+        const SHUTTLE_BRANDS = ['RSL', 'YY', 'VICTOR', 'LI-NING'];
+
+        let matches = JSON.parse(localStorage.getItem('uber_badminton_matches')) || defaultMatches;
+        let currentFilter = 'all';
+        let pickerScrollListenerAttached = false;
+        let formPickerScrollListenerAttached = false;
+        let formPickerMode = 'region';
+        let formSelectedRegion = '';
+        let formSelectedVenue = '';
+        let formSelectedBrand = '';
+
+        function initRegionPickers() {
+            const scroller = document.getElementById('picker-scroller');
+            scroller.innerHTML = [
+                { val: 'all', label: '全港地區' },
+                ...HONG_KONG_18_DISTRICTS.map(d => ({ val: d, label: d }))
+            ].map(({ val, label }) =>
+                `<div class="wheel-item snap-center flex h-10 items-center justify-center text-sm font-medium text-gray-400" data-val="${val}">${label}</div>`
+            ).join('');
+        }
+
+        function updateWheelHighlight(scrollerId, itemClass) {
+            const scroller = document.getElementById(scrollerId);
+            const items = scroller.querySelectorAll('.' + itemClass);
+            const centerY = scroller.getBoundingClientRect().top + scroller.clientHeight / 2;
+            let closest = null;
+            let minDist = Infinity;
+
+            items.forEach(item => {
+                const rect = item.getBoundingClientRect();
+                const dist = Math.abs(rect.top + rect.height / 2 - centerY);
+                item.classList.remove('text-black', 'font-bold', 'text-base');
+                item.classList.add('text-gray-400');
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = item;
+                }
+            });
+
+            if (closest) {
+                closest.classList.remove('text-gray-400');
+                closest.classList.add('text-black', 'font-bold', 'text-base');
+            }
+        }
+
+        function getWheelSelection(scrollerId, itemClass, fallback) {
+            const scroller = document.getElementById(scrollerId);
+            const items = scroller.querySelectorAll('.' + itemClass);
+            if (!items.length) return fallback;
+
+            const centerY = scroller.getBoundingClientRect().top + scroller.clientHeight / 2;
+            let closest = items[0];
+            let minDist = Infinity;
+
+            items.forEach(item => {
+                const rect = item.getBoundingClientRect();
+                const dist = Math.abs(rect.top + rect.height / 2 - centerY);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = item;
+                }
+            });
+
+            return closest ? closest.dataset.val : fallback;
+        }
+
+        function scrollWheelToValue(scrollerId, itemClass, value) {
+            const scroller = document.getElementById(scrollerId);
+            const target = scroller.querySelector(`.${itemClass}[data-val="${CSS.escape(value)}"]`) || scroller.querySelector('.' + itemClass);
+            if (!target) return;
+
+            const offset = target.offsetTop - (scroller.clientHeight - target.offsetHeight) / 2;
+            scroller.scrollTop = offset;
+            updateWheelHighlight(scrollerId, itemClass);
+        }
+
+        function updatePickerHighlight() {
+            updateWheelHighlight('picker-scroller', 'wheel-item');
+        }
+
+        function getPickerSelection() {
+            return getWheelSelection('picker-scroller', 'wheel-item', 'all');
+        }
+
+        function scrollPickerToValue(value) {
+            scrollWheelToValue('picker-scroller', 'wheel-item', value);
+        }
+
+        function buildFormPickerItems(mode) {
+            if (mode === 'region') {
+                return HONG_KONG_18_DISTRICTS.map(d => ({ val: d, label: d }));
+            }
+            if (mode === 'venue') {
+                const venues = VENUES_BY_DISTRICT[formSelectedRegion] || [];
+                return [
+                    ...venues.map(v => ({ val: v, label: v })),
+                    { val: PRIVATE_VENUE_VALUE, label: PRIVATE_VENUE_LABEL }
+                ];
+            }
+            return SHUTTLE_BRANDS.map(b => ({ val: b, label: b }));
+        }
+
+        function renderFormPickerScroller(mode, scrollTo) {
+            const scroller = document.getElementById('form-picker-scroller');
+            const items = buildFormPickerItems(mode);
+            scroller.innerHTML = items.map(({ val, label }) =>
+                `<div class="form-wheel-item snap-center flex h-10 items-center justify-center px-3 text-sm font-medium text-gray-400" data-val="${val}">${label}</div>`
+            ).join('');
+
+            const initial = scrollTo || items[0]?.val;
+            if (initial) {
+                requestAnimationFrame(() => scrollWheelToValue('form-picker-scroller', 'form-wheel-item', initial));
+            }
+        }
+
+        function updateVenueFieldState() {
+            const venueBtn = document.getElementById('form-venue-btn');
+            const venueText = document.getElementById('form-venue-text');
+            const venueInput = document.getElementById('form-venue');
+            const hasRegion = !!formSelectedRegion;
+
+            venueBtn.disabled = !hasRegion;
+            venueBtn.classList.toggle('opacity-50', !hasRegion);
+            venueBtn.classList.toggle('cursor-not-allowed', !hasRegion);
+
+            if (!hasRegion) {
+                venueText.textContent = '請先選擇分區';
+                venueInput.value = '';
+                formSelectedVenue = '';
+                handleVenueSelectionChange();
+            } else if (!formSelectedVenue) {
+                venueText.textContent = '請滾動選擇體育館';
+            }
+        }
+
+        function handleVenueSelectionChange() {
+            const venueInput = document.getElementById('form-venue');
+            const venueNoteWrap = document.getElementById('venue-note-wrap');
+            const venueNoteInput = document.getElementById('form-venue-note');
+            const isPrivateVenue = venueInput.value === PRIVATE_VENUE_VALUE;
+
+            venueNoteWrap.classList.toggle('hidden', !isPrivateVenue);
+            venueNoteInput.required = isPrivateVenue;
+
+            if (!isPrivateVenue) {
+                venueNoteInput.value = '';
+            }
+        }
+
+        function resetPublishForm() {
+            formSelectedRegion = '';
+            formSelectedVenue = '';
+            formSelectedBrand = '';
+            document.getElementById('form-region').value = '';
+            document.getElementById('form-venue').value = '';
+            document.getElementById('form-brand').value = '';
+            document.getElementById('form-region-text').textContent = '請滾動選擇分區';
+            document.getElementById('form-venue-text').textContent = '請先選擇分區';
+            document.getElementById('form-brand-text').textContent = '請滾動選擇品牌';
+            document.getElementById('form-venue-note').value = '';
+            document.getElementById('form-shuttle-model').value = '';
+            updateVenueFieldState();
+        }
+
+        function openFormPicker(mode) {
+            if (mode === 'venue' && !formSelectedRegion) {
+                alert('請先選擇香港具體分區');
+                return;
+            }
+
+            formPickerMode = mode;
+            const titles = { region: '選擇分區', venue: '選擇體育館', brand: '選擇羽毛球品牌' };
+            document.getElementById('form-picker-title').textContent = titles[mode];
+
+            const scrollTo = mode === 'region'
+                ? (formSelectedRegion || HONG_KONG_18_DISTRICTS[0])
+                : mode === 'venue'
+                    ? (formSelectedVenue || (VENUES_BY_DISTRICT[formSelectedRegion] || [])[0])
+                    : (formSelectedBrand || SHUTTLE_BRANDS[0]);
+
+            renderFormPickerScroller(mode, scrollTo);
+            toggleFormPicker(true);
+        }
+
+        function toggleFormPicker(show) {
+            document.getElementById('form-picker').classList.toggle('hidden', !show);
+            const scroller = document.getElementById('form-picker-scroller');
+
+            if (show) {
+                if (!formPickerScrollListenerAttached) {
+                    scroller.addEventListener('scroll', () => updateWheelHighlight('form-picker-scroller', 'form-wheel-item'), { passive: true });
+                    formPickerScrollListenerAttached = true;
+                }
+            }
+        }
+
+        function confirmFormPicker() {
+            const selected = getWheelSelection('form-picker-scroller', 'form-wheel-item', '');
+
+            if (formPickerMode === 'region') {
+                if (selected !== formSelectedRegion) {
+                    formSelectedRegion = selected;
+                    document.getElementById('form-region').value = selected;
+                    document.getElementById('form-region-text').textContent = selected;
+                    formSelectedVenue = '';
+                    document.getElementById('form-venue').value = '';
+                    document.getElementById('form-venue-text').textContent = '請滾動選擇體育館';
+                    handleVenueSelectionChange();
+                }
+                updateVenueFieldState();
+            } else if (formPickerMode === 'venue') {
+                formSelectedVenue = selected;
+                document.getElementById('form-venue').value = selected;
+                document.getElementById('form-venue-text').textContent =
+                    selected === PRIVATE_VENUE_VALUE ? PRIVATE_VENUE_LABEL : selected;
+                handleVenueSelectionChange();
+            } else if (formPickerMode === 'brand') {
+                formSelectedBrand = selected;
+                document.getElementById('form-brand').value = selected;
+                document.getElementById('form-brand-text').textContent = selected;
+            }
+
+            toggleFormPicker(false);
+        }
+
+        // 渲染搵波打列表
+        function renderMatches() {
+            const listContainer = document.getElementById('matches-list');
+            listContainer.innerHTML = '';
+            const filtered = currentFilter === 'all' ? matches : matches.filter(m => m.region === currentFilter);
+
+            if(filtered.length === 0) {
+                listContainer.innerHTML = `<div class="text-center py-12 text-gray-400 text-xs">該區域暫時沒有開場。</div>`;
+                return;
+            }
+
+            filtered.forEach(match => {
+                const card = document.createElement('div');
+                card.className = "bg-gray-50 rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between relative";
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="bg-gray-200 text-gray-700 text-[10px] px-2.5 py-0.5 rounded-full font-bold">${match.region}</span>
+                            <h4 class="text-base font-bold text-gray-900 mt-2">${match.venue}</h4>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm font-extrabold text-gray-900">HK$ ${match.fee}</span>
+                            <p class="text-[10px] text-amber-500 font-bold mt-1">⭐ ${match.hostRating}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 2+2 靈魂術語顯示 -->
+                    <div class="my-3 bg-white border border-gray-100 rounded-xl p-3 flex justify-around text-center shadow-2xs">
+                        <div>
+                            <p class="text-[10px] text-gray-400">規格</p>
+                            <p class="text-sm font-extrabold text-black mt-0.5">${match.courts} + ${match.hours}</p>
+                        </div>
+                        <div class="w-px bg-gray-100"></div>
+                        <div>
+                            <p class="text-[10px] text-gray-400">詳情</p>
+                            <p class="text-[11px] font-medium text-gray-600 mt-0.5">${match.courts}個場 / ${match.hours}小時</p>
+                        </div>
+                    </div>
+
+                    ${match.shuttleBrand ? `<p class="text-[11px] text-gray-500 mb-2">🏸 用球：${match.shuttleBrand} ${match.shuttleModel || ''}</p>` : ''}
+                    <p class="text-[11px] text-gray-400 mb-4">📞 聯絡場主：${match.contact}</p>
+
+                    <div class="flex gap-2">
+                        <button onclick="bookMatch(${match.id}, this)" class="flex-1 ${match.joined ? 'bg-gray-200 text-gray-400':'bg-black text-white'} font-bold py-2.5 rounded-xl text-xs transition shadow-sm">
+                            ${match.joined ? '✓ 已預留學位' : '確認留位'}
+                        </button>
+                        ${match.joined ? `<button onclick="rateHost(${match.id})" class="bg-amber-500 text-white font-bold px-3 py-2.5 rounded-xl text-xs shadow-sm">⭐ 評分</button>` : ''}
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+            localStorage.setItem('uber_badminton_matches', JSON.stringify(matches));
+        }
+
+        // 預留位置功能 (帶有流暢動畫效果)
+        function bookMatch(id, btn) {
+            const match = matches.find(m => m.id === id);
+            if (match && !match.joined) {
+                btn.innerHTML = "正在向場主申請...";
+                setTimeout(() => {
+                    match.joined = true;
+                    alert(`🎉 成功預留位置！\n請即聯絡場主：${match.contact}\n活動結束後記得給予場主評分。`);
+                    renderMatches();
+                }, 800);
+            }
+        }
+
+        // 模擬五星評分制度
+        function rateHost(id) {
+            let stars = prompt("請為本次活動及場主評分（請輸入 1 至 5 粒星）：", "5");
+            if (stars >= 1 && stars <= 5) {
+                alert(`感謝你的 ${stars} 星評價！雙向評分已記錄。如有惡意缺席者，系統將自動加入黑名單。`);
+            } else if (stars !== null) {
+                alert("請輸入正確的 1 至 5 數字。");
+            }
+        }
+
+        // 處理新場地發佈表格
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const region = document.getElementById('form-region').value;
+            const venueValue = document.getElementById('form-venue').value;
+            const venueNoteInput = document.getElementById('form-venue-note');
+            const shuttleModel = document.getElementById('form-shuttle-model').value.trim();
+
+            if (!region) {
+                alert('請先選擇香港具體分區');
+                return;
+            }
+            if (!venueValue) {
+                alert('請選擇體育館名稱');
+                return;
+            }
+
+            const isPrivateVenue = venueValue === PRIVATE_VENUE_VALUE;
+            const finalVenue = isPrivateVenue ? venueNoteInput.value.trim() : venueValue;
+
+            if (isPrivateVenue && !finalVenue) {
+                alert('請填寫「備註 / 具體地點」');
+                venueNoteInput.focus();
+                return;
+            }
+            if (!document.getElementById('form-brand').value) {
+                alert('請選擇羽毛球品牌');
+                return;
+            }
+            if (!shuttleModel) {
+                alert('請填寫羽毛球型號');
+                return;
+            }
+
+            const newMatch = {
+                id: Date.now(),
+                region,
+                venue: finalVenue,
+                courts: parseInt(document.getElementById('form-courts').value) || 1,
+                hours: parseInt(document.getElementById('form-hours').value) || 2,
+                fee: parseInt(document.getElementById('form-fee').value) || 50,
+                hostRating: "5.0",
+                contact: document.getElementById('form-contact').value,
+                shuttleBrand: document.getElementById('form-brand').value,
+                shuttleModel,
+                joined: false
+            };
+            matches.unshift(newMatch);
+            toggleBottomSheet(false);
+            event.target.reset();
+            resetPublishForm();
+            renderMatches();
+        }
+
+        // 分頁切換邏輯
+        function switchPage(pageId) {
+            ['match', 'market', 'coach'].forEach(p => {
+                document.getElementById(`page-${p}`).classList.add('hidden');
+                document.getElementById(`nav-${p}`).classList.remove('text-black');
+            });
+            document.getElementById(`page-${pageId}`).classList.remove('hidden');
+            document.getElementById(`nav-${pageId}`).classList.add('text-black');
+        }
+
+        // 底部面板顯示開關
+        function toggleBottomSheet(show) {
+            document.getElementById('bottom-sheet').classList.toggle('hidden', !show);
+            if (show) {
+                resetPublishForm();
+            }
+        }
+
+        // 滾筒選擇器顯示開關
+        function toggleScrollPicker(show) {
+            document.getElementById('scroll-picker').classList.toggle('hidden', !show);
+            const scroller = document.getElementById('picker-scroller');
+
+            if (show) {
+                if (!pickerScrollListenerAttached) {
+                    scroller.addEventListener('scroll', updatePickerHighlight, { passive: true });
+                    pickerScrollListenerAttached = true;
+                }
+                requestAnimationFrame(() => scrollPickerToValue(currentFilter));
+            }
+        }
+
+        // 確認滾筒選中的地區
+        function confirmPickerRegion() {
+            const selected = getPickerSelection();
+            currentFilter = selected;
+            const label = selected === 'all' ? '全港地區' : selected;
+            document.getElementById('current-region-text').innerHTML = `📍 地區：${label}`;
+            toggleScrollPicker(false);
+            renderMatches();
+        }
+
+        // 初始化第一次執行
+        initRegionPickers();
+        resetPublishForm();
+        renderMatches();
+    </script>
+</body>
+</html>
