@@ -117,6 +117,9 @@ function getCurrentUserName() {
 function handleAuthUserChange(user) {
     loadCurrentUser();
     updateProfileUI();
+    if (typeof window.renderMyActivities === 'function') {
+        window.renderMyActivities();
+    }
 }
 
 window.handleAuthUserChange = handleAuthUserChange;
@@ -298,6 +301,9 @@ function switchPage(pageId) {
     });
     document.getElementById(`page-${pageId}`).classList.remove('hidden');
     document.getElementById(`nav-${pageId}`).classList.add('text-black');
+    if (pageId === 'profile' && typeof window.renderMyActivities === 'function') {
+        window.renderMyActivities();
+    }
 }
 
 function initSplashScreen() {

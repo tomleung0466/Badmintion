@@ -23,6 +23,9 @@ import {
     getDocs,
     query,
     orderBy,
+    where,
+    runTransaction,
+    arrayUnion,
     setDoc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
@@ -282,6 +285,8 @@ window.dbPublishActivity = async function dbPublishActivity(activityData) {
             ...activityData,
             hostUid: activityData.hostUid || user.uid,
             hostEmail: activityData.hostEmail || user.email || null,
+            participants: activityData.participants || {},
+            participantUids: Array.isArray(activityData.participantUids) ? activityData.participantUids : [],
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
@@ -312,6 +317,86 @@ window.dbFetchActivities = async function dbFetchActivities() {
         console.error("讀取 Firestore 場次失敗:", err);
         throw err;
     }
+};
+
+window.dbReserveActivity = async function dbReserveActivity(activityData) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入後再留位");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+        if (!activityData?.firestoreId) {
+            const error = new Error("缺少 Firestore 場次 ID");
+            error.code = "activity/missing-firestore-id";
+            throw error;
+        }
+
+        const activityRef = doc(db, "activities", activityData.firestoreId);
+
+        return await runTransaction(db, async transaction => {
+            const activitySnap = await transaction.get(activityRef);
+            if (!activitySnap.exists()) {
+                const error = new Error("場次不存在");
+                error.code = "activity/not-found";
+                throw error;
+            }
+
+            const activity = activitySnap.data();
+            const participantUids = Array.isArray(activity.participantUids) ? activity.participantUids : [];
+            if (participantUids.includes(user.uid)) {
+                return { alreadyJoined: true };
+            }
+
+            const maxSlots = Number(activity.maxSlots ?? 6);
+            const currentPlayers = Number(activity.currentPlayers ?? 0);
+            if (currentPlayers >= maxSlots) {
+                const error = new Error("場次已滿額");
+                error.code = "activity/full";
+                throw error;
+            }
+
+            transaction.update(activityRef, {
+                currentPlayers: currentPlayers + 1,
+                participantUids: arrayUnion(user.uid),
+                [`participants.${user.uid}`]: {
+                    uid: user.uid,
+                    displayName: user.displayName || user.email?.split("@")[0] || "波友",
+                    email: user.email || null,
+                    photoURL: user.photoURL || null,
+                    status: "reserved",
+                    joinedAt: serverTimestamp()
+                },
+                updatedAt: serverTimestamp()
+            });
+
+            return { alreadyJoined: false };
+        });
+    } catch (err) {
+        console.error("留位寫入 Firestore 失敗:", err);
+        throw err;
+    }
+};
+
+window.dbFetchMyHostedActivities = async function dbFetchMyHostedActivities() {
+    const user = auth.currentUser;
+    if (!user) return [];
+    const snapshot = await getDocs(query(
+        collection(db, "activities"),
+        where("hostUid", "==", user.uid)
+    ));
+    return snapshot.docs.map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }));
+};
+
+window.dbFetchMyJoinedActivities = async function dbFetchMyJoinedActivities() {
+    const user = auth.currentUser;
+    if (!user) return [];
+    const snapshot = await getDocs(query(
+        collection(db, "activities"),
+        where("participantUids", "array-contains", user.uid)
+    ));
+    return snapshot.docs.map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }));
 };
 
 window.firebaseDbBridgeReady = true;

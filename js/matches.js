@@ -467,7 +467,11 @@
         }
 
         function waitForDbBridge(timeoutMs = 10000) {
-            if (typeof window.dbFetchActivities === 'function' && typeof window.dbPublishActivity === 'function') {
+            if (
+                typeof window.dbFetchActivities === 'function' &&
+                typeof window.dbPublishActivity === 'function' &&
+                typeof window.dbReserveActivity === 'function'
+            ) {
                 return Promise.resolve(true);
             }
 
@@ -482,7 +486,8 @@
                 const onReady = () => {
                     finish(
                         typeof window.dbFetchActivities === 'function' &&
-                        typeof window.dbPublishActivity === 'function'
+                        typeof window.dbPublishActivity === 'function' &&
+                        typeof window.dbReserveActivity === 'function'
                     );
                 };
 
@@ -509,6 +514,63 @@
                 return false;
             }
         }
+
+        function renderActivitySummary(activity) {
+            const maxSlots = Number(activity.maxSlots ?? 6);
+            const currentPlayers = Number(activity.currentPlayers ?? 0);
+            const remainingSlots = Math.max(0, maxSlots - currentPlayers);
+            return `
+                <div class="px-4 py-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-[10px] tracking-[0.12em] text-gray-400">${activity.playDate ? formatDateDisplay(activity.playDate) : '日期待定'} · ${activity.hours || 2} 小時</p>
+                            <p class="mt-1 text-sm font-medium text-gray-900">${activity.region || ''} · ${activity.venue || ''}</p>
+                        </div>
+                        <span class="shrink-0 text-xs text-gray-500">剩餘 ${remainingSlots} 位</span>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500">HK$ ${activity.fee || 0} / 人</p>
+                </div>
+            `;
+        }
+
+        async function renderMyActivities() {
+            const hostedContainer = document.getElementById('my-hosted-activities');
+            const joinedContainer = document.getElementById('my-joined-activities');
+            if (!hostedContainer || !joinedContainer) return;
+
+            if (!window.firebaseAuthUid) {
+                hostedContainer.innerHTML = '<div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你發佈的場次</div>';
+                joinedContainer.innerHTML = '<div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你參加的場次</div>';
+                return;
+            }
+
+            const bridgeReady = await waitForDbBridge();
+            if (!bridgeReady) {
+                hostedContainer.innerHTML = '<div class="px-4 py-5 text-center text-xs text-gray-400">雲端資料暫時未連線</div>';
+                joinedContainer.innerHTML = '<div class="px-4 py-5 text-center text-xs text-gray-400">雲端資料暫時未連線</div>';
+                return;
+            }
+
+            try {
+                const [hosted, joined] = await Promise.all([
+                    window.dbFetchMyHostedActivities(),
+                    window.dbFetchMyJoinedActivities()
+                ]);
+
+                hostedContainer.innerHTML = hosted.length
+                    ? hosted.map(renderActivitySummary).join('')
+                    : '<div class="px-4 py-5 text-center text-xs text-gray-400">你暫時未發佈場次</div>';
+                joinedContainer.innerHTML = joined.length
+                    ? joined.map(renderActivitySummary).join('')
+                    : '<div class="px-4 py-5 text-center text-xs text-gray-400">你暫時未參加場次</div>';
+            } catch (err) {
+                console.error('讀取我的場次失敗:', err);
+                hostedContainer.innerHTML = '<div class="px-4 py-5 text-center text-xs text-gray-400">讀取失敗，請稍後再試</div>';
+                joinedContainer.innerHTML = '<div class="px-4 py-5 text-center text-xs text-gray-400">讀取失敗，請稍後再試</div>';
+            }
+        }
+
+        window.renderMyActivities = renderMyActivities;
 
         // 渲染搵波打列表
         function renderMatches() {
@@ -537,6 +599,8 @@
                 const remainingSlots = Math.max(0, maxSlots - currentPlayers);
                 const currentUserName = getCurrentUserName();
                 const isWaiting = waitingList.includes(currentUserName);
+                const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
+                const isReservedByMe = !!window.firebaseAuthUid && participantUids.includes(window.firebaseAuthUid);
                 card.innerHTML = `
                     <div class="flex justify-between items-start gap-4 mb-5">
                         <div>
@@ -568,21 +632,17 @@
                     <div class="flex gap-2 flex-wrap pt-5">
                         <button
                             onclick="bookMatch(${match.id}, this)"
-                            class="flex-1 min-w-[140px] ${(match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') ? 'bg-[#F4F4F2] text-[#777777]' : 'bg-[#F4F4F2] text-[#333333] hover:bg-[#E9E9E6]'} border border-[#E5E5E5] font-medium py-2.5 rounded-lg text-xs tracking-[0.08em] transition-colors"
-                            ${(match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') ? 'disabled' : ''}
+                            class="flex-1 min-w-[140px] ${isReservedByMe ? 'bg-[#F4F4F2] text-[#777777]' : 'bg-[#F4F4F2] text-[#333333] hover:bg-[#E9E9E6]'} border border-[#E5E5E5] font-medium py-2.5 rounded-lg text-xs tracking-[0.08em] transition-colors"
+                            ${isReservedByMe ? 'disabled' : ''}
                         >
                             ${
-                                match.userStatus === 'pending'
-                                    ? '✓ 已提交付款，等待場主核實'
-                                    : match.userStatus === 'verified' || (match.joined && match.userStatus !== 'pending')
-                                    ? '✓ 已預留學位'
+                                isReservedByMe
+                                    ? '✓ 已留位'
                                     : isFull
-                                        ? (isWaiting ? '✓ 已加入後備名單' : '加入後備名單 (Waiting List)')
-                                        : '確認留位'
+                                      ? (isWaiting ? '✓ 已加入後備名單' : '加入後備名單')
+                                      : '確認留位'
                             }
                         </button>
-                        ${(match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') ? `<button onclick="cancelBooking(${match.id})" class="bg-white text-[#333333] border border-[#E5E5E5] font-medium px-3 py-2.5 rounded-lg text-xs tracking-[0.08em]">臨時取消</button>` : ''}
-                        ${match.userStatus === 'verified' ? `<button onclick="rateHost(${match.id})" class="bg-white text-[#333333] border border-[#E5E5E5] font-medium px-3 py-2.5 rounded-lg text-xs tracking-[0.08em] min-w-[90px]">評分</button>` : ''}
                     </div>
                 `;
                 listContainer.appendChild(card);
@@ -592,19 +652,50 @@
         }
 
         // 預留位置功能 (帶有流暢動畫效果)
-        function bookMatch(id, btn) {
+        async function bookMatch(id, btn) {
             const match = matches.find(m => m.id === id);
-            if (!match || match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') return;
+            if (!match) return;
+
+            if (!window.firebaseAuthUid) {
+                alert('請先登入 VibeUp 波友，然後再留位。');
+                return;
+            }
 
             const currentUserName = getCurrentUserName();
             const maxSlots = Number(match.maxSlots ?? 6);
             match.currentPlayers = Number(match.currentPlayers ?? 0);
             if (!Array.isArray(match.waitingList)) match.waitingList = [];
+            const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
+            if (participantUids.includes(window.firebaseAuthUid)) {
+                alert('你已經成功留位。');
+                return;
+            }
 
             const isFull = match.currentPlayers >= maxSlots;
 
             if (!isFull) {
-                openPaymentPanel(id);
+                const bridgeReady = await waitForDbBridge();
+                if (!bridgeReady || typeof window.dbReserveActivity !== 'function') {
+                    alert('雲端資料庫暫時未連線，請稍後再試。');
+                    return;
+                }
+
+                try {
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.textContent = '處理中';
+                    }
+                    const result = await window.dbReserveActivity(match);
+                    await loadActivitiesFromCloud();
+                    renderMatches();
+                    await renderMyActivities();
+                    alert(result?.alreadyJoined ? '你已經成功留位。' : '留位成功！已加入「我參加的場次」。');
+                } catch (err) {
+                    console.error('留位失敗:', err);
+                    const code = err?.code ? `（${err.code}）` : '';
+                    alert(`留位失敗${code}，可能場次已滿或 Firebase 權限未開。`);
+                    renderMatches();
+                }
                 return;
             }
 

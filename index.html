@@ -175,49 +175,25 @@
                 </div>
             </div>
 
-            <!-- 最近出席紀錄 -->
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                    <h3 class="text-sm font-extrabold text-gray-900">波友最近3次出席紀錄</h3>
-                    <p class="text-[10px] text-gray-400 mt-0.5">以最近3次已確認場次計算</p>
+            <div class="space-y-4">
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                        <h3 class="text-sm font-extrabold text-gray-900">我發佈的場次</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5">由你建立的羽毛球場次</p>
+                    </div>
+                    <div id="my-hosted-activities" class="divide-y divide-gray-100">
+                        <div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你發佈的場次</div>
+                    </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
-                        <thead>
-                            <tr class="border-b border-gray-100 text-[10px] text-gray-400 uppercase tracking-wide">
-                                <th class="px-4 py-3 font-bold w-10">#</th>
-                                <th class="px-2 py-3 font-bold">波友</th>
-                                <th class="px-4 py-3 font-bold text-right">最近3次</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            <tr class="bg-amber-50/50">
-                                <td class="px-4 py-3.5 font-extrabold text-amber-600">1</td>
-                                <td class="px-2 py-3.5 font-bold text-gray-900">元朗羽球王</td>
-                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">3／3</td>
-                            </tr>
-                            <tr>
-                                <td class="px-4 py-3.5 font-extrabold text-gray-500">2</td>
-                                <td class="px-2 py-3.5 font-bold text-gray-900">天水圍朗尼</td>
-                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">3／3</td>
-                            </tr>
-                            <tr>
-                                <td class="px-4 py-3.5 font-extrabold text-gray-500">3</td>
-                                <td class="px-2 py-3.5 font-bold text-gray-900">沙田波王</td>
-                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">3／3</td>
-                            </tr>
-                            <tr>
-                                <td class="px-4 py-3.5 font-extrabold text-gray-500">4</td>
-                                <td class="px-2 py-3.5 font-bold text-gray-900">觀塘快攻手</td>
-                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">2／3</td>
-                            </tr>
-                            <tr>
-                                <td class="px-4 py-3.5 font-extrabold text-gray-500">5</td>
-                                <td class="px-2 py-3.5 font-bold text-gray-900">將軍澳Smash</td>
-                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">2／3</td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                        <h3 class="text-sm font-extrabold text-gray-900">我參加的場次</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5">你已成功留位的場次</p>
+                    </div>
+                    <div id="my-joined-activities" class="divide-y divide-gray-100">
+                        <div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你參加的場次</div>
+                    </div>
                 </div>
             </div>
         </div>
