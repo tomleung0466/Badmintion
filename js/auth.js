@@ -271,10 +271,21 @@ if (document.readyState === "loading") {
 
 window.dbPublishActivity = async function dbPublishActivity(activityData) {
     try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入後再發佈場次");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+
         const docRef = await addDoc(collection(db, "activities"), {
             ...activityData,
-            createdAt: serverTimestamp()
+            hostUid: activityData.hostUid || user.uid,
+            hostEmail: activityData.hostEmail || user.email || null,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
         });
+        console.info("場次已寫入 Firestore activities:", docRef.id);
         return docRef.id;
     } catch (err) {
         console.error("發佈場次到 Firestore 失敗:", err);

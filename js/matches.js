@@ -911,13 +911,18 @@
                 alert('雲端資料庫暫時未連線，請稍後再試。');
                 return;
             }
+            if (!window.firebaseAuthUid) {
+                alert('請先登入 VibeUp 波友，然後再發佈場次。');
+                return;
+            }
 
             try {
                 await window.dbPublishActivity(newMatch);
                 await loadActivitiesFromCloud();
             } catch (err) {
                 console.error('發佈場次失敗:', err);
-                alert('發佈失敗，請檢查網絡或 Firebase 權限設定。');
+                const code = err?.code ? `（${err.code}）` : '';
+                alert(`發佈失敗${code}，請檢查網絡或 Firebase Firestore 權限設定。`);
                 return;
             }
 
