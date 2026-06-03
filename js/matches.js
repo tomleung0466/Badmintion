@@ -466,6 +466,35 @@
             toggleFormPicker(false);
         }
 
+        function waitForDbBridge(retry = 0) {
+            if (typeof window.dbFetchActivities === 'function' && typeof window.dbPublishActivity === 'function') {
+                return Promise.resolve(true);
+            }
+            if (retry >= 20) return Promise.resolve(false);
+            return new Promise(resolve => {
+                setTimeout(() => resolve(waitForDbBridge(retry + 1)), 100);
+            });
+        }
+
+        async function loadActivitiesFromCloud() {
+            const bridgeReady = await waitForDbBridge();
+            if (!bridgeReady) {
+                console.warn('Firestore bridge 未就緒，暫時使用本地場次資料。');
+                return false;
+            }
+
+            try {
+                matches = await window.dbFetchActivities();
+                migrateMatchDates();
+                migrateMatchSlots();
+                saveMatches();
+                return true;
+            } catch (err) {
+                console.error('載入 Firestore 場次失敗，暫時使用本地場次資料:', err);
+                return false;
+            }
+        }
+
         // 渲染搵波打列表
         function renderMatches() {
             const listContainer = document.getElementById('matches-list');
@@ -797,7 +826,7 @@
         }
 
         // 處理新場地發佈表格
-        function handleFormSubmit(event) {
+        async function handleFormSubmit(event) {
             event.preventDefault();
 
             const region = document.getElementById('form-region').value;
@@ -878,7 +907,20 @@
                     return `payme.hsbc/${contact}_VibeUp`;
                 })()
             };
-            matches.unshift(newMatch);
+            if (typeof window.dbPublishActivity !== 'function') {
+                alert('雲端資料庫暫時未連線，請稍後再試。');
+                return;
+            }
+
+            try {
+                await window.dbPublishActivity(newMatch);
+                await loadActivitiesFromCloud();
+            } catch (err) {
+                console.error('發佈場次失敗:', err);
+                alert('發佈失敗，請檢查網絡或 Firebase 權限設定。');
+                return;
+            }
+
             toggleBottomSheet(false);
             event.target.reset();
             resetPublishForm();
@@ -893,9 +935,10 @@
             }
         }
 
-        function initMatchesApp() {
+        async function initMatchesApp() {
             migrateMatchDates();
             migrateMatchSlots();
+            await loadActivitiesFromCloud();
             saveMatches();
             initCalendars();
             resetPublishForm();

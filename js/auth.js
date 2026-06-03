@@ -17,7 +17,12 @@ import {
 import {
     getFirestore,
     doc,
+    collection,
+    addDoc,
     getDoc,
+    getDocs,
+    query,
+    orderBy,
     setDoc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
@@ -263,3 +268,37 @@ if (document.readyState === "loading") {
 } else {
     initAuth();
 }
+
+window.dbPublishActivity = async function dbPublishActivity(activityData) {
+    try {
+        const docRef = await addDoc(collection(db, "activities"), {
+            ...activityData,
+            createdAt: serverTimestamp()
+        });
+        return docRef.id;
+    } catch (err) {
+        console.error("發佈場次到 Firestore 失敗:", err);
+        throw err;
+    }
+};
+
+window.dbFetchActivities = async function dbFetchActivities() {
+    try {
+        const activitiesQuery = query(
+            collection(db, "activities"),
+            orderBy("createdAt", "desc")
+        );
+        const snapshot = await getDocs(activitiesQuery);
+
+        return snapshot.docs.map(docSnap => {
+            const data = docSnap.data();
+            return {
+                ...data,
+                firestoreId: docSnap.id
+            };
+        });
+    } catch (err) {
+        console.error("讀取 Firestore 場次失敗:", err);
+        throw err;
+    }
+};
