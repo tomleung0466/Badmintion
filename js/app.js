@@ -145,7 +145,7 @@ function updateProfileUI() {
     const creditEl = document.getElementById('profile-credit-points');
     const avatarEl = document.getElementById('profile-avatar');
     if (nameEl) nameEl.textContent = getCurrentUserName();
-    if (creditEl) creditEl.textContent = `${currentUser.creditPoints ?? 105} 分`;
+    if (creditEl) creditEl.textContent = '3／3';
     if (avatarEl) {
         const ch = (getCurrentUserName().replace(/^波友_/, '').charAt(0) || '友');
         avatarEl.textContent = ch;

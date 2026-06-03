@@ -143,14 +143,14 @@
             </div>
         </div>
 
-        <!-- ==================== 頁面 4：積分榜 / 個人 ==================== -->
+        <!-- ==================== 頁面 4：我的場次 / 個人 ==================== -->
         <div id="page-profile" class="hidden flex-1 p-5 pb-24">
             <button type="button" onclick="toggleAdminView(true)" class="w-full mb-5 bg-gray-100 border border-gray-200 text-gray-700 text-xs font-bold py-3 rounded-xl shadow-sm hover:bg-gray-200 transition">
                 🛠️ 按此切換至「場主管理模式」
             </button>
 
             <h1 class="text-3xl font-extrabold tracking-[0.05em] mb-1">我的場次</h1>
-            <p class="text-xs text-gray-400 mb-6">個人信用與場次記錄</p>
+            <p class="text-xs text-gray-400 mb-6">最近出席紀錄與場次記錄</p>
 
             <!-- 登入用家資料 -->
             <div class="bg-gray-50 rounded-2xl p-5 border border-gray-200 shadow-sm mb-6">
@@ -162,16 +162,16 @@
                     </div>
                 </div>
                 <div class="space-y-2.5 text-sm">
-                    <p class="text-gray-800 font-medium">🔥 出席率：<span class="font-extrabold text-emerald-600">100%</span> <span class="text-gray-500 text-xs">(4場/4場)</span></p>
-                    <p class="text-gray-800 font-medium">🏆 信用積分：<span id="profile-credit-points" class="font-extrabold text-amber-600">105 分</span> <span class="text-gray-500 text-xs">（無放飛機記錄）</span></p>
+                    <p class="text-gray-800 font-medium">最近3次出席紀錄：<span id="profile-credit-points" class="font-extrabold text-amber-600">3／3</span></p>
+                    <p class="text-gray-500 text-xs">以最近3次已確認場次計算</p>
                 </div>
             </div>
 
-            <!-- 球會大排行 -->
+            <!-- 最近出席紀錄 -->
             <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                    <h3 class="text-sm font-extrabold text-gray-900">全港波友信用排行 Top 5</h3>
-                    <p class="text-[10px] text-gray-400 mt-0.5">按信用積分排序</p>
+                    <h3 class="text-sm font-extrabold text-gray-900">波友最近3次出席紀錄</h3>
+                    <p class="text-[10px] text-gray-400 mt-0.5">以最近3次已確認場次計算</p>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
@@ -179,40 +179,34 @@
                             <tr class="border-b border-gray-100 text-[10px] text-gray-400 uppercase tracking-wide">
                                 <th class="px-4 py-3 font-bold w-10">#</th>
                                 <th class="px-2 py-3 font-bold">波友</th>
-                                <th class="px-2 py-3 font-bold text-center">出席率</th>
-                                <th class="px-4 py-3 font-bold text-right">積分</th>
+                                <th class="px-4 py-3 font-bold text-right">最近3次</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             <tr class="bg-amber-50/50">
                                 <td class="px-4 py-3.5 font-extrabold text-amber-600">1</td>
                                 <td class="px-2 py-3.5 font-bold text-gray-900">元朗羽球王</td>
-                                <td class="px-2 py-3.5 text-center text-emerald-600 font-semibold">100%</td>
-                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">320</td>
+                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">3／3</td>
                             </tr>
                             <tr>
                                 <td class="px-4 py-3.5 font-extrabold text-gray-500">2</td>
                                 <td class="px-2 py-3.5 font-bold text-gray-900">天水圍朗尼</td>
-                                <td class="px-2 py-3.5 text-center text-emerald-600 font-semibold">98%</td>
-                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">280</td>
+                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">3／3</td>
                             </tr>
                             <tr>
                                 <td class="px-4 py-3.5 font-extrabold text-gray-500">3</td>
                                 <td class="px-2 py-3.5 font-bold text-gray-900">沙田波王</td>
-                                <td class="px-2 py-3.5 text-center text-emerald-600 font-semibold">96%</td>
-                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">245</td>
+                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">3／3</td>
                             </tr>
                             <tr>
                                 <td class="px-4 py-3.5 font-extrabold text-gray-500">4</td>
                                 <td class="px-2 py-3.5 font-bold text-gray-900">觀塘快攻手</td>
-                                <td class="px-2 py-3.5 text-center text-emerald-600 font-semibold">95%</td>
-                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">210</td>
+                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">2／3</td>
                             </tr>
                             <tr>
                                 <td class="px-4 py-3.5 font-extrabold text-gray-500">5</td>
                                 <td class="px-2 py-3.5 font-bold text-gray-900">將軍澳Smash</td>
-                                <td class="px-2 py-3.5 text-center text-emerald-600 font-semibold">94%</td>
-                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">188</td>
+                                <td class="px-4 py-3.5 text-right font-extrabold text-gray-900">2／3</td>
                             </tr>
                         </tbody>
                     </table>
@@ -233,7 +227,7 @@
             </div>
 
             <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
-                <p class="text-[11px] text-amber-800 leading-relaxed">待審核的付款申請會顯示在下方。確認入數後波友才會正式佔位，並獲得信用積分獎勵。</p>
+                <p class="text-[11px] text-amber-800 leading-relaxed">待審核的付款申請會顯示在下方。確認入數後波友才會正式佔位，並於完成場次後更新出席紀錄。</p>
             </div>
 
             <div id="admin-pending-list" class="space-y-3"></div>

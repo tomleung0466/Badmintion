@@ -768,7 +768,7 @@
                     saveCurrentUser();
                     if (typeof updateProfileUI === 'function') updateProfileUI();
                 }
-                alert(`放位成功！${match.applicantName || '波友'} 已加入場次，誠信積分 +5 ✨`);
+                alert(`放位成功！${match.applicantName || '波友'} 已加入場次，最近3次出席紀錄會於完成場次後更新。`);
             } else {
                 match.userStatus = 'none';
                 match.paymentStatus = null;
