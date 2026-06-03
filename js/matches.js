@@ -466,13 +466,28 @@
             toggleFormPicker(false);
         }
 
-        function waitForDbBridge(retry = 0) {
+        function waitForDbBridge(timeoutMs = 10000) {
             if (typeof window.dbFetchActivities === 'function' && typeof window.dbPublishActivity === 'function') {
                 return Promise.resolve(true);
             }
-            if (retry >= 20) return Promise.resolve(false);
+
             return new Promise(resolve => {
-                setTimeout(() => resolve(waitForDbBridge(retry + 1)), 100);
+                let settled = false;
+                const finish = value => {
+                    if (settled) return;
+                    settled = true;
+                    window.removeEventListener('firebase-db-bridge-ready', onReady);
+                    resolve(value);
+                };
+                const onReady = () => {
+                    finish(
+                        typeof window.dbFetchActivities === 'function' &&
+                        typeof window.dbPublishActivity === 'function'
+                    );
+                };
+
+                window.addEventListener('firebase-db-bridge-ready', onReady, { once: true });
+                setTimeout(() => finish(false), timeoutMs);
             });
         }
 
@@ -907,7 +922,8 @@
                     return `payme.hsbc/${contact}_VibeUp`;
                 })()
             };
-            if (typeof window.dbPublishActivity !== 'function') {
+            const bridgeReady = await waitForDbBridge();
+            if (!bridgeReady) {
                 alert('雲端資料庫暫時未連線，請稍後再試。');
                 return;
             }

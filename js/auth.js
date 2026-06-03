@@ -313,3 +313,6 @@ window.dbFetchActivities = async function dbFetchActivities() {
         throw err;
     }
 };
+
+window.firebaseDbBridgeReady = true;
+window.dispatchEvent(new CustomEvent("firebase-db-bridge-ready"));
