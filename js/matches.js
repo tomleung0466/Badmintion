@@ -513,6 +513,18 @@
             }
         }
 
+        const MY_SESSIONS_LIMIT = 3;
+
+        function sortActivitiesByRecency(list) {
+            return [...list].sort((a, b) => {
+                const dateCompare = (b.playDate || "").localeCompare(a.playDate || "");
+                if (dateCompare !== 0) return dateCompare;
+                const aCreated = a.createdAt?.seconds || a.createdAt?.toMillis?.() || 0;
+                const bCreated = b.createdAt?.seconds || b.createdAt?.toMillis?.() || 0;
+                return bCreated - aCreated;
+            });
+        }
+
         function getActivityDateTimeLabel(activity) {
             const dateLabel = activity.playDate ? formatDateDisplay(activity.playDate) : '日期待定';
             const timeLabel = activity.playTime && String(activity.playTime).trim()
@@ -559,15 +571,17 @@
 
             try {
                 const [hosted, joined] = await Promise.all([
-                    window.dbFetchMyHostedActivities(),
-                    window.dbFetchMyJoinedActivities()
+                    window.dbFetchMyHostedActivities(MY_SESSIONS_LIMIT),
+                    window.dbFetchMyJoinedActivities(MY_SESSIONS_LIMIT)
                 ]);
+                const recentHosted = sortActivitiesByRecency(hosted).slice(0, MY_SESSIONS_LIMIT);
+                const recentJoined = sortActivitiesByRecency(joined).slice(0, MY_SESSIONS_LIMIT);
 
-                hostedContainer.innerHTML = hosted.length
-                    ? hosted.map(renderActivitySummary).join('')
+                hostedContainer.innerHTML = recentHosted.length
+                    ? recentHosted.map(renderActivitySummary).join('')
                     : '<div class="px-4 py-5 text-center text-xs text-gray-400">你暫時未發佈場次</div>';
-                joinedContainer.innerHTML = joined.length
-                    ? joined.map(renderActivitySummary).join('')
+                joinedContainer.innerHTML = recentJoined.length
+                    ? recentJoined.map(renderActivitySummary).join('')
                     : '<div class="px-4 py-5 text-center text-xs text-gray-400">你暫時未參加場次</div>';
             } catch (err) {
                 console.error('讀取我的場次失敗:', err);
@@ -582,7 +596,10 @@
         function renderMatches() {
             const listContainer = document.getElementById('matches-list');
             listContainer.innerHTML = '';
-            let filtered = currentFilter === 'all' ? matches : matches.filter(m => m.region === currentFilter);
+            let filtered = matches.filter(m => !m.playDate || !isPastDate(m.playDate));
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(m => m.region === currentFilter);
+            }
             if (homeSelectedDate) {
                 filtered = filtered.filter(m => m.playDate === homeSelectedDate);
             }

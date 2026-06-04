@@ -62,6 +62,16 @@ provider.setCustomParameters({ prompt: "select_account" });
 window.firebaseAuthUid = null;
 window.firebaseAuthUser = null;
 
+function getTodayISO() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+window.getTodayISO = getTodayISO;
+
 function byId(id) {
     return document.getElementById(id);
 }
@@ -309,19 +319,20 @@ window.dbPublishActivity = async function dbPublishActivity(activityData) {
 
 window.dbFetchActivities = async function dbFetchActivities() {
     try {
+        const todayISO = getTodayISO();
         const activitiesQuery = query(
             collection(db, "activities"),
-            orderBy("createdAt", "desc")
+            where("playDate", ">=", todayISO),
+            orderBy("playDate", "desc")
         );
         const snapshot = await getDocs(activitiesQuery);
 
-        return snapshot.docs.map(docSnap => {
-            const data = docSnap.data();
-            return {
-                ...data,
+        return snapshot.docs
+            .map(docSnap => ({
+                ...docSnap.data(),
                 firestoreId: docSnap.id
-            };
-        });
+            }))
+            .filter(activity => activity.playDate && activity.playDate >= todayISO);
     } catch (err) {
         console.error("讀取 Firestore 場次失敗:", err);
         throw err;
@@ -388,24 +399,58 @@ window.dbReserveActivity = async function dbReserveActivity(activityData) {
     }
 };
 
-window.dbFetchMyHostedActivities = async function dbFetchMyHostedActivities() {
+window.dbFetchMyHostedActivities = async function dbFetchMyHostedActivities(limit = 3) {
     const user = auth.currentUser;
     if (!user) return [];
-    const snapshot = await getDocs(query(
-        collection(db, "activities"),
-        where("hostUid", "==", user.uid)
-    ));
-    return snapshot.docs.map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }));
+    const todayISO = getTodayISO();
+    try {
+        const snapshot = await getDocs(query(
+            collection(db, "activities"),
+            where("hostUid", "==", user.uid),
+            where("playDate", ">=", todayISO),
+            orderBy("playDate", "desc"),
+            limit(limit)
+        ));
+        return snapshot.docs.map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }));
+    } catch (err) {
+        console.error("讀取我發佈的場次失敗，改為前端篩選:", err);
+        const snapshot = await getDocs(query(
+            collection(db, "activities"),
+            where("hostUid", "==", user.uid)
+        ));
+        return snapshot.docs
+            .map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }))
+            .filter(activity => activity.playDate && activity.playDate >= todayISO)
+            .sort((a, b) => (b.playDate || "").localeCompare(a.playDate || ""))
+            .slice(0, limit);
+    }
 };
 
-window.dbFetchMyJoinedActivities = async function dbFetchMyJoinedActivities() {
+window.dbFetchMyJoinedActivities = async function dbFetchMyJoinedActivities(limit = 3) {
     const user = auth.currentUser;
     if (!user) return [];
-    const snapshot = await getDocs(query(
-        collection(db, "activities"),
-        where("participantUids", "array-contains", user.uid)
-    ));
-    return snapshot.docs.map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }));
+    const todayISO = getTodayISO();
+    try {
+        const snapshot = await getDocs(query(
+            collection(db, "activities"),
+            where("participantUids", "array-contains", user.uid),
+            where("playDate", ">=", todayISO),
+            orderBy("playDate", "desc"),
+            limit(limit)
+        ));
+        return snapshot.docs.map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }));
+    } catch (err) {
+        console.error("讀取我參加的場次失敗，改為前端篩選:", err);
+        const snapshot = await getDocs(query(
+            collection(db, "activities"),
+            where("participantUids", "array-contains", user.uid)
+        ));
+        return snapshot.docs
+            .map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }))
+            .filter(activity => activity.playDate && activity.playDate >= todayISO)
+            .sort((a, b) => (b.playDate || "").localeCompare(a.playDate || ""))
+            .slice(0, limit);
+    }
 };
 
 window.dbUpdateUserProfile = async function dbUpdateUserProfile(newName, imageFile) {

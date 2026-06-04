@@ -161,14 +161,13 @@
                         <h2 id="profile-display-name" class="text-lg font-extrabold text-gray-900">波友_阿強</h2>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2 mb-4">
-                    <button type="button" id="edit-display-name-btn" class="bg-white border border-gray-200 text-gray-700 text-xs font-medium py-2.5 rounded-xl hover:bg-gray-100 transition">
-                        修改名字
-                    </button>
-                    <button type="button" id="edit-avatar-btn" class="bg-white border border-gray-200 text-gray-700 text-xs font-medium py-2.5 rounded-xl hover:bg-gray-100 transition">
-                        更換頭像
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    id="edit-profile-btn"
+                    class="mb-4 w-full rounded-xl border border-gray-200 bg-white py-2.5 text-xs font-medium tracking-[0.05em] text-gray-700 transition hover:bg-gray-100"
+                >
+                    編輯個人資料
+                </button>
                 <div id="profile-edit-panel" class="hidden mb-4 space-y-3 rounded-xl border border-gray-200 bg-white p-3">
                     <div>
                         <label class="mb-1 block text-[10px] font-medium tracking-[0.08em] text-gray-500">新名字</label>
@@ -192,7 +191,7 @@
                 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                     <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
                         <h3 class="text-sm font-extrabold text-gray-900">我發佈的場次</h3>
-                        <p class="text-[10px] text-gray-400 mt-0.5">由你建立的羽毛球場次</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">最近 3 筆由你建立的羽毛球場次</p>
                     </div>
                     <div id="my-hosted-activities" class="divide-y divide-gray-100">
                         <div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你發佈的場次</div>
@@ -202,7 +201,7 @@
                 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                     <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
                         <h3 class="text-sm font-extrabold text-gray-900">我參加的場次</h3>
-                        <p class="text-[10px] text-gray-400 mt-0.5">你已成功留位的場次</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">最近 3 筆你已成功留位的場次</p>
                     </div>
                     <div id="my-joined-activities" class="divide-y divide-gray-100">
                         <div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你參加的場次</div>
