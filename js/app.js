@@ -215,11 +215,7 @@ async function saveProfileChanges() {
 }
 
 function bindProfileEditUI() {
-    document.getElementById('edit-display-name-btn')?.addEventListener('click', showProfileEditPanel);
-    document.getElementById('edit-avatar-btn')?.addEventListener('click', () => {
-        showProfileEditPanel();
-        document.getElementById('profile-avatar-input')?.click();
-    });
+    document.getElementById('edit-profile-btn')?.addEventListener('click', showProfileEditPanel);
     document.getElementById('save-profile-btn')?.addEventListener('click', saveProfileChanges);
 }
 
