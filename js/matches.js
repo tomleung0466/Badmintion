@@ -384,6 +384,8 @@
             document.getElementById('form-skill-level-text').textContent = getSkillLevelShortLabel(DEFAULT_SKILL_LEVEL);
             document.getElementById('form-venue-note').value = '';
             document.getElementById('form-shuttle-model').value = '';
+            const playTimeInput = document.getElementById('form-play-time');
+            if (playTimeInput) playTimeInput.value = '';
             formSelectedDate = todayISO;
             formCalendarExpanded = false;
             document.getElementById('form-play-date').value = todayISO;
@@ -511,6 +513,14 @@
             }
         }
 
+        function getActivityDateTimeLabel(activity) {
+            const dateLabel = activity.playDate ? formatDateDisplay(activity.playDate) : '日期待定';
+            const timeLabel = activity.playTime && String(activity.playTime).trim()
+                ? String(activity.playTime).trim()
+                : '時間待定';
+            return `${dateLabel} · ${timeLabel}`;
+        }
+
         function renderActivitySummary(activity) {
             const maxSlots = Number(activity.maxSlots ?? 6);
             const currentPlayers = Number(activity.currentPlayers ?? 0);
@@ -519,7 +529,7 @@
                 <div class="px-4 py-4">
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <p class="text-[10px] tracking-[0.12em] text-gray-400">${activity.playDate ? formatDateDisplay(activity.playDate) : '日期待定'} · ${activity.hours || 2} 小時</p>
+                            <p class="text-[10px] tracking-[0.12em] text-gray-400">${getActivityDateTimeLabel(activity)}</p>
                             <p class="mt-1 text-sm font-medium text-gray-900">${activity.region || ''} · ${activity.venue || ''}</p>
                         </div>
                         <span class="shrink-0 text-xs text-gray-500">剩餘 ${remainingSlots} 位</span>
@@ -602,7 +612,7 @@
                         <div>
                             <p class="text-[10px] tracking-[0.18em] text-[#777777]">日期時間</p>
                             <h4 class="text-base font-medium leading-relaxed tracking-[0.05em] text-[#333333] mt-1">
-                                ${match.playDate ? formatDateDisplay(match.playDate) : '日期待定'} · ${match.hours || 2} 小時
+                                ${getActivityDateTimeLabel(match)}
                             </h4>
                         </div>
                         <span class="shrink-0 rounded-full border border-[#E5E5E5] px-3 py-1 text-[10px] tracking-[0.08em] text-[#777777]">
@@ -974,12 +984,19 @@
                 alert('請選擇開場日期');
                 return;
             }
+            const playTime = document.getElementById('form-play-time').value.trim();
+            if (!playTime) {
+                alert('請填寫場次時間，例如：19:00 - 21:00');
+                document.getElementById('form-play-time').focus();
+                return;
+            }
 
             const newMatch = {
                 id: Date.now(),
                 region,
                 venue: finalVenue,
                 playDate,
+                playTime,
                 courts: parseInt(document.getElementById('form-courts').value) || 1,
                 hours: parseInt(document.getElementById('form-hours').value) || 2,
                 fee: parseInt(document.getElementById('form-fee').value) || 50,
