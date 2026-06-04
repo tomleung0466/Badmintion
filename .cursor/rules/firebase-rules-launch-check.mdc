@@ -1,0 +1,10 @@
+---
+description: Reminder to tighten Firestore activity update rules before launch
+alwaysApply: true
+---
+
+# Firestore Launch Reminder
+
+Before production launch or any deployment/release checklist, remind the user to tighten Firestore `activities` update rules.
+
+Current MVP rules may allow any signed-in user to update `activities`. Before launch, restrict updates to only the fields needed for reservation, such as `currentPlayers`, `participantUids`, `participants`, and `updatedAt`, and validate that the update cannot oversell or edit host-owned activity details.

@@ -169,6 +169,19 @@
                         更換頭像
                     </button>
                 </div>
+                <div id="profile-edit-panel" class="hidden mb-4 space-y-3 rounded-xl border border-gray-200 bg-white p-3">
+                    <div>
+                        <label class="mb-1 block text-[10px] font-medium tracking-[0.08em] text-gray-500">新名字</label>
+                        <input type="text" id="profile-name-input" class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-gray-300" placeholder="輸入你的新名字">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-[10px] font-medium tracking-[0.08em] text-gray-500">大頭照</label>
+                        <input type="file" id="profile-avatar-input" accept="image/*" class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs text-gray-500">
+                    </div>
+                    <button type="button" id="save-profile-btn" class="w-full rounded-xl border border-gray-200 bg-gray-100 py-2.5 text-xs font-medium tracking-[0.08em] text-gray-700 transition hover:bg-gray-200">
+                        儲存修改
+                    </button>
+                </div>
                 <div class="space-y-2.5 text-sm">
                     <p class="text-gray-800 font-medium">最近3次出席紀錄：<span id="profile-credit-points" class="font-extrabold text-amber-600">3／3</span></p>
                     <p class="text-gray-500 text-xs">以最近3次已確認場次計算</p>

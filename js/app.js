@@ -94,8 +94,8 @@ function loadCurrentUser() {
     }
     if (authUser && authUser.email) {
         const fallbackPrefix = authUser.email.split('@')[0] || '波友';
-        const displayBase = authUser.displayName || fallbackPrefix;
-        currentUser.name = `波友_${displayBase}`;
+        currentUser.name = authUser.displayName || `波友_${fallbackPrefix}`;
+        currentUser.photoURL = authUser.photoURL || null;
     }
     saveCurrentUser();
 }
@@ -150,9 +150,77 @@ function updateProfileUI() {
     if (nameEl) nameEl.textContent = getCurrentUserName();
     if (creditEl) creditEl.textContent = '3／3';
     if (avatarEl) {
-        const ch = (getCurrentUserName().replace(/^波友_/, '').charAt(0) || '友');
-        avatarEl.textContent = ch;
+        if (currentUser.photoURL) {
+            avatarEl.textContent = '';
+            avatarEl.style.backgroundImage = `url("${currentUser.photoURL}")`;
+            avatarEl.style.backgroundSize = 'cover';
+            avatarEl.style.backgroundPosition = 'center';
+        } else {
+            const ch = (getCurrentUserName().replace(/^波友_/, '').charAt(0) || '友');
+            avatarEl.textContent = ch;
+            avatarEl.style.backgroundImage = '';
+        }
     }
+}
+
+function showProfileEditPanel() {
+    const panel = document.getElementById('profile-edit-panel');
+    const nameInput = document.getElementById('profile-name-input');
+    if (nameInput) nameInput.value = getCurrentUserName();
+    if (panel) panel.classList.remove('hidden');
+}
+
+async function saveProfileChanges() {
+    const saveBtn = document.getElementById('save-profile-btn');
+    const nameInput = document.getElementById('profile-name-input');
+    const avatarInput = document.getElementById('profile-avatar-input');
+    const newName = nameInput ? nameInput.value.trim() : '';
+    const imageFile = avatarInput && avatarInput.files ? avatarInput.files[0] : null;
+
+    if (!window.firebaseAuthUid) {
+        alert('請先登入 VibeUp 波友。');
+        return;
+    }
+    if (!newName && !imageFile) {
+        alert('請輸入新名字或選擇新頭像。');
+        return;
+    }
+    if (typeof window.dbUpdateUserProfile !== 'function') {
+        alert('個人資料服務暫時未連線，請稍後再試。');
+        return;
+    }
+
+    const originalText = saveBtn ? saveBtn.textContent : '';
+    try {
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = '儲存中...';
+        }
+        await window.dbUpdateUserProfile(newName, imageFile);
+        loadCurrentUser();
+        updateProfileUI();
+        if (avatarInput) avatarInput.value = '';
+        document.getElementById('profile-edit-panel')?.classList.add('hidden');
+        alert('修改成功');
+    } catch (err) {
+        console.error('修改個人資料失敗:', err);
+        const code = err?.code ? `（${err.code}）` : '';
+        alert(`修改失敗${code}，請檢查 Firebase Storage / Firestore 權限設定。`);
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText || '儲存修改';
+        }
+    }
+}
+
+function bindProfileEditUI() {
+    document.getElementById('edit-display-name-btn')?.addEventListener('click', showProfileEditPanel);
+    document.getElementById('edit-avatar-btn')?.addEventListener('click', () => {
+        showProfileEditPanel();
+        document.getElementById('profile-avatar-input')?.click();
+    });
+    document.getElementById('save-profile-btn')?.addEventListener('click', saveProfileChanges);
 }
 
 function setFabVisible(visible) {
@@ -320,6 +388,7 @@ function initSplashScreen() {
 function initApp() {
     loadCurrentUser();
     updateProfileUI();
+    bindProfileEditUI();
     initSplashScreen();
     initRegionPickers();
     if (typeof initMatchesApp === 'function') {

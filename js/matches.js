@@ -3,11 +3,7 @@
  * 依賴 app.js 提供的日期工具、地區常數、滾筒底層與 getCurrentUserName。
  */
 
-// 預設模擬數據 (包含評分與 2+2)
-        let defaultMatches = [
-            { id: 1, region: "觀塘區", venue: "藍田體育館", playDate: todayISO, courts: 2, hours: 2, fee: 50, hostRating: "4.9", contact: "阿明 91234567", joined: false, maxSlots: 6, currentPlayers: 5, waitingList: [], fpsId: "91234567", paymeLink: "payme.hsbc/阿明_VibeUp", paymentStatus: null, userStatus: 'none', applicantName: null, applicantUid: null, applicantEmail: null, hostUid: null, hostEmail: null, skillLevel: "中級 (擊球穩定/懂雙打跑位)" },
-            { id: 2, region: "沙田區", venue: "源禾路體育館", playDate: tomorrowISO, courts: 1, hours: 2, fee: 45, hostRating: "4.7", contact: "Chris 61234567", joined: false, maxSlots: 6, currentPlayers: 5, waitingList: [], fpsId: "61234567", paymeLink: "payme.hsbc/Chris_VibeUp", paymentStatus: null, userStatus: 'none', applicantName: null, applicantUid: null, applicantEmail: null, hostUid: null, hostEmail: null, skillLevel: "初中級 (有來回球/開始懂走位)" }
-        ];
+        let defaultMatches = [];
 
         const VENUES_BY_DISTRICT = {
             '中西區': ['士美非路體育館', '中山紀念公園體育館', '上環體育館', '石塘咀體育館', '香港公園體育館'],
@@ -64,7 +60,7 @@
             return map[short] || 'bg-gray-100 text-gray-600 border border-gray-200';
         }
 
-        let matches = JSON.parse(localStorage.getItem('uber_badminton_matches')) || defaultMatches;
+        let matches = defaultMatches;
 
         function migrateMatchDates() {
             matches.forEach((m, i) => {
@@ -77,7 +73,7 @@
         function migrateMatchSlots() {
             matches.forEach(m => {
                 if (typeof m.maxSlots !== 'number' || Number.isNaN(m.maxSlots)) m.maxSlots = 6;
-                if (typeof m.currentPlayers !== 'number' || Number.isNaN(m.currentPlayers)) m.currentPlayers = 5;
+                if (typeof m.currentPlayers !== 'number' || Number.isNaN(m.currentPlayers)) m.currentPlayers = 0;
                 if (!Array.isArray(m.waitingList)) m.waitingList = [];
                 if (m.paymentStatus === undefined) m.paymentStatus = null;
                 if (!m.fpsId) {

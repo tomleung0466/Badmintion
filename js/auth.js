@@ -12,7 +12,8 @@ import {
     getRedirectResult,
     GoogleAuthProvider,
     signOut,
-    onAuthStateChanged
+    onAuthStateChanged,
+    updateProfile
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import {
     getFirestore,
@@ -27,8 +28,15 @@ import {
     runTransaction,
     arrayUnion,
     setDoc,
+    updateDoc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import {
+    getStorage,
+    ref,
+    uploadBytes,
+    getDownloadURL
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAt_w77WsAWdVl6-waXdqtErHlerqUX5-Y",
@@ -47,6 +55,7 @@ try {
 
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: "select_account" });
 
@@ -397,6 +406,50 @@ window.dbFetchMyJoinedActivities = async function dbFetchMyJoinedActivities() {
         where("participantUids", "array-contains", user.uid)
     ));
     return snapshot.docs.map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }));
+};
+
+window.dbUpdateUserProfile = async function dbUpdateUserProfile(newName, imageFile) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入後再修改個人資料");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+
+        const displayName = (newName || "").trim() || user.displayName || user.email?.split("@")[0] || "波友";
+        let photoURL = user.photoURL || null;
+
+        if (imageFile) {
+            const avatarRef = ref(storage, `avatars/${user.uid}`);
+            await uploadBytes(avatarRef, imageFile);
+            photoURL = await getDownloadURL(avatarRef);
+        }
+
+        await updateProfile(user, {
+            displayName,
+            photoURL
+        });
+
+        await updateDoc(doc(db, "users", user.uid), {
+            displayName,
+            photoURL,
+            updatedAt: serverTimestamp()
+        });
+
+        window.firebaseAuthUser = {
+            uid: user.uid,
+            email: user.email || null,
+            displayName,
+            photoURL
+        };
+        updateAuthHeader(user);
+
+        return true;
+    } catch (err) {
+        console.error("更新個人資料失敗:", err);
+        throw err;
+    }
 };
 
 window.firebaseDbBridgeReady = true;
