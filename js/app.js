@@ -175,7 +175,9 @@ async function saveProfileChanges() {
     const nameInput = document.getElementById('profile-name-input');
     const avatarInput = document.getElementById('profile-avatar-input');
     const newName = nameInput ? nameInput.value.trim() : '';
-    const imageFile = avatarInput && avatarInput.files ? avatarInput.files[0] : null;
+    const imageFile =
+        (typeof window.getPendingProfileAvatarFile === 'function' && window.getPendingProfileAvatarFile()) ||
+        (avatarInput && avatarInput.files ? avatarInput.files[0] : null);
 
     if (!window.firebaseAuthUid) {
         alert('請先登入 VibeUp 波友。');
@@ -200,6 +202,9 @@ async function saveProfileChanges() {
         loadCurrentUser();
         updateProfileUI();
         if (avatarInput) avatarInput.value = '';
+        if (typeof window.clearPendingProfileAvatarFile === 'function') {
+            window.clearPendingProfileAvatarFile();
+        }
         document.getElementById('profile-edit-panel')?.classList.add('hidden');
         alert('修改成功');
     } catch (err) {

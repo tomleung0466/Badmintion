@@ -150,3 +150,41 @@ button:hover {
 .shadow-2xs {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
+
+.avatar-crop-stage {
+  width: 100%;
+  height: min(60vh, 360px);
+}
+
+.avatar-crop-stage > img {
+  display: block;
+  max-width: 100%;
+}
+
+/* 圓形裁切框，與個人頁大頭照一致 */
+#avatar-crop-modal .cropper-view-box,
+#avatar-crop-modal .cropper-face {
+  border-radius: 50%;
+}
+
+#avatar-crop-modal .cropper-view-box {
+  outline: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 3px rgba(51, 51, 51, 0.28);
+}
+
+#avatar-crop-modal .cropper-face {
+  background-color: transparent !important;
+  opacity: 1;
+}
+
+#avatar-crop-modal .cropper-dashed,
+#avatar-crop-modal .cropper-center,
+#avatar-crop-modal .cropper-line,
+#avatar-crop-modal .cropper-point {
+  display: none !important;
+}
+
+#avatar-crop-modal .cropper-crop-box {
+  border: none;
+  box-shadow: none;
+}
