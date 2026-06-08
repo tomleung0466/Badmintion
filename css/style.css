@@ -188,3 +188,373 @@ button:hover {
   border: none;
   box-shadow: none;
 }
+
+/* 已報名波友 */
+.participants-block {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--muji-border);
+}
+
+.participants-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--muji-muted);
+}
+
+.participants-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.participant-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.participant-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  border: 1px solid var(--muji-border);
+  background: var(--muji-soft);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.participant-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.participant-avatar-initial {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muji-text);
+  line-height: 1;
+}
+
+.participant-name {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--muji-muted);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* 付款彈窗 */
+.payment-sheet-panel {
+  border-top: 1px solid var(--muji-border);
+}
+
+.payment-sheet-title {
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--muji-text);
+}
+
+.payment-sheet-subtitle {
+  margin-top: 0.25rem;
+  margin-bottom: 1rem;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--muji-muted);
+}
+
+.payment-fee-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.875rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.75rem;
+  background: var(--muji-bg);
+}
+
+.payment-fee-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--muji-muted);
+}
+
+.payment-fee-value {
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--muji-text);
+}
+
+.payment-hint {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.75rem;
+  background: var(--muji-soft);
+  font-size: 11px;
+  line-height: 1.55;
+  letter-spacing: 0.03em;
+  color: var(--muji-muted);
+}
+
+.payment-qr-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.payment-qr-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.payment-qr-heading {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muji-muted);
+}
+
+.payment-qr-slot {
+  aspect-ratio: 1;
+  border: 1px dashed var(--muji-border);
+  border-radius: 0.625rem;
+  background: var(--muji-bg);
+  overflow: hidden;
+}
+
+.payment-qr-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  color: var(--muji-muted);
+}
+
+.payment-qr-placeholder-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  opacity: 0.45;
+}
+
+.payment-qr-placeholder-text {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.payment-qr-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.payment-qr-action {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.625rem;
+  background: var(--muji-soft);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--muji-text);
+  transition: background-color 0.15s ease;
+}
+
+.payment-qr-action:hover {
+  background: var(--muji-hover);
+}
+
+.payment-fps-id {
+  min-height: 0.875rem;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  color: var(--muji-muted);
+  text-align: center;
+}
+
+.payment-upload-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--muji-muted);
+}
+
+.payment-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 6.5rem;
+  margin-bottom: 0.375rem;
+  border: 1px dashed var(--muji-border);
+  border-radius: 0.75rem;
+  background: var(--muji-bg);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.payment-upload-zone:hover {
+  background: var(--muji-soft);
+}
+
+.payment-upload-icon {
+  font-size: 1.125rem;
+  line-height: 1;
+  color: var(--muji-muted);
+}
+
+.payment-upload-text {
+  margin-top: 0.25rem;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--muji-muted);
+}
+
+.payment-file-name {
+  min-height: 0.875rem;
+  margin-bottom: 1rem;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--muji-muted);
+  text-align: center;
+}
+
+.payment-submit-btn {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.75rem;
+  background: var(--muji-soft);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--muji-text);
+  transition: background-color 0.15s ease;
+}
+
+.payment-submit-btn:hover {
+  background: var(--muji-hover);
+}
+
+.payment-cancel-btn {
+  width: 100%;
+  margin-top: 0.625rem;
+  padding: 0.5rem;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--muji-muted);
+}
+
+/* 場主收款設定 */
+.host-settings-panel {
+  border: 1px solid var(--muji-border);
+  border-radius: 1rem;
+  background: #fff;
+  overflow: hidden;
+}
+
+.host-settings-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.875rem 1rem;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--muji-text);
+}
+
+.host-settings-summary::-webkit-details-marker {
+  display: none;
+}
+
+.host-settings-summary::after {
+  content: "＋";
+  float: right;
+  font-size: 12px;
+  color: var(--muji-muted);
+}
+
+.host-settings-panel[open] .host-settings-summary::after {
+  content: "－";
+}
+
+.host-settings-body {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid var(--muji-border);
+}
+
+.host-settings-note {
+  margin: 0.875rem 0 1rem;
+  font-size: 10px;
+  line-height: 1.55;
+  letter-spacing: 0.03em;
+  color: var(--muji-muted);
+}
+
+.host-settings-field + .host-settings-field {
+  margin-top: 0.875rem;
+}
+
+.host-settings-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--muji-muted);
+}
+
+.host-settings-file,
+.host-settings-text {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.75rem;
+  background: var(--muji-bg);
+  font-size: 11px;
+  color: var(--muji-text);
+}
+
+.host-qr-preview {
+  display: none;
+  width: 88px;
+  height: 88px;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.625rem;
+  overflow: hidden;
+  background: var(--muji-bg);
+}
+
+.host-qr-preview.is-visible {
+  display: block;
+}
+
+.host-qr-preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

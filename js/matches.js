@@ -134,13 +134,105 @@
         let formSelectedBrand = '';
         let formSelectedSkillLevel = DEFAULT_SKILL_LEVEL;
         let pendingPaymentMatchId = null;
+        let pendingPaymeLink = '';
+
+        const HOST_SETTINGS_STORAGE = {
+            paymeQr: 'vibeup_host_payme_qr',
+            fpsQr: 'vibeup_host_fps_qr',
+            fpsId: 'vibeup_host_fps_id'
+        };
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function getStoredHostSettings() {
+            try {
+                return {
+                    paymeQrUrl: localStorage.getItem(HOST_SETTINGS_STORAGE.paymeQr) || '',
+                    fpsQrUrl: localStorage.getItem(HOST_SETTINGS_STORAGE.fpsQr) || '',
+                    fpsId: localStorage.getItem(HOST_SETTINGS_STORAGE.fpsId) || ''
+                };
+            } catch (_err) {
+                return { paymeQrUrl: '', fpsQrUrl: '', fpsId: '' };
+            }
+        }
 
         function getHostPaymentInfo(match) {
-            const phone = (match.contact || '').match(/\d{8}/);
+            const stored = getStoredHostSettings();
+            const phone = (match?.contact || '').match(/\d{8}/);
             return {
-                fpsId: match.fpsId || (phone ? phone[0] : '91234567'),
-                paymeLink: match.paymeLink || 'payme.hsbc/VibeUp_demo'
+                fpsId: stored.fpsId || match?.fpsId || (phone ? phone[0] : '91234567'),
+                paymeLink: match?.paymeLink || 'payme.hsbc/VibeUp_demo',
+                paymeQrUrl: stored.paymeQrUrl || match?.paymeQrUrl || '',
+                fpsQrUrl: stored.fpsQrUrl || match?.fpsQrUrl || ''
             };
+        }
+
+        function renderPaymentQrSlot(slotId, imageUrl, placeholderText) {
+            const slot = document.getElementById(slotId);
+            if (!slot) return;
+            if (imageUrl) {
+                slot.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(placeholderText)}" class="payment-qr-image">`;
+                return;
+            }
+            slot.innerHTML = `
+                <div class="payment-qr-placeholder">
+                    <span class="payment-qr-placeholder-icon" aria-hidden="true">▦</span>
+                    <span class="payment-qr-placeholder-text">${escapeHtml(placeholderText)}</span>
+                </div>
+            `;
+        }
+
+        function getActivityParticipants(match) {
+            const participants = match?.participants && typeof match.participants === 'object'
+                ? match.participants
+                : {};
+            const uids = Array.isArray(match?.participantUids) && match.participantUids.length
+                ? match.participantUids
+                : Object.keys(participants);
+
+            return uids.map(uid => {
+                const profile = participants[uid] || {};
+                const rawName = profile.displayName || profile.name || '波友';
+                const name = String(rawName).replace(/^波友_/, '').trim() || '波友';
+                const photoURL = profile.photoURL || null;
+                return {
+                    uid,
+                    name,
+                    photoURL,
+                    initial: name.charAt(0) || '友'
+                };
+            });
+        }
+
+        function renderParticipantsBlock(match) {
+            const participants = getActivityParticipants(match);
+            if (!participants.length) return '';
+
+            const chips = participants.map(participant => {
+                const avatarHtml = participant.photoURL
+                    ? `<img src="${escapeHtml(participant.photoURL)}" alt="${escapeHtml(participant.name)}" class="participant-avatar-image">`
+                    : `<span class="participant-avatar-initial">${escapeHtml(participant.initial)}</span>`;
+                return `
+                    <div class="participant-chip">
+                        <div class="participant-avatar" aria-hidden="true">${avatarHtml}</div>
+                        <span class="participant-name">${escapeHtml(participant.name)}</span>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="participants-block">
+                    <p class="participants-label">已報名波友</p>
+                    <div class="participants-list">${chips}</div>
+                </div>
+            `;
         }
 
         function getMatchDatesSet() {
@@ -650,6 +742,7 @@
                             <span class="text-[#777777]">名額</span>
                             <span class="font-medium text-[#333333]">${isFull ? '已滿額' : `剩餘 ${remainingSlots} 位`}</span>
                         </div>
+                        ${renderParticipantsBlock(match)}
                     </div>
 
                     <div class="flex gap-2 flex-wrap pt-5">
@@ -663,7 +756,7 @@
                                     ? '✓ 已留位'
                                     : isFull
                                       ? (isWaiting ? '✓ 已加入後備名單' : '加入後備名單')
-                                      : '確認留位'
+                                      : '點擊報名'
                             }
                         </button>
                     </div>
@@ -697,28 +790,7 @@
             const isFull = match.currentPlayers >= maxSlots;
 
             if (!isFull) {
-                const bridgeReady = await waitForDbBridge();
-                if (!bridgeReady || typeof window.dbReserveActivity !== 'function') {
-                    alert('雲端資料庫暫時未連線，請稍後再試。');
-                    return;
-                }
-
-                try {
-                    if (btn) {
-                        btn.disabled = true;
-                        btn.textContent = '處理中';
-                    }
-                    const result = await window.dbReserveActivity(match);
-                    await loadActivitiesFromCloud();
-                    renderMatches();
-                    await renderMyActivities();
-                    alert(result?.alreadyJoined ? '你已經成功留位。' : '留位成功！已加入「我參加的場次」。');
-                } catch (err) {
-                    console.error('留位失敗:', err);
-                    const code = err?.code ? `（${err.code}）` : '';
-                    alert(`留位失敗${code}，可能場次已滿或 Firebase 權限未開。`);
-                    renderMatches();
-                }
+                openPaymentPanel(id);
                 return;
             }
 
@@ -737,6 +809,7 @@
             document.getElementById('payment-sheet').classList.toggle('hidden', !show);
             if (!show) {
                 pendingPaymentMatchId = null;
+                pendingPaymeLink = '';
                 const fileInput = document.getElementById('payment-screenshot');
                 fileInput.value = '';
                 document.getElementById('payment-file-name').textContent = '';
@@ -745,15 +818,29 @@
 
         function openPaymentPanel(matchId) {
             const match = matches.find(m => m.id === matchId);
-            if (!match || match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') return;
+            if (!match) return;
+
+            const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
+            if (participantUids.includes(window.firebaseAuthUid)) {
+                alert('你已經成功留位。');
+                return;
+            }
+            if (match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') return;
 
             pendingPaymentMatchId = matchId;
             const payment = getHostPaymentInfo(match);
+            pendingPaymeLink = payment.paymeLink;
 
             document.getElementById('payment-venue-label').textContent = `${match.venue} · ${match.region}`;
             document.getElementById('payment-fee').textContent = `HK$ ${match.fee}`;
-            document.getElementById('payment-fps').textContent = payment.fpsId;
-            document.getElementById('payment-payme').textContent = payment.paymeLink;
+
+            renderPaymentQrSlot('payment-payme-qr', payment.paymeQrUrl, 'PayMe QR Code');
+            renderPaymentQrSlot('payment-fps-qr', payment.fpsQrUrl, 'FPS QR Code');
+
+            const fpsLabel = document.getElementById('payment-fps-id-label');
+            if (fpsLabel) {
+                fpsLabel.textContent = payment.fpsId ? `FPS：${payment.fpsId}` : '';
+            }
 
             const fileInput = document.getElementById('payment-screenshot');
             fileInput.value = '';
@@ -762,13 +849,104 @@
             togglePaymentSheet(true);
         }
 
+        function jumpToPayMe() {
+            if (!pendingPaymeLink) {
+                alert('場主尚未設定 PayMe 連結。');
+                return;
+            }
+            const url = pendingPaymeLink.startsWith('http')
+                ? pendingPaymeLink
+                : `https://${pendingPaymeLink}`;
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
+
+        async function copyPaymentFpsId() {
+            const match = pendingPaymentMatchId
+                ? matches.find(m => m.id === pendingPaymentMatchId)
+                : null;
+            const fpsId = getHostPaymentInfo(match).fpsId;
+            if (!fpsId) {
+                alert('場主尚未設定 FPS 識別碼。');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(fpsId);
+                alert(`已複製 FPS 識別碼：${fpsId}`);
+            } catch (_err) {
+                prompt('請手動複製 FPS 識別碼：', fpsId);
+            }
+        }
+
+        function bindPaymentActions() {
+            document.getElementById('payment-payme-jump-btn')?.addEventListener('click', jumpToPayMe);
+            document.getElementById('payment-fps-copy-btn')?.addEventListener('click', copyPaymentFpsId);
+        }
+
+        function bindHostSettingsUI() {
+            const stored = getStoredHostSettings();
+            const fpsInput = document.getElementById('host-fps-id-input');
+            if (fpsInput) fpsInput.value = stored.fpsId;
+
+            const renderPreview = (previewId, imageUrl) => {
+                const preview = document.getElementById(previewId);
+                if (!preview) return;
+                if (imageUrl) {
+                    preview.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="" class="host-qr-preview-image">`;
+                    preview.classList.add('is-visible');
+                } else {
+                    preview.innerHTML = '';
+                    preview.classList.remove('is-visible');
+                }
+            };
+
+            renderPreview('host-payme-qr-preview', stored.paymeQrUrl);
+            renderPreview('host-fps-qr-preview', stored.fpsQrUrl);
+
+            const bindFilePreview = (inputId, storageKey, previewId) => {
+                const input = document.getElementById(inputId);
+                if (!input) return;
+                input.addEventListener('change', event => {
+                    const file = event.target.files && event.target.files[0];
+                    if (!file || !file.type.startsWith('image/')) {
+                        alert('請選擇圖片檔案。');
+                        input.value = '';
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const dataUrl = reader.result;
+                        try {
+                            localStorage.setItem(storageKey, dataUrl);
+                        } catch (err) {
+                            console.error('儲存收款碼預覽失敗:', err);
+                            alert('圖片太大，暫時無法在本機預覽儲存。稍後連接資料庫後再上傳。');
+                            return;
+                        }
+                        renderPreview(previewId, dataUrl);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            };
+
+            bindFilePreview('host-payme-qr-input', HOST_SETTINGS_STORAGE.paymeQr, 'host-payme-qr-preview');
+            bindFilePreview('host-fps-qr-input', HOST_SETTINGS_STORAGE.fpsQr, 'host-fps-qr-preview');
+
+            fpsInput?.addEventListener('change', () => {
+                try {
+                    localStorage.setItem(HOST_SETTINGS_STORAGE.fpsId, fpsInput.value.trim());
+                } catch (err) {
+                    console.error('儲存 FPS 識別碼失敗:', err);
+                }
+            });
+        }
+
         function onPaymentScreenshotChange(event) {
             const file = event.target.files && event.target.files[0];
             const label = document.getElementById('payment-file-name');
             label.textContent = file ? `已選擇：${file.name}` : '';
         }
 
-        function submitPaymentProof() {
+        async function submitPaymentProof() {
             if (!pendingPaymentMatchId) return;
 
             const match = matches.find(m => m.id === pendingPaymentMatchId);
@@ -783,6 +961,10 @@
                 alert('請上傳 FPS 或 PayMe 付款截圖');
                 return;
             }
+            if (!window.firebaseAuthUid) {
+                alert('請先登入 VibeUp 波友，然後再報名。');
+                return;
+            }
 
             const currentUserName = getCurrentUserName();
             const authUid = window.firebaseAuthUid || null;
@@ -790,28 +972,58 @@
             if (!Array.isArray(match.waitingList)) match.waitingList = [];
             match.waitingList = match.waitingList.filter(n => n !== currentUserName);
 
-            match.joined = true;
-            match.userStatus = 'pending';
-            match.paymentStatus = 'pending_verification';
             match.paymentProofName = file.name;
             match.applicantName = currentUserName;
             match.applicantUid = authUid;
             match.applicantEmail = authEmail;
 
             const reader = new FileReader();
-            reader.onload = () => {
+            reader.onload = async () => {
                 match.paymentProofDataUrl = reader.result;
-                saveMatches();
-                togglePaymentSheet(false);
-                renderMatches();
-                alert('截圖已送出！等場主確認後你就正式入隊，VibeUp 見 🙌');
+
+                try {
+                    const bridgeReady = await waitForDbBridge();
+                    if (!bridgeReady || typeof window.dbReserveActivity !== 'function') {
+                        throw new Error('雲端資料庫暫時未連線');
+                    }
+                    const result = await window.dbReserveActivity(match);
+                    await loadActivitiesFromCloud();
+
+                    match.joined = true;
+                    match.userStatus = 'verified';
+                    match.paymentStatus = 'verified';
+                    if (!Array.isArray(match.participantUids)) match.participantUids = [];
+                    if (!match.participants || typeof match.participants !== 'object') match.participants = {};
+                    if (!match.participantUids.includes(authUid)) {
+                        match.participantUids.push(authUid);
+                        match.participants[authUid] = {
+                            uid: authUid,
+                            displayName: currentUserName,
+                            email: authEmail,
+                            photoURL: window.firebaseAuthUser?.photoURL || null,
+                            status: 'reserved'
+                        };
+                    }
+
+                    saveMatches();
+                    togglePaymentSheet(false);
+                    renderMatches();
+                    await renderMyActivities();
+                    alert(result?.alreadyJoined ? '你已經成功留位。' : '付款確認成功！名額已鎖定，已加入「我參加的場次」。');
+                } catch (err) {
+                    console.error('鎖定名額失敗:', err);
+                    match.joined = true;
+                    match.userStatus = 'pending';
+                    match.paymentStatus = 'pending_verification';
+                    saveMatches();
+                    togglePaymentSheet(false);
+                    renderMatches();
+                    const code = err?.code ? `（${err.code}）` : '';
+                    alert(`截圖已儲存，但鎖定名額失敗${code}，請稍後再試或聯絡場主。`);
+                }
             };
             reader.onerror = () => {
-                match.paymentProofDataUrl = null;
-                saveMatches();
-                togglePaymentSheet(false);
-                renderMatches();
-                alert('截圖已送出！等場主確認後你就正式入隊，VibeUp 見 🙌');
+                alert('讀取截圖失敗，請再試一次。');
             };
             reader.readAsDataURL(file);
         }
@@ -992,10 +1204,6 @@
                 alert('請選擇羽毛球品牌');
                 return;
             }
-            if (!shuttleModel) {
-                alert('請填寫羽毛球型號');
-                return;
-            }
             const playDate = document.getElementById('form-play-date').value;
             if (!playDate) {
                 alert('請選擇開場日期');
@@ -1020,7 +1228,7 @@
                 hostRating: "5.0",
                 contact: document.getElementById('form-contact').value,
                 shuttleBrand: document.getElementById('form-brand').value,
-                shuttleModel,
+                shuttleModel: shuttleModel || '',
                 skillLevel: document.getElementById('form-skill-level').value || DEFAULT_SKILL_LEVEL,
                 joined: false,
                 maxSlots,
@@ -1080,6 +1288,8 @@
         async function initMatchesApp() {
             migrateMatchDates();
             migrateMatchSlots();
+            bindPaymentActions();
+            bindHostSettingsUI();
             await loadActivitiesFromCloud();
             saveMatches();
             initCalendars();
