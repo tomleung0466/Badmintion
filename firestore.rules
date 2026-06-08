@@ -29,7 +29,8 @@ service cloud.firestore {
         'hostFpsQrUrl',
         'hostFpsId',
         'fpsId',
-        'hostPaymentUpdatedAt'
+        'hostPaymentUpdatedAt',
+        'hostSessionCount'
       ];
     }
 

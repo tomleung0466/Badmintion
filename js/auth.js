@@ -31,6 +31,8 @@ import {
     deleteField,
     setDoc,
     updateDoc,
+    increment,
+    getCountFromServer,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 import {
@@ -166,6 +168,8 @@ function buildUserProfile(user) {
             total: 3,
             label: "3／3"
         },
+        hostSessionCount: 0,
+        hostComplaintCount: 0,
         updatedAt: serverTimestamp()
     };
 }
@@ -317,12 +321,80 @@ window.dbPublishActivity = async function dbPublishActivity(activityData) {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
+        await updateDoc(doc(db, "users", user.uid), {
+            hostSessionCount: increment(1),
+            updatedAt: serverTimestamp()
+        });
+
         console.info("場次已寫入 Firestore activities:", docRef.id);
         return docRef.id;
     } catch (err) {
         console.error("發佈場次到 Firestore 失敗:", err);
         throw err;
     }
+};
+
+const HOST_QUALITY_MIN_SESSIONS = 5;
+
+function resolveHostTier(sessionCount, complaintCount) {
+    const hosted = Number(sessionCount) || 0;
+    const complaints = Number(complaintCount) || 0;
+    if (hosted < HOST_QUALITY_MIN_SESSIONS) return "newbie";
+    if (complaints === 0) return "quality";
+    return null;
+}
+
+async function resolveHostSessionCount(uid, storedCount) {
+    const parsed = Number(storedCount);
+    if (Number.isFinite(parsed) && storedCount !== undefined) {
+        return parsed;
+    }
+    try {
+        const countSnap = await getCountFromServer(query(
+            collection(db, "activities"),
+            where("hostUid", "==", uid)
+        ));
+        return countSnap.data().count || 0;
+    } catch (err) {
+        console.error(`統計場主 ${uid} 開局次數失敗:`, err);
+        return 0;
+    }
+}
+
+window.dbFetchHostProfiles = async function dbFetchHostProfiles(uids = []) {
+    const uniqueUids = [...new Set((uids || []).filter(Boolean))];
+    const result = {};
+    if (!uniqueUids.length) return result;
+
+    const attendanceRates = typeof window.dbFetchUsersAttendanceRates === "function"
+        ? await window.dbFetchUsersAttendanceRates(uniqueUids)
+        : {};
+
+    await Promise.all(uniqueUids.map(async uid => {
+        try {
+            const userSnap = await getDoc(doc(db, "users", uid));
+            const data = userSnap.exists() ? userSnap.data() : {};
+            const sessionCount = await resolveHostSessionCount(uid, data.hostSessionCount);
+            const complaintCount = Number(data.hostComplaintCount) || 0;
+            const attendance = attendanceRates[uid] || mapAttendanceRate(data.recentAttendance);
+            result[uid] = {
+                sessionCount,
+                complaintCount,
+                tier: resolveHostTier(sessionCount, complaintCount),
+                attendance
+            };
+        } catch (err) {
+            console.error(`讀取場主檔案 ${uid} 失敗:`, err);
+            result[uid] = {
+                sessionCount: 0,
+                complaintCount: 0,
+                tier: "newbie",
+                attendance: mapAttendanceRate()
+            };
+        }
+    }));
+
+    return result;
 };
 
 window.dbFetchActivityById = async function dbFetchActivityById(activityId) {

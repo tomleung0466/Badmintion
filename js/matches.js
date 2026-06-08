@@ -142,6 +142,7 @@
 
         let cachedOwnHostSettings = null;
         const participantAttendanceCache = new Map();
+        const hostProfileCache = new Map();
 
         function escapeHtml(value) {
             return String(value ?? '')
@@ -285,6 +286,58 @@
             } catch (err) {
                 console.error('讀取出席率失敗:', err);
             }
+        }
+
+        function getHostProfile(hostUid) {
+            if (!hostUid) return null;
+            return hostProfileCache.get(hostUid) || null;
+        }
+
+        async function prefetchHostProfiles(hostUids = []) {
+            const missing = [...new Set(hostUids.filter(uid => uid && !hostProfileCache.has(uid)))];
+            if (!missing.length || typeof window.dbFetchHostProfiles !== 'function') return;
+
+            try {
+                const profiles = await window.dbFetchHostProfiles(missing);
+                Object.entries(profiles || {}).forEach(([uid, profile]) => {
+                    hostProfileCache.set(uid, profile);
+                    if (profile?.attendance) {
+                        participantAttendanceCache.set(uid, profile.attendance);
+                    }
+                });
+            } catch (err) {
+                console.error('讀取場主檔案失敗:', err);
+            }
+        }
+
+        function renderHostBadge(profile) {
+            if (!profile?.tier) return '';
+            if (profile.tier === 'newbie') {
+                return '<span class="host-badge host-badge--newbie">🌱 新場主</span>';
+            }
+            if (profile.tier === 'quality') {
+                return '<span class="host-badge host-badge--quality">✨ 優質場主</span>';
+            }
+            return '';
+        }
+
+        function renderHostMetaBlock(match) {
+            const hostUid = match?.hostUid;
+            if (!hostUid) return '';
+
+            const profile = getHostProfile(hostUid);
+            const badgeHtml = renderHostBadge(profile);
+            const attendanceLabel = profile?.attendance?.label || '—';
+            const attendanceHtml = `<span class="host-attendance-meta" title="場主最近3次出席紀錄">場主出席 ${escapeHtml(attendanceLabel)}</span>`;
+
+            if (!badgeHtml && attendanceLabel === '—') return '';
+
+            return `
+                <div class="host-meta-block">
+                    ${badgeHtml ? `<div class="host-meta-badges">${badgeHtml}</div>` : ''}
+                    ${attendanceHtml}
+                </div>
+            `;
         }
 
         function getActivityParticipants(match) {
@@ -997,6 +1050,7 @@
                             <h4 class="text-base font-medium leading-relaxed tracking-[0.05em] text-[#333333] mt-1">
                                 ${getActivityDateTimeLabel(match)}
                             </h4>
+                            ${renderHostMetaBlock(match)}
                         </div>
                         <span class="shrink-0 rounded-full border border-[#E5E5E5] px-3 py-1 text-[10px] tracking-[0.08em] text-[#777777]">
                             ${isFull ? '已滿額' : `剩餘 ${remainingSlots} 位`}
@@ -1189,6 +1243,7 @@
                       : '該區域暫時沒有開場。';
                 if (inviteMatch) {
                     await prefetchParticipantAttendance(getActivityParticipants(inviteMatch).map(p => p.uid));
+                    if (inviteMatch.hostUid) await prefetchHostProfiles([inviteMatch.hostUid]);
                 }
                 renderInviteMatchSection();
                 listContainer.innerHTML = `<div class="text-center py-12 text-gray-400 text-xs">${emptyMsg}</div>`;
@@ -1200,7 +1255,11 @@
 
             const prefetchMatches = inviteMatch ? [...filtered, inviteMatch] : filtered;
             const participantUids = prefetchMatches.flatMap(match => getActivityParticipants(match).map(p => p.uid));
-            await prefetchParticipantAttendance(participantUids);
+            const hostUids = prefetchMatches.map(match => match.hostUid).filter(Boolean);
+            await Promise.all([
+                prefetchParticipantAttendance(participantUids),
+                prefetchHostProfiles(hostUids)
+            ]);
 
             renderInviteMatchSection();
 
@@ -1293,9 +1352,11 @@
 
         function togglePaymentSheet(show) {
             document.getElementById('payment-sheet').classList.toggle('hidden', !show);
+            const newHostTip = document.getElementById('payment-new-host-tip');
             if (!show) {
                 pendingPaymentMatchId = null;
                 pendingPaymeLink = '';
+                newHostTip?.classList.add('hidden');
             }
         }
 
@@ -1339,6 +1400,15 @@
             const fpsLabel = document.getElementById('payment-fps-id-label');
             if (fpsLabel) {
                 fpsLabel.textContent = payment.fpsId ? `FPS：${payment.fpsId}` : '';
+            }
+
+            const newHostTip = document.getElementById('payment-new-host-tip');
+            if (match.hostUid) {
+                await prefetchHostProfiles([match.hostUid]);
+                const hostProfile = getHostProfile(match.hostUid);
+                newHostTip?.classList.toggle('hidden', hostProfile?.tier !== 'newbie');
+            } else {
+                newHostTip?.classList.add('hidden');
             }
 
             togglePaymentSheet(true);
