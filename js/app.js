@@ -164,9 +164,13 @@ function updateProfileUI() {
 function showProfileEditPanel() {
     const panel = document.getElementById('profile-edit-panel');
     const hostPanel = document.getElementById('host-settings-panel');
+    const hostBtn = document.getElementById('edit-host-payment-btn');
+    const profileBtn = document.getElementById('edit-profile-btn');
     const nameInput = document.getElementById('profile-name-input');
     if (nameInput) nameInput.value = getCurrentUserName();
     if (hostPanel) hostPanel.classList.add('hidden');
+    if (hostBtn) hostBtn.classList.remove('is-active-profile-action');
+    if (profileBtn) profileBtn.classList.add('is-active-profile-action');
     if (panel) panel.classList.toggle('hidden');
 }
 
@@ -222,6 +226,9 @@ async function saveProfileChanges() {
 function bindProfileEditUI() {
     document.getElementById('edit-profile-btn')?.addEventListener('click', showProfileEditPanel);
     document.getElementById('save-profile-btn')?.addEventListener('click', saveProfileChanges);
+    if (typeof window.bindHostSettingsUI === 'function') {
+        window.bindHostSettingsUI();
+    }
 }
 
 /* ---------- 滾筒選擇器底層 ---------- */

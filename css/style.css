@@ -475,36 +475,58 @@ button:hover {
   gap: 0.5rem;
 }
 
+.host-settings-heading {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--muji-text);
+}
+
 .host-settings-inline .host-settings-note {
-  margin: 0 0 0.25rem;
+  margin: 0.25rem 0 0.75rem;
   font-size: 10px;
   line-height: 1.55;
   letter-spacing: 0.03em;
   color: var(--muji-muted);
 }
 
-.host-settings-field + .host-settings-field {
-  margin-top: 0.875rem;
+.host-file-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px dashed var(--muji-border);
+  border-radius: 0.75rem;
+  background: var(--muji-bg);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
-.host-settings-label {
-  display: block;
-  margin-bottom: 0.375rem;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+.host-file-zone:hover {
+  background: var(--muji-soft);
+}
+
+.host-file-zone-text {
+  font-size: 11px;
+  letter-spacing: 0.05em;
   color: var(--muji-muted);
 }
 
-.host-settings-file,
-.host-settings-text {
-  width: 100%;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid var(--muji-border);
-  border-radius: 0.75rem;
-  background: var(--muji-bg);
-  font-size: 11px;
-  color: var(--muji-text);
+.host-file-zone-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.profile-action-row button.is-active-profile-action {
+  border-color: #c8c8c4;
+  background: #fff;
 }
 
 .host-qr-preview {

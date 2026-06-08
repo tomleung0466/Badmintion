@@ -1038,14 +1038,23 @@
             document.getElementById('payment-fps-copy-btn')?.addEventListener('click', copyPaymentFpsId);
         }
 
+        let hostSettingsBound = false;
+
         function showHostSettingsPanel() {
             const panel = document.getElementById('host-settings-panel');
             const profilePanel = document.getElementById('profile-edit-panel');
+            const hostBtn = document.getElementById('edit-host-payment-btn');
+            const profileBtn = document.getElementById('edit-profile-btn');
             if (profilePanel) profilePanel.classList.add('hidden');
-            if (panel) panel.classList.toggle('hidden');
+            if (profileBtn) profileBtn.classList.remove('is-active-profile-action');
+            if (panel) panel.classList.remove('hidden');
+            if (hostBtn) hostBtn.classList.add('is-active-profile-action');
         }
 
         function bindHostSettingsUI() {
+            if (hostSettingsBound) return;
+            hostSettingsBound = true;
+
             document.getElementById('edit-host-payment-btn')?.addEventListener('click', showHostSettingsPanel);
 
             const stored = getStoredHostSettings();
@@ -1104,6 +1113,9 @@
                 }
             });
         }
+
+        window.bindHostSettingsUI = bindHostSettingsUI;
+        window.showHostSettingsPanel = showHostSettingsPanel;
 
         function onPaymentScreenshotChange(event) {
             const file = event.target.files && event.target.files[0];
