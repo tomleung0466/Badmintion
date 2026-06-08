@@ -2,8 +2,18 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="一齊打波，拒絕放飛機。+1 讓球友自助約戰、尋找跟你一夾即合的純粹波友。">
+    <meta name="theme-color" content="#F9F9F9">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="+1">
     <title>+1</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <!-- 引入美化畫面的工具 Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="css/style.css">
@@ -282,6 +292,15 @@
         </div>
 
         </div><!-- /page-transition-root -->
+
+        <!-- PWA 加入主畫面提示 -->
+        <div id="pwa-install-hint" class="pwa-install-hint hidden" role="status" aria-live="polite">
+            <p id="pwa-install-hint-text" class="pwa-install-hint-text"></p>
+            <div class="pwa-install-hint-actions">
+                <button type="button" id="pwa-install-action-btn" class="pwa-install-action-btn hidden">加入主畫面</button>
+                <button type="button" id="pwa-install-dismiss-btn" class="pwa-install-dismiss-btn" aria-label="關閉提示">✕</button>
+            </div>
+        </div>
 
         <!-- ==================== 底部固定導航欄 (Uber風格) ==================== -->
         <footer class="bg-white/90 backdrop-blur border-t border-gray-100 py-2 flex justify-around text-[9px] font-medium text-gray-400 fixed bottom-0 w-full max-w-md z-50 shadow-lg">
@@ -618,6 +637,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+    <script src="js/pwa.js"></script>
     <script src="js/image-preview.js"></script>
     <script src="js/profile-avatar-crop.js"></script>
     <script src="js/host-qr-crop.js"></script>

@@ -49,6 +49,67 @@ button {
   color: var(--muji-text) !important;
 }
 
+/* ── PWA 加入主畫面提示 ── */
+.pwa-install-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 4.75rem;
+  z-index: 45;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  width: calc(100% - 2rem);
+  max-width: 22rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.875rem;
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  transform: translateX(-50%);
+}
+
+.pwa-install-hint.hidden {
+  display: none !important;
+}
+
+.pwa-install-hint-text {
+  flex: 1;
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.55;
+  letter-spacing: 0.03em;
+  color: var(--muji-muted);
+}
+
+.pwa-install-hint-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+.pwa-install-action-btn {
+  padding: 0.35rem 0.625rem;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  background: #f0fdf4;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #166534;
+  white-space: nowrap;
+}
+
+.pwa-install-dismiss-btn {
+  font-size: 11px;
+  line-height: 1;
+  color: #b0b0b0;
+  padding: 0.125rem;
+}
+
 /* ── 全站分頁路由過渡（MUJI 毛玻璃） ── */
 .page-transition-root {
   position: relative;
