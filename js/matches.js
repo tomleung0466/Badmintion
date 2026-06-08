@@ -176,24 +176,52 @@
             statusEl.classList.toggle('hidden', !visible || !message);
         }
 
+        function getHostQrPreviewId(type) {
+            return type === 'payme' ? 'host-payme-qr-preview' : 'host-fps-qr-preview';
+        }
+
+        function renderHostQrPreview(previewId, imageUrl, uploading = false) {
+            const preview = document.getElementById(previewId);
+            if (!preview) return;
+
+            if (!imageUrl) {
+                preview.innerHTML = '';
+                preview.classList.remove('is-visible');
+                delete preview.dataset.previewSource;
+                return;
+            }
+
+            if (typeof window.renderPreviewContainer === 'function') {
+                window.renderPreviewContainer(preview, imageUrl, {
+                    uploading,
+                    alt: previewId.includes('payme') ? 'PayMe QR 預覽' : 'FPS QR 預覽'
+                });
+            } else {
+                preview.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="" class="host-qr-preview-image">`;
+                preview.classList.add('is-visible');
+            }
+        }
+
+        window.setHostQrLocalPreview = function setHostQrLocalPreview(type, src, { uploading = false } = {}) {
+            const preview = document.getElementById(getHostQrPreviewId(type));
+            if (!preview || !src) return;
+            preview.dataset.previewSource = 'local';
+            renderHostQrPreview(getHostQrPreviewId(type), src, uploading);
+        };
+
         function applyHostSettingsToUI(settings = getEmptyHostSettings()) {
             const fpsInput = document.getElementById('host-fps-id-input');
             if (fpsInput) fpsInput.value = settings.fpsId || '';
 
-            const renderPreview = (previewId, imageUrl) => {
+            ['payme', 'fps'].forEach(type => {
+                const previewId = getHostQrPreviewId(type);
                 const preview = document.getElementById(previewId);
-                if (!preview) return;
-                if (imageUrl) {
-                    preview.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="" class="host-qr-preview-image">`;
-                    preview.classList.add('is-visible');
-                } else {
-                    preview.innerHTML = '';
-                    preview.classList.remove('is-visible');
-                }
-            };
+                if (preview?.dataset.previewSource === 'local') return;
 
-            renderPreview('host-payme-qr-preview', settings.paymeQrUrl);
-            renderPreview('host-fps-qr-preview', settings.fpsQrUrl);
+                const imageUrl = type === 'payme' ? settings.paymeQrUrl : settings.fpsQrUrl;
+                renderHostQrPreview(previewId, imageUrl, false);
+                if (preview) delete preview.dataset.previewSource;
+            });
         }
 
         async function refreshHostPaymentSettings() {
@@ -1318,14 +1346,34 @@
                 throw new Error('雲端上傳服務暫時未連線');
             }
 
-            setHostPaymentStatus('上傳中...');
-            const downloadUrl = await window.dbUploadHostPaymentQr(type, croppedFile);
-            cachedOwnHostSettings = {
-                ...(cachedOwnHostSettings || getEmptyHostSettings()),
-                [type === 'payme' ? 'paymeQrUrl' : 'fpsQrUrl']: downloadUrl
-            };
-            applyHostSettingsToUI(cachedOwnHostSettings);
-            setHostPaymentStatus(`${type === 'payme' ? 'PayMe' : 'FPS'} QR 已上傳至雲端`);
+            let localPreviewUrl = null;
+            try {
+                if (typeof window.readFilePreviewUrl === 'function') {
+                    localPreviewUrl = await window.readFilePreviewUrl(croppedFile);
+                    if (typeof window.setHostQrLocalPreview === 'function') {
+                        window.setHostQrLocalPreview(type, localPreviewUrl, { uploading: true });
+                    }
+                }
+
+                setHostPaymentStatus('上傳中...');
+                const downloadUrl = await window.dbUploadHostPaymentQr(type, croppedFile);
+
+                const preview = document.getElementById(getHostQrPreviewId(type));
+                if (preview) delete preview.dataset.previewSource;
+
+                cachedOwnHostSettings = {
+                    ...(cachedOwnHostSettings || getEmptyHostSettings()),
+                    [type === 'payme' ? 'paymeQrUrl' : 'fpsQrUrl']: downloadUrl
+                };
+                renderHostQrPreview(getHostQrPreviewId(type), downloadUrl, false);
+                setHostPaymentStatus(`${type === 'payme' ? 'PayMe' : 'FPS'} QR 已上傳至雲端`);
+            } catch (err) {
+                const preview = document.getElementById(getHostQrPreviewId(type));
+                if (preview?.dataset.previewSource === 'local' && localPreviewUrl) {
+                    renderHostQrPreview(getHostQrPreviewId(type), localPreviewUrl, false);
+                }
+                throw err;
+            }
         }
 
         window.uploadCroppedHostQr = uploadCroppedHostQr;

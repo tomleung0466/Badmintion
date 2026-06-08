@@ -175,24 +175,68 @@ function awardCreditPointsForUid(uid, amount = 0, fallbackName = '波友') {
 
 window.awardCreditPointsForUid = awardCreditPointsForUid;
 
+function setProfileAvatarUploading(uploading) {
+    const overlay = document.getElementById('profile-avatar-overlay');
+    if (!overlay) return;
+    overlay.classList.toggle('is-visible', !!uploading);
+    overlay.setAttribute('aria-hidden', uploading ? 'false' : 'true');
+}
+
+function applyProfileAvatarDisplay(src, { isLocal = false } = {}) {
+    const avatarEl = document.getElementById('profile-avatar');
+    const editPreview = document.getElementById('profile-avatar-edit-preview');
+    if (!avatarEl) return;
+
+    if (src) {
+        avatarEl.textContent = '';
+        avatarEl.style.backgroundImage = `url("${src}")`;
+        avatarEl.dataset.previewSource = isLocal ? 'local' : 'remote';
+
+        if (editPreview && typeof window.renderPreviewContainer === 'function') {
+            window.renderPreviewContainer(editPreview, src, { uploading: false, alt: '大頭照預覽' });
+            editPreview.classList.remove('hidden');
+            editPreview.classList.add('is-visible');
+            editPreview.setAttribute('aria-hidden', 'false');
+        }
+    } else {
+        const ch = (getCurrentUserName().replace(/^波友_/, '').charAt(0) || '友');
+        avatarEl.textContent = ch;
+        avatarEl.style.backgroundImage = '';
+        delete avatarEl.dataset.previewSource;
+
+        if (editPreview) {
+            editPreview.innerHTML = '';
+            editPreview.classList.add('hidden');
+            editPreview.classList.remove('is-visible');
+            editPreview.setAttribute('aria-hidden', 'true');
+        }
+    }
+}
+
+window.setProfileAvatarLocalPreview = function setProfileAvatarLocalPreview(src, { uploading = false } = {}) {
+    applyProfileAvatarDisplay(src, { isLocal: true });
+    setProfileAvatarUploading(uploading);
+};
+
+window.clearProfileAvatarLocalPreview = function clearProfileAvatarLocalPreview() {
+    setProfileAvatarUploading(false);
+    const avatarEl = document.getElementById('profile-avatar');
+    if (avatarEl?.dataset.previewSource === 'local') {
+        applyProfileAvatarDisplay(currentUser.photoURL || null);
+    }
+};
+
 function updateProfileUI() {
     const nameEl = document.getElementById('profile-display-name');
     const creditEl = document.getElementById('profile-credit-points');
-    const avatarEl = document.getElementById('profile-avatar');
     if (nameEl) nameEl.textContent = getCurrentUserName();
     if (creditEl) creditEl.textContent = '3／3';
-    if (avatarEl) {
-        if (currentUser.photoURL) {
-            avatarEl.textContent = '';
-            avatarEl.style.backgroundImage = `url("${currentUser.photoURL}")`;
-            avatarEl.style.backgroundSize = 'cover';
-            avatarEl.style.backgroundPosition = 'center';
-        } else {
-            const ch = (getCurrentUserName().replace(/^波友_/, '').charAt(0) || '友');
-            avatarEl.textContent = ch;
-            avatarEl.style.backgroundImage = '';
-        }
-    }
+
+    const avatarEl = document.getElementById('profile-avatar');
+    if (avatarEl?.dataset.previewSource === 'local') return;
+
+    setProfileAvatarUploading(false);
+    applyProfileAvatarDisplay(currentUser.photoURL || null);
 }
 
 function showProfileEditPanel() {
@@ -236,8 +280,12 @@ async function saveProfileChanges() {
             saveBtn.disabled = true;
             saveBtn.textContent = '儲存中...';
         }
+        if (imageFile) setProfileAvatarUploading(true);
         await window.dbUpdateUserProfile(newName, imageFile);
         loadCurrentUser();
+        const avatarEl = document.getElementById('profile-avatar');
+        if (avatarEl) delete avatarEl.dataset.previewSource;
+        setProfileAvatarUploading(false);
         updateProfileUI();
         if (avatarInput) avatarInput.value = '';
         if (typeof window.clearPendingProfileAvatarFile === 'function') {
@@ -247,6 +295,7 @@ async function saveProfileChanges() {
         alert('修改成功');
     } catch (err) {
         console.error('修改個人資料失敗:', err);
+        setProfileAvatarUploading(false);
         const code = err?.code ? `（${err.code}）` : '';
         alert(`修改失敗${code}，請檢查 Firebase Storage / Firestore 權限設定。`);
     } finally {

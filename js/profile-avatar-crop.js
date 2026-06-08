@@ -114,6 +114,18 @@
         });
     }
 
+    async function showInstantAvatarPreview(file) {
+        if (!file || typeof window.readFilePreviewUrl !== 'function') return;
+        try {
+            const previewUrl = await window.readFilePreviewUrl(file);
+            if (typeof window.setProfileAvatarLocalPreview === 'function') {
+                window.setProfileAvatarLocalPreview(previewUrl, { uploading: false, pending: true });
+            }
+        } catch (err) {
+            console.warn('大頭照本地預覽失敗:', err);
+        }
+    }
+
     function onAvatarFileSelected(event) {
         const input = event.target;
         const file = input.files && input.files[0];
@@ -125,6 +137,7 @@
             return;
         }
 
+        showInstantAvatarPreview(file);
         openCropModal(file);
     }
 
@@ -137,6 +150,7 @@
                 confirmBtn.textContent = '處理中...';
             }
             pendingAvatarFile = await exportCroppedFile();
+            await showInstantAvatarPreview(pendingAvatarFile);
             setAvatarHint(true);
             closeCropModal();
             const input = byId('profile-avatar-input');
@@ -155,6 +169,11 @@
     function onCropCancel() {
         const input = byId('profile-avatar-input');
         if (input) input.value = '';
+        pendingAvatarFile = null;
+        setAvatarHint(false);
+        if (typeof window.clearProfileAvatarLocalPreview === 'function') {
+            window.clearProfileAvatarLocalPreview();
+        }
         closeCropModal();
     }
 
@@ -174,6 +193,9 @@
         setAvatarHint(false);
         const input = byId('profile-avatar-input');
         if (input) input.value = '';
+        if (typeof window.clearProfileAvatarLocalPreview === 'function') {
+            window.clearProfileAvatarLocalPreview();
+        }
     };
 
     if (document.readyState === 'loading') {

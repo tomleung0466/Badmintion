@@ -142,6 +142,18 @@
         });
     }
 
+    async function showInstantQrPreview(type, file) {
+        if (!file || typeof window.readFilePreviewUrl !== 'function') return;
+        try {
+            const previewUrl = await window.readFilePreviewUrl(file);
+            if (typeof window.setHostQrLocalPreview === 'function') {
+                window.setHostQrLocalPreview(type, previewUrl, { uploading: false });
+            }
+        } catch (err) {
+            console.warn('QR 本地預覽失敗:', err);
+        }
+    }
+
     function onQrFileSelected(type, event) {
         const input = event.target;
         const file = input.files && input.files[0];
@@ -153,6 +165,7 @@
             return;
         }
 
+        showInstantQrPreview(type, file);
         openCropModal(type, file, input);
     }
 
@@ -171,13 +184,19 @@
 
             const croppedFile = await exportCroppedFile(type);
 
+            if (typeof window.readFilePreviewUrl === 'function' && typeof window.setHostQrLocalPreview === 'function') {
+                const croppedPreviewUrl = await window.readFilePreviewUrl(croppedFile);
+                window.setHostQrLocalPreview(type, croppedPreviewUrl, { uploading: true });
+            }
+
+            if (pendingSourceInput) pendingSourceInput.value = '';
+            closeCropModal();
+
             if (typeof window.uploadCroppedHostQr !== 'function') {
                 throw new Error('上傳服務未就緒');
             }
 
             await window.uploadCroppedHostQr(type, croppedFile);
-            if (pendingSourceInput) pendingSourceInput.value = '';
-            closeCropModal();
         } catch (err) {
             console.error('裁切或上傳 QR 失敗:', err);
             const code = err?.code ? `（${err.code}）` : '';
@@ -193,6 +212,9 @@
     function onCropCancel() {
         if (pendingSourceInput) pendingSourceInput.value = '';
         closeCropModal();
+        if (typeof window.refreshHostPaymentSettings === 'function') {
+            window.refreshHostPaymentSettings();
+        }
     }
 
     function bindHostQrCropUI() {
