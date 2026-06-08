@@ -79,12 +79,6 @@ function getDistrictsForMacro(macro) {
     return HONG_KONG_18_DISTRICTS.filter(d => DISTRICT_TO_MACRO[d] === macro);
 }
 
-function getMacroAllLabel(macro) {
-    if (macro === 'all') return '全港場次';
-    if (macro === '港島') return '香港全部';
-    return `${macro}全部`;
-}
-
 function syncMacroFromDistrict() {
     if (!districtFilter) return;
     const macro = DISTRICT_TO_MACRO[districtFilter];
@@ -427,7 +421,16 @@ function updateDistrictPickerLabel() {
         return;
     }
 
-    label.textContent = '全港十八區';
+    label.textContent = '請先選擇大區';
+}
+
+function updateDistrictPickerButtonState() {
+    const btn = document.getElementById('district-picker-btn');
+    if (!btn) return;
+    const needsMacro = macroFilter === 'all';
+    btn.disabled = needsMacro;
+    btn.classList.toggle('district-picker-btn--disabled', needsMacro);
+    btn.setAttribute('aria-disabled', needsMacro ? 'true' : 'false');
 }
 
 function updateCapsuleActiveState() {
@@ -440,16 +443,23 @@ function updateCapsuleActiveState() {
 }
 
 function setRegionFilter(filter) {
-    macroFilter = filter || 'all';
+    const next = filter || 'all';
 
-    if (macroFilter === 'all') {
+    if (next === macroFilter && next !== 'all' && districtFilter) {
         districtFilter = null;
     } else {
-        clearDistrictIfOutsideMacro();
+        macroFilter = next;
+        if (macroFilter === 'all') {
+            districtFilter = null;
+        } else {
+            clearDistrictIfOutsideMacro();
+        }
     }
 
+    renderDistrictPickerScroller();
     updateCapsuleActiveState();
     updateDistrictPickerLabel();
+    updateDistrictPickerButtonState();
     applyRegionFilter();
 }
 
@@ -492,22 +502,44 @@ function applyRegionFilter() {
     }
 }
 
+function getPickerScrollerTitle() {
+    if (macroFilter === 'all') return '全港十八區';
+    return `${getRegionFilterLabel(macroFilter)}分區`;
+}
+
 function renderDistrictPickerScroller() {
     const scroller = document.getElementById('picker-scroller');
     if (!scroller) return;
 
     const districts = getDistrictsForMacro(macroFilter);
-    const items = [
-        { val: 'all', label: getMacroAllLabel(macroFilter) },
-        ...districts.map(d => ({ val: d, label: d }))
-    ];
+    const items = macroFilter === 'all'
+        ? [{ val: 'all', label: '全港場次' }, ...districts.map(d => ({ val: d, label: d }))]
+        : districts.map(d => ({ val: d, label: d }));
 
     scroller.innerHTML = items.map(({ val, label }) =>
         `<div class="wheel-item snap-center flex h-10 items-center justify-center text-sm font-medium text-gray-400" data-val="${val}">${label}</div>`
     ).join('');
+
+    const title = document.getElementById('picker-scroller-title');
+    if (title) title.textContent = getPickerScrollerTitle();
+}
+
+function getPickerScrollTarget() {
+    const districts = getDistrictsForMacro(macroFilter);
+
+    if (macroFilter !== 'all') {
+        if (districtFilter && districts.includes(districtFilter)) return districtFilter;
+        return districts[0] || 'all';
+    }
+
+    return districtFilter || 'all';
 }
 
 function toggleScrollPicker(show) {
+    if (show && macroFilter === 'all') {
+        return;
+    }
+
     const picker = document.getElementById('scroll-picker');
     if (!picker) return;
     picker.classList.toggle('hidden', !show);
@@ -520,7 +552,7 @@ function toggleScrollPicker(show) {
             pickerScrollListenerAttached = true;
         }
         renderDistrictPickerScroller();
-        const scrollTarget = districtFilter || 'all';
+        const scrollTarget = getPickerScrollTarget();
         requestAnimationFrame(() => scrollPickerToValue(scrollTarget));
     }
 }
@@ -528,8 +560,14 @@ function toggleScrollPicker(show) {
 function confirmPickerRegion() {
     const selected = getPickerSelection();
 
-    if (selected === 'all') {
-        districtFilter = null;
+    if (macroFilter === 'all') {
+        if (selected === 'all') {
+            districtFilter = null;
+            macroFilter = 'all';
+        } else {
+            districtFilter = selected;
+            syncMacroFromDistrict();
+        }
     } else {
         districtFilter = selected;
         syncMacroFromDistrict();
@@ -537,6 +575,7 @@ function confirmPickerRegion() {
 
     updateCapsuleActiveState();
     updateDistrictPickerLabel();
+    updateDistrictPickerButtonState();
     toggleScrollPicker(false);
     applyRegionFilter();
 }
@@ -548,6 +587,7 @@ function initRegionFilter() {
         });
     });
     renderDistrictPickerScroller();
+    updateDistrictPickerButtonState();
     setRegionFilter('all');
 }
 

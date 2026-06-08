@@ -113,8 +113,14 @@ button {
   transition: background-color 0.15s ease;
 }
 
-.district-picker-btn:hover {
+.district-picker-btn:hover:not(:disabled) {
   background: var(--muji-soft);
+}
+
+.district-picker-btn--disabled,
+.district-picker-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .district-picker-chevron {

@@ -49,8 +49,8 @@
                     <button type="button" class="region-filter-btn" data-filter="新界" role="tab" aria-selected="false">新界</button>
                 </div>
             </div>
-            <button type="button" onclick="toggleScrollPicker(true)" class="district-picker-btn mb-4">
-                <span id="current-region-text">全港十八區</span>
+            <button type="button" id="district-picker-btn" onclick="toggleScrollPicker(true)" class="district-picker-btn mb-4">
+                <span id="current-region-text">請先選擇大區</span>
                 <span class="district-picker-chevron" aria-hidden="true">▼</span>
             </button>
 
@@ -423,7 +423,7 @@
             <div class="bg-white w-full max-w-md rounded-t-2xl shadow-2xl relative z-10 border-t border-[#E5E5E5]">
                 <div class="flex justify-between items-center px-5 py-4 border-b border-[#E5E5E5]">
                     <button type="button" onclick="toggleScrollPicker(false)" class="text-sm text-[#777777]">取消</button>
-                    <span class="text-sm font-medium tracking-[0.05em] text-[#333333]">選擇分區</span>
+                    <span id="picker-scroller-title" class="text-sm font-medium tracking-[0.05em] text-[#333333]">選擇分區</span>
                     <button type="button" onclick="confirmPickerRegion()" class="text-sm font-medium text-[#333333]">完成</button>
                 </div>
                 <div class="relative">
