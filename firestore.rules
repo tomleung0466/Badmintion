@@ -52,11 +52,22 @@ service cloud.firestore {
       return newUids.hasAll(oldUids) && newUids.size() == oldUids.size();
     }
 
-    // 報名：currentPlayers +1，自己的 uid 加入 participantUids / participants
-    function isValidReserve() {
+    function pendingListsEqual() {
+      let oldPending = resource.data.get('pendingParticipantUids', []);
+      let newPending = request.resource.data.get('pendingParticipantUids', []);
+      return newPending.hasAll(oldPending) && newPending.size() == oldPending.size();
+    }
+
+    function isHost() {
+      return isSignedIn() && request.auth.uid == resource.data.hostUid;
+    }
+
+    // 報名申請：加入 pendingParticipantUids，待場主批准
+    function isValidPendingJoin() {
       let uid = request.auth.uid;
       let oldUids = resource.data.get('participantUids', []);
-      let newUids = request.resource.data.get('participantUids', []);
+      let oldPending = resource.data.get('pendingParticipantUids', []);
+      let newPending = request.resource.data.get('pendingParticipantUids', []);
       let oldWait = resource.data.get('waitlist', []);
       let newWait = request.resource.data.get('waitlist', []);
       let waitlistShrunkOk = newWait.size() == oldWait.size()
@@ -64,10 +75,11 @@ service cloud.firestore {
 
       return activityHostFieldsUnchanged()
         && !(uid in oldUids)
-        && uid in newUids
-        && newUids.size() == oldUids.size() + 1
-        && request.resource.data.currentPlayers == resource.data.currentPlayers + 1
-        && request.resource.data.currentPlayers <= request.resource.data.maxSlots
+        && !(uid in oldPending)
+        && uid in newPending
+        && newPending.size() == oldPending.size() + 1
+        && request.resource.data.currentPlayers == resource.data.currentPlayers
+        && participantListsEqual()
         && uid in request.resource.data.get('participants', {})
         && waitlistShrunkOk;
     }
@@ -81,6 +93,7 @@ service cloud.firestore {
       return activityHostFieldsUnchanged()
         && resource.data.currentPlayers >= resource.data.maxSlots
         && !(uid in resource.data.get('participantUids', []))
+        && !(uid in resource.data.get('pendingParticipantUids', []))
         && !(uid in oldWait)
         && uid in newWait
         && newWait.size() == oldWait.size() + 1
@@ -88,8 +101,8 @@ service cloud.firestore {
         && participantListsEqual();
     }
 
-    // 取消預約：移除自己的 uid，currentPlayers -1
-    function isValidCancel() {
+    // 取消已批准預約
+    function isValidCancelApproved() {
       let uid = request.auth.uid;
       let oldUids = resource.data.get('participantUids', []);
       let newUids = request.resource.data.get('participantUids', []);
@@ -100,7 +113,52 @@ service cloud.firestore {
         && newUids.size() == oldUids.size() - 1
         && request.resource.data.currentPlayers == resource.data.currentPlayers - 1
         && request.resource.data.currentPlayers >= 0
+        && pendingListsEqual()
         && !(uid in request.resource.data.get('participants', {}));
+    }
+
+    // 取消待批准申請
+    function isValidCancelPending() {
+      let uid = request.auth.uid;
+      let oldPending = resource.data.get('pendingParticipantUids', []);
+      let newPending = request.resource.data.get('pendingParticipantUids', []);
+
+      return activityHostFieldsUnchanged()
+        && uid in oldPending
+        && !(uid in newPending)
+        && newPending.size() == oldPending.size() - 1
+        && request.resource.data.currentPlayers == resource.data.currentPlayers
+        && participantListsEqual()
+        && !(uid in request.resource.data.get('participants', {}));
+    }
+
+    function isValidHostApprove() {
+      let oldPending = resource.data.get('pendingParticipantUids', []);
+      let newPending = request.resource.data.get('pendingParticipantUids', []);
+      let oldUids = resource.data.get('participantUids', []);
+      let newUids = request.resource.data.get('participantUids', []);
+
+      return isHost()
+        && request.resource.data.hostUid == resource.data.hostUid
+        && request.resource.data.maxSlots == resource.data.maxSlots
+        && request.resource.data.currentPlayers == resource.data.currentPlayers + 1
+        && request.resource.data.currentPlayers <= request.resource.data.maxSlots
+        && newUids.size() == oldUids.size() + 1
+        && newPending.size() == oldPending.size() - 1;
+    }
+
+    function isValidHostReject() {
+      let oldPending = resource.data.get('pendingParticipantUids', []);
+      let newPending = request.resource.data.get('pendingParticipantUids', []);
+      let oldUids = resource.data.get('participantUids', []);
+      let newUids = request.resource.data.get('participantUids', []);
+
+      return isHost()
+        && request.resource.data.hostUid == resource.data.hostUid
+        && request.resource.data.maxSlots == resource.data.maxSlots
+        && request.resource.data.currentPlayers == resource.data.currentPlayers
+        && newUids.size() == oldUids.size()
+        && newPending.size() == oldPending.size() - 1;
     }
 
     function isValidActivityCreate() {
@@ -137,9 +195,12 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isSignedIn() && isValidActivityCreate();
       allow update: if isSignedIn() && (
-        isValidReserve()
+        isValidPendingJoin()
         || isValidWaitlistJoin()
-        || isValidCancel()
+        || isValidCancelApproved()
+        || isValidCancelPending()
+        || isValidHostApprove()
+        || isValidHostReject()
       );
       allow delete: if isSignedIn() && resource.data.hostUid == request.auth.uid;
     }

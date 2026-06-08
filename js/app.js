@@ -604,6 +604,34 @@ function switchPage(pageId) {
     }
 }
 
+const DISCLAIMER_ACK_KEY = 'plus1_disclaimer_ack';
+
+function initDisclaimerModal() {
+    const modal = document.getElementById('disclaimer-modal');
+    const ackBtn = document.getElementById('disclaimer-ack-btn');
+    if (!modal || !ackBtn) return;
+
+    const dismiss = () => {
+        modal.classList.add('hidden');
+        try {
+            localStorage.setItem(DISCLAIMER_ACK_KEY, '1');
+        } catch (_err) { /* ignore */ }
+    };
+
+    ackBtn.addEventListener('click', dismiss);
+    modal.addEventListener('click', event => {
+        if (event.target === modal) dismiss();
+    });
+
+    try {
+        if (!localStorage.getItem(DISCLAIMER_ACK_KEY)) {
+            modal.classList.remove('hidden');
+        }
+    } catch (_err) {
+        modal.classList.remove('hidden');
+    }
+}
+
 function initSplashScreen() {
     const splash = document.getElementById('splash-screen');
     setTimeout(() => {
@@ -619,6 +647,7 @@ function initApp() {
     loadCurrentUser();
     updateProfileUI();
     bindProfileEditUI();
+    initDisclaimerModal();
     initSplashScreen();
     initRegionFilter();
     if (typeof initMatchesApp === 'function') {

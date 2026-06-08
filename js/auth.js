@@ -313,6 +313,7 @@ window.dbPublishActivity = async function dbPublishActivity(activityData) {
             hostEmail: activityData.hostEmail || user.email || null,
             participants: activityData.participants || {},
             participantUids: Array.isArray(activityData.participantUids) ? activityData.participantUids : [],
+            pendingParticipantUids: Array.isArray(activityData.pendingParticipantUids) ? activityData.pendingParticipantUids : [],
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
@@ -388,13 +389,15 @@ window.dbReserveActivity = async function dbReserveActivity(activityData) {
 
             const activity = activitySnap.data();
             const participantUids = Array.isArray(activity.participantUids) ? activity.participantUids : [];
-            if (participantUids.includes(user.uid)) {
+            const pendingUids = Array.isArray(activity.pendingParticipantUids) ? activity.pendingParticipantUids : [];
+            if (participantUids.includes(user.uid) || pendingUids.includes(user.uid)) {
                 return { alreadyJoined: true };
             }
 
             const maxSlots = Number(activity.maxSlots ?? 6);
             const currentPlayers = Number(activity.currentPlayers ?? 0);
-            if (currentPlayers >= maxSlots) {
+            const pendingCount = pendingUids.length;
+            if (currentPlayers + pendingCount >= maxSlots) {
                 const error = new Error("場次已滿額");
                 error.code = "activity/full";
                 throw error;
@@ -402,14 +405,13 @@ window.dbReserveActivity = async function dbReserveActivity(activityData) {
 
             const waitlist = Array.isArray(activity.waitlist) ? activity.waitlist : [];
             const updatePayload = {
-                currentPlayers: currentPlayers + 1,
-                participantUids: arrayUnion(user.uid),
+                pendingParticipantUids: arrayUnion(user.uid),
                 [`participants.${user.uid}`]: {
                     uid: user.uid,
                     displayName: user.displayName || user.email?.split("@")[0] || "波友",
                     email: user.email || null,
                     photoURL: user.photoURL || null,
-                    status: "reserved",
+                    status: "pending",
                     joinedAt: serverTimestamp()
                 },
                 updatedAt: serverTimestamp()
@@ -422,7 +424,7 @@ window.dbReserveActivity = async function dbReserveActivity(activityData) {
 
             transaction.update(activityRef, updatePayload);
 
-            return { alreadyJoined: false };
+            return { alreadyJoined: false, pending: true };
         });
     } catch (err) {
         console.error("留位寫入 Firestore 失敗:", err);
@@ -500,7 +502,8 @@ window.dbJoinWaitlist = async function dbJoinWaitlist(activityData) {
 
             const activity = activitySnap.data();
             const participantUids = Array.isArray(activity.participantUids) ? activity.participantUids : [];
-            if (participantUids.includes(user.uid)) {
+            const pendingUids = Array.isArray(activity.pendingParticipantUids) ? activity.pendingParticipantUids : [];
+            if (participantUids.includes(user.uid) || pendingUids.includes(user.uid)) {
                 const error = new Error("你已預約此場次");
                 error.code = "activity/already-joined";
                 throw error;
@@ -564,25 +567,160 @@ window.dbCancelReservation = async function dbCancelReservation(activityData) {
 
             const activity = activitySnap.data();
             const participantUids = Array.isArray(activity.participantUids) ? activity.participantUids : [];
-            if (!participantUids.includes(user.uid)) {
+            const pendingUids = Array.isArray(activity.pendingParticipantUids) ? activity.pendingParticipantUids : [];
+            const isApproved = participantUids.includes(user.uid);
+            const isPending = pendingUids.includes(user.uid);
+
+            if (!isApproved && !isPending) {
                 const error = new Error("你尚未預約此場次");
                 error.code = "activity/not-joined";
                 throw error;
             }
 
             const currentPlayers = Number(activity.currentPlayers ?? 0);
-
-            transaction.update(activityRef, {
-                currentPlayers: Math.max(0, currentPlayers - 1),
-                participantUids: arrayRemove(user.uid),
+            const updatePayload = {
                 [`participants.${user.uid}`]: deleteField(),
                 updatedAt: serverTimestamp()
-            });
+            };
+
+            if (isApproved) {
+                updatePayload.currentPlayers = Math.max(0, currentPlayers - 1);
+                updatePayload.participantUids = arrayRemove(user.uid);
+            }
+            if (isPending) {
+                updatePayload.pendingParticipantUids = arrayRemove(user.uid);
+            }
+
+            transaction.update(activityRef, updatePayload);
 
             return { cancelled: true };
         });
     } catch (err) {
         console.error("取消預約失敗:", err);
+        throw err;
+    }
+};
+
+window.dbApproveParticipant = async function dbApproveParticipant(activityId, participantUid) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+        if (!activityId || !participantUid) {
+            const error = new Error("缺少必要參數");
+            error.code = "activity/missing-params";
+            throw error;
+        }
+
+        const activityRef = doc(db, "activities", activityId);
+
+        return await runTransaction(db, async transaction => {
+            const activitySnap = await transaction.get(activityRef);
+            if (!activitySnap.exists()) {
+                const error = new Error("場次不存在");
+                error.code = "activity/not-found";
+                throw error;
+            }
+
+            const activity = activitySnap.data();
+            if (activity.hostUid !== user.uid) {
+                const error = new Error("只有場主可以批准報名");
+                error.code = "activity/not-host";
+                throw error;
+            }
+
+            const pendingUids = Array.isArray(activity.pendingParticipantUids) ? activity.pendingParticipantUids : [];
+            if (!pendingUids.includes(participantUid)) {
+                const error = new Error("找不到待批准的報名");
+                error.code = "activity/not-pending";
+                throw error;
+            }
+
+            const maxSlots = Number(activity.maxSlots ?? 6);
+            const currentPlayers = Number(activity.currentPlayers ?? 0);
+            if (currentPlayers >= maxSlots) {
+                const error = new Error("名額已滿，無法批准");
+                error.code = "activity/full";
+                throw error;
+            }
+
+            const profile = activity.participants?.[participantUid] || {};
+
+            transaction.update(activityRef, {
+                currentPlayers: currentPlayers + 1,
+                participantUids: arrayUnion(participantUid),
+                pendingParticipantUids: arrayRemove(participantUid),
+                [`participants.${participantUid}`]: {
+                    uid: participantUid,
+                    displayName: profile.displayName || "波友",
+                    email: profile.email || null,
+                    photoURL: profile.photoURL || null,
+                    status: "reserved",
+                    joinedAt: profile.joinedAt || serverTimestamp(),
+                    approvedAt: serverTimestamp()
+                },
+                updatedAt: serverTimestamp()
+            });
+
+            return { approved: true };
+        });
+    } catch (err) {
+        console.error("批准報名失敗:", err);
+        throw err;
+    }
+};
+
+window.dbRejectParticipant = async function dbRejectParticipant(activityId, participantUid) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+        if (!activityId || !participantUid) {
+            const error = new Error("缺少必要參數");
+            error.code = "activity/missing-params";
+            throw error;
+        }
+
+        const activityRef = doc(db, "activities", activityId);
+
+        return await runTransaction(db, async transaction => {
+            const activitySnap = await transaction.get(activityRef);
+            if (!activitySnap.exists()) {
+                const error = new Error("場次不存在");
+                error.code = "activity/not-found";
+                throw error;
+            }
+
+            const activity = activitySnap.data();
+            if (activity.hostUid !== user.uid) {
+                const error = new Error("只有場主可以拒絕報名");
+                error.code = "activity/not-host";
+                throw error;
+            }
+
+            const pendingUids = Array.isArray(activity.pendingParticipantUids) ? activity.pendingParticipantUids : [];
+            if (!pendingUids.includes(participantUid)) {
+                const error = new Error("找不到待拒絕的報名");
+                error.code = "activity/not-pending";
+                throw error;
+            }
+
+            transaction.update(activityRef, {
+                pendingParticipantUids: arrayRemove(participantUid),
+                [`participants.${participantUid}`]: deleteField(),
+                updatedAt: serverTimestamp()
+            });
+
+            return { rejected: true };
+        });
+    } catch (err) {
+        console.error("拒絕報名失敗:", err);
         throw err;
     }
 };
@@ -618,24 +756,46 @@ window.dbFetchMyJoinedActivities = async function dbFetchMyJoinedActivities(limi
     const user = auth.currentUser;
     if (!user) return [];
     const todayISO = getTodayISO();
+
+    const mergeActivities = docs => {
+        const map = new Map();
+        docs.forEach(docSnap => {
+            map.set(docSnap.id, { ...docSnap.data(), firestoreId: docSnap.id });
+        });
+        return [...map.values()]
+            .filter(activity => activity.playDate && activity.playDate >= todayISO)
+            .sort((a, b) => (b.playDate || "").localeCompare(a.playDate || ""))
+            .slice(0, limit);
+    };
+
     try {
-        const snapshot = await getDocs(query(
-            collection(db, "activities"),
-            where("participantUids", "array-contains", user.uid),
-            where("playDate", ">=", todayISO),
-            orderBy("playDate", "desc"),
-            limit(limit)
-        ));
-        return snapshot.docs.map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }));
+        const [reservedSnap, pendingSnap] = await Promise.all([
+            getDocs(query(
+                collection(db, "activities"),
+                where("participantUids", "array-contains", user.uid),
+                where("playDate", ">=", todayISO),
+                orderBy("playDate", "desc"),
+                limit(limit)
+            )),
+            getDocs(query(
+                collection(db, "activities"),
+                where("pendingParticipantUids", "array-contains", user.uid),
+                where("playDate", ">=", todayISO),
+                orderBy("playDate", "desc"),
+                limit(limit)
+            ))
+        ]);
+        return mergeActivities([...reservedSnap.docs, ...pendingSnap.docs]);
     } catch (err) {
         console.error("讀取我參加的場次失敗，改為前端篩選:", err);
-        const snapshot = await getDocs(query(
-            collection(db, "activities"),
-            where("participantUids", "array-contains", user.uid)
-        ));
+        const snapshot = await getDocs(collection(db, "activities"));
         return snapshot.docs
             .map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }))
-            .filter(activity => activity.playDate && activity.playDate >= todayISO)
+            .filter(activity => {
+                const reserved = Array.isArray(activity.participantUids) && activity.participantUids.includes(user.uid);
+                const pending = Array.isArray(activity.pendingParticipantUids) && activity.pendingParticipantUids.includes(user.uid);
+                return (reserved || pending) && activity.playDate && activity.playDate >= todayISO;
+            })
             .sort((a, b) => (b.playDate || "").localeCompare(a.playDate || ""))
             .slice(0, limit);
     }

@@ -1339,3 +1339,293 @@ button:hover {
   background: #fff;
   color: var(--muji-muted);
 }
+
+/* ── 平台免責聲明 ── */
+.platform-disclaimer {
+  margin-top: 0.75rem;
+  font-size: 10px;
+  line-height: 1.55;
+  letter-spacing: 0.02em;
+  color: #b0b0b0;
+  text-align: center;
+}
+
+.disclaimer-panel {
+  text-align: center;
+}
+
+.disclaimer-text {
+  font-size: 11px;
+  line-height: 1.65;
+  letter-spacing: 0.03em;
+  color: var(--muji-muted);
+}
+
+.disclaimer-ack-btn {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.75rem;
+  background: var(--muji-soft);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--muji-text);
+}
+
+/* ── 我的場次摘要 ── */
+.session-summary-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--muji-border);
+}
+
+.session-summary-row:last-child {
+  border-bottom: none;
+}
+
+.session-summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.session-status-badge {
+  display: inline-flex;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.session-status-badge--pending {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.session-status-badge--approved {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.session-action-btn {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.5rem;
+  background: #fff;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muji-text);
+}
+
+.session-action-btn--primary {
+  background: var(--muji-soft);
+}
+
+.match-book-btn-pending {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+/* ── 場次管理 / 付費資料彈窗 ── */
+.session-modal-panel {
+  position: relative;
+}
+
+.session-modal-title {
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--muji-text);
+}
+
+.session-modal-subtitle {
+  margin-top: 0.25rem;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: var(--muji-muted);
+}
+
+.session-modal-close {
+  font-size: 12px;
+  color: var(--muji-muted);
+  padding: 0.25rem;
+}
+
+.session-manage-meta {
+  margin-bottom: 0.75rem;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: var(--muji-muted);
+}
+
+.session-manage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.session-manage-group-label {
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muji-muted);
+}
+
+.session-manage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.75rem;
+  background: var(--muji-bg);
+}
+
+.session-manage-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.session-manage-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--muji-soft);
+  flex-shrink: 0;
+}
+
+.session-manage-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.session-manage-avatar-initial {
+  font-size: 11px;
+  color: var(--muji-muted);
+}
+
+.session-manage-name {
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--muji-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-manage-actions {
+  display: flex;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+.session-manage-btn {
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--muji-border);
+}
+
+.session-manage-btn--approve {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.session-manage-btn--reject {
+  background: #fff;
+  color: var(--muji-muted);
+}
+
+.session-manage-approved-tag {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--muji-muted);
+}
+
+.session-manage-empty {
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muji-muted);
+}
+
+.host-info-section {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.75rem;
+  background: var(--muji-bg);
+}
+
+.host-info-label {
+  margin-bottom: 0.375rem;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muji-muted);
+}
+
+.host-info-link,
+.host-info-action {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--muji-text);
+}
+
+.host-info-action {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.5rem;
+  background: #fff;
+  width: 100%;
+  justify-content: center;
+}
+
+.host-info-action--whatsapp {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+  text-decoration: none;
+}
+
+.host-info-empty {
+  font-size: 11px;
+  color: var(--muji-muted);
+}
+
+.host-info-qr-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.host-info-qr-block {
+  padding: 0.625rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.75rem;
+  background: var(--muji-bg);
+}
+
+.host-info-qr-image {
+  width: 100%;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+}

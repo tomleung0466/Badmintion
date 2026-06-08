@@ -16,6 +16,14 @@
         <h1 class="text-4xl md:text-5xl font-bold text-[#333333] tracking-[0.05em] leading-relaxed text-center px-6">+1</h1>
     </div>
 
+    <!-- 首次進入免責聲明 -->
+    <div id="disclaimer-modal" class="hidden fixed inset-0 z-[95] flex items-end justify-center bg-black/45 p-4 sm:items-center">
+        <div class="disclaimer-panel w-full max-w-sm rounded-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl">
+            <p class="disclaimer-text">+1 僅提供球友自助約戰資訊平台，不涉及任何資金託管或球局組織。請隊員與場主自行核實球局真實性。轉帳前請務必與場主取得聯絡。</p>
+            <button type="button" id="disclaimer-ack-btn" class="disclaimer-ack-btn">我知道了</button>
+        </div>
+    </div>
+
     <!-- 手機寬度容器 (Uber 極簡風格) -->
     <div class="w-full max-w-md bg-white min-h-screen relative flex flex-col border-x border-[#E5E5E5]">
         
@@ -447,7 +455,7 @@
                 </div>
 
                 <p class="payment-hint">
-                    請掃描或儲存場主收款碼完成付款，上傳截圖後鎖定名額。
+                    請自行聯絡場主完成付款。掃描收款碼後按「確認報名」提交申請。
                 </p>
 
                 <div class="payment-qr-grid payment-qr-grid--enlarged">
@@ -474,21 +482,45 @@
                     </section>
                 </div>
 
-                <label class="payment-upload-label">上傳付款截圖</label>
-                <label class="payment-upload-zone">
-                    <span class="payment-upload-icon" aria-hidden="true">＋</span>
-                    <span class="payment-upload-text">選擇 FPS / PayMe 付款截圖</span>
-                    <input type="file" id="payment-screenshot" accept="image/*" class="hidden" onchange="onPaymentScreenshotChange(event)">
-                </label>
-                <p id="payment-file-name" class="payment-file-name"></p>
-
-                <button type="button" onclick="submitPaymentProof()" class="payment-submit-btn">
-                    確認付款，鎖定名額
+                <button type="button" onclick="confirmBooking()" class="payment-submit-btn">
+                    確認報名
                 </button>
-                <button type="button" onclick="togglePaymentSheet(false)" class="payment-cancel-btn">稍後再付</button>
+                <button type="button" onclick="togglePaymentSheet(false)" class="payment-cancel-btn">稍後再決定</button>
+                <p class="platform-disclaimer">+1 僅提供球友自助約戰資訊平台，不涉及任何資金託管或球局組織。請隊員與場主自行核實球局真實性。轉帳前請務必與場主取得聯絡。</p>
             </div>
         </div>
 
+    </div>
+
+    <!-- 場主付費資料（我參加的場次） -->
+    <div id="host-payment-info-modal" class="hidden fixed inset-0 z-[88] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-5">
+        <div class="session-modal-panel w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl sm:rounded-2xl">
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <div>
+                    <h4 class="session-modal-title">場主付費資料</h4>
+                    <p id="host-payment-info-subtitle" class="session-modal-subtitle"></p>
+                </div>
+                <button type="button" id="host-payment-info-close" class="session-modal-close" aria-label="關閉">✕</button>
+            </div>
+            <div id="host-payment-info-body" class="space-y-3"></div>
+            <p class="platform-disclaimer mt-4">+1 僅提供球友自助約戰資訊平台，不涉及任何資金託管或球局組織。請隊員與場主自行核實球局真實性。轉帳前請務必與場主取得聯絡。</p>
+        </div>
+    </div>
+
+    <!-- 場主管理場次 -->
+    <div id="host-manage-modal" class="hidden fixed inset-0 z-[88] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-5">
+        <div class="session-modal-panel w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl sm:rounded-2xl">
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <div>
+                    <h4 class="session-modal-title">場次管理</h4>
+                    <p id="host-manage-subtitle" class="session-modal-subtitle"></p>
+                </div>
+                <button type="button" id="host-manage-close" class="session-modal-close" aria-label="關閉">✕</button>
+            </div>
+            <p class="session-manage-meta" id="host-manage-slots"></p>
+            <div id="host-manage-participants" class="session-manage-list"></div>
+            <p id="host-manage-empty" class="session-manage-empty hidden">暫無報名申請</p>
+        </div>
     </div>
 
     <!-- 私人球局分享 -->

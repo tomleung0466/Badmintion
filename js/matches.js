@@ -839,7 +839,30 @@
             return `${dateLabel} · ${timeLabel}`;
         }
 
-        function renderActivitySummary(activity) {
+        function getMatchPendingUids(match) {
+            return Array.isArray(match?.pendingParticipantUids) ? match.pendingParticipantUids : [];
+        }
+
+        function getUserJoinStatus(match) {
+            const uid = window.firebaseAuthUid;
+            if (!uid) return 'none';
+            const participantUids = Array.isArray(match?.participantUids) ? match.participantUids : [];
+            if (participantUids.includes(uid)) return 'approved';
+            if (getMatchPendingUids(match).includes(uid)) return 'pending';
+            return 'none';
+        }
+
+        function extractPhoneFromContact(contact) {
+            const phone = String(contact || '').match(/\d{8}/);
+            return phone ? phone[0] : '';
+        }
+
+        function buildWhatsAppUrl(phone) {
+            if (!phone) return '';
+            return `https://wa.me/852${phone}`;
+        }
+
+        function renderActivitySummaryContent(activity) {
             const maxSlots = Number(activity.maxSlots ?? 6);
             const currentPlayers = Number(activity.currentPlayers ?? 0);
             const remainingSlots = Math.max(0, maxSlots - currentPlayers);
@@ -847,15 +870,44 @@
                 ? '<span class="session-private-badge">私人</span>'
                 : '';
             return `
-                <div class="px-4 py-4">
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <p class="text-[10px] tracking-[0.12em] text-gray-400">${getActivityDateTimeLabel(activity)} ${privateBadge}</p>
-                            <p class="mt-1 text-sm font-medium text-gray-900">${activity.region || ''} · ${activity.venue || ''}</p>
-                        </div>
-                        <span class="shrink-0 text-xs text-gray-500">剩餘 ${remainingSlots} 位</span>
+                <div class="session-summary-main">
+                    <p class="text-[10px] tracking-[0.12em] text-gray-400">${getActivityDateTimeLabel(activity)} ${privateBadge}</p>
+                    <p class="mt-1 text-sm font-medium text-gray-900">${activity.region || ''} · ${activity.venue || ''}</p>
+                    <p class="mt-2 text-xs text-gray-500">HK$ ${activity.fee || 0} / 人 · 剩餘 ${remainingSlots} 位</p>
+                </div>
+            `;
+        }
+
+        function renderJoinedActivitySummary(activity) {
+            const activityId = activity.firestoreId || activity.id;
+            const joinStatus = getUserJoinStatus(activity);
+            const statusBadge = joinStatus === 'pending'
+                ? '<span class="session-status-badge session-status-badge--pending">待場主批准</span>'
+                : '<span class="session-status-badge session-status-badge--approved">已批准</span>';
+            return `
+                <div class="session-summary-row px-4 py-4">
+                    ${renderActivitySummaryContent(activity)}
+                    <div class="session-summary-actions">
+                        ${statusBadge}
+                        <button type="button" class="session-action-btn" onclick="openHostPaymentInfoModal('${escapeHtml(String(activityId))}')">場主付費資料</button>
                     </div>
-                    <p class="mt-2 text-xs text-gray-500">HK$ ${activity.fee || 0} / 人</p>
+                </div>
+            `;
+        }
+
+        function renderHostedActivitySummary(activity) {
+            const activityId = activity.firestoreId || activity.id;
+            const pendingCount = getMatchPendingUids(activity).length;
+            const pendingBadge = pendingCount > 0
+                ? `<span class="session-status-badge session-status-badge--pending">${pendingCount} 待批准</span>`
+                : '';
+            return `
+                <div class="session-summary-row px-4 py-4">
+                    ${renderActivitySummaryContent(activity)}
+                    <div class="session-summary-actions">
+                        ${pendingBadge}
+                        <button type="button" class="session-action-btn session-action-btn--primary" onclick="openHostManageModal('${escapeHtml(String(activityId))}')">管理</button>
+                    </div>
                 </div>
             `;
         }
@@ -892,19 +944,25 @@
             const isFull = currentPlayers >= maxSlots;
             const remainingSlots = Math.max(0, maxSlots - currentPlayers);
             const isOnWaitlist = isUserOnWaitlist(match);
-            const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
-            const isReservedByMe = !!window.firebaseAuthUid && participantUids.includes(window.firebaseAuthUid);
+            const joinStatus = getUserJoinStatus(match);
             const bookId = getMatchBookId(match);
             const privateBadge = showPrivateBadge || match.isPrivate
                 ? '<span class="session-private-badge">私人邀請</span>'
                 : '';
 
             let actionHtml = '';
-            if (isReservedByMe) {
+            if (joinStatus === 'approved') {
                 actionHtml = `
                     <div class="match-book-actions">
                         <button type="button" class="match-book-btn match-book-btn-reserved" disabled>已預約</button>
                         <button type="button" class="match-cancel-link" onclick="cancelReservation('${bookId}')">取消預約</button>
+                    </div>
+                `;
+            } else if (joinStatus === 'pending') {
+                actionHtml = `
+                    <div class="match-book-actions">
+                        <button type="button" class="match-book-btn match-book-btn-pending" disabled>待場主批准</button>
+                        <button type="button" class="match-cancel-link" onclick="cancelReservation('${bookId}')">取消申請</button>
                     </div>
                 `;
             } else if (isFull) {
@@ -1098,10 +1156,10 @@
                 const recentJoined = sortActivitiesByRecency(joined).slice(0, MY_SESSIONS_LIMIT);
 
                 hostedContainer.innerHTML = recentHosted.length
-                    ? recentHosted.map(renderActivitySummary).join('')
+                    ? recentHosted.map(renderHostedActivitySummary).join('')
                     : '<div class="px-4 py-5 text-center text-xs text-gray-400">你暫時未發佈場次</div>';
                 joinedContainer.innerHTML = recentJoined.length
-                    ? recentJoined.map(renderActivitySummary).join('')
+                    ? recentJoined.map(renderJoinedActivitySummary).join('')
                     : '<div class="px-4 py-5 text-center text-xs text-gray-400">你暫時未參加場次</div>';
             } catch (err) {
                 console.error('讀取我的場次失敗:', err);
@@ -1168,9 +1226,13 @@
             const maxSlots = Number(match.maxSlots ?? 6);
             match.currentPlayers = Number(match.currentPlayers ?? 0);
             if (!Array.isArray(match.waitlist)) match.waitlist = [];
-            const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
-            if (participantUids.includes(window.firebaseAuthUid)) {
+            const joinStatus = getUserJoinStatus(match);
+            if (joinStatus === 'approved') {
                 alert('你已預約此場次。');
+                return;
+            }
+            if (joinStatus === 'pending') {
+                alert('你已提交報名申請，待場主批准。');
                 return;
             }
 
@@ -1234,9 +1296,6 @@
             if (!show) {
                 pendingPaymentMatchId = null;
                 pendingPaymeLink = '';
-                const fileInput = document.getElementById('payment-screenshot');
-                fileInput.value = '';
-                document.getElementById('payment-file-name').textContent = '';
             }
         }
 
@@ -1244,12 +1303,15 @@
             const match = findMatchByBookId(matchId) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(matchId) ? inviteMatch : null);
             if (!match) return;
 
-            const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
-            if (participantUids.includes(window.firebaseAuthUid)) {
+            const joinStatus = getUserJoinStatus(match);
+            if (joinStatus === 'approved') {
                 alert('你已預約此場次。');
                 return;
             }
-            if (match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') return;
+            if (joinStatus === 'pending') {
+                alert('你已提交報名申請，待場主批准。');
+                return;
+            }
 
             pendingPaymentMatchId = matchId;
 
@@ -1278,10 +1340,6 @@
             if (fpsLabel) {
                 fpsLabel.textContent = payment.fpsId ? `FPS：${payment.fpsId}` : '';
             }
-
-            const fileInput = document.getElementById('payment-screenshot');
-            fileInput.value = '';
-            document.getElementById('payment-file-name').textContent = '';
 
             togglePaymentSheet(true);
         }
@@ -1448,25 +1506,12 @@
         window.showHostSettingsPanel = showHostSettingsPanel;
         window.refreshHostPaymentSettings = refreshHostPaymentSettings;
 
-        function onPaymentScreenshotChange(event) {
-            const file = event.target.files && event.target.files[0];
-            const label = document.getElementById('payment-file-name');
-            label.textContent = file ? `已選擇：${file.name}` : '';
-        }
-
-        async function submitPaymentProof() {
+        async function confirmBooking() {
             if (!pendingPaymentMatchId) return;
 
             const match = findMatchByBookId(pendingPaymentMatchId) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(pendingPaymentMatchId) ? inviteMatch : null);
-            const fileInput = document.getElementById('payment-screenshot');
-            const file = fileInput.files && fileInput.files[0];
-
             if (!match) {
                 togglePaymentSheet(false);
-                return;
-            }
-            if (!file) {
-                alert('請上傳 FPS 或 PayMe 付款截圖');
                 return;
             }
             if (!window.firebaseAuthUid) {
@@ -1474,84 +1519,358 @@
                 return;
             }
 
+            const authUid = window.firebaseAuthUid;
             const currentUserName = getCurrentUserName();
-            const authUid = window.firebaseAuthUid || null;
             const authEmail = window.firebaseAuthUser?.email || null;
-            if (!Array.isArray(match.waitlist)) match.waitlist = [];
-            match.waitlist = match.waitlist.filter(uid => uid !== authUid);
 
-            match.paymentProofName = file.name;
-            match.applicantName = currentUserName;
-            match.applicantUid = authUid;
-            match.applicantEmail = authEmail;
-
-            const reader = new FileReader();
-            reader.onload = async () => {
-                match.paymentProofDataUrl = reader.result;
-
-                try {
-                    const bridgeReady = await waitForDbBridge();
-                    if (!bridgeReady || typeof window.dbReserveActivity !== 'function') {
-                        throw new Error('雲端資料庫暫時未連線');
-                    }
-                    const result = await window.dbReserveActivity(match);
-                    await loadActivitiesFromCloud();
-
-                    match.joined = true;
-                    match.userStatus = 'verified';
-                    match.paymentStatus = 'verified';
-                    if (!Array.isArray(match.participantUids)) match.participantUids = [];
-                    if (!match.participants || typeof match.participants !== 'object') match.participants = {};
-                    if (!match.participantUids.includes(authUid)) {
-                        match.participantUids.push(authUid);
-                        match.participants[authUid] = {
-                            uid: authUid,
-                            displayName: currentUserName,
-                            email: authEmail,
-                            photoURL: window.firebaseAuthUser?.photoURL || null,
-                            status: 'reserved'
-                        };
-                    }
-
-                    saveMatches();
-                    togglePaymentSheet(false);
-                    renderMatches();
-                    await renderMyActivities();
-                    alert(result?.alreadyJoined ? '你已經成功留位。' : '付款確認成功！名額已鎖定，已加入「我參加的場次」。');
-                } catch (err) {
-                    console.error('鎖定名額失敗:', err);
-                    match.joined = true;
-                    match.userStatus = 'pending';
-                    match.paymentStatus = 'pending_verification';
-                    saveMatches();
-                    togglePaymentSheet(false);
-                    renderMatches();
-                    const code = err?.code ? `（${err.code}）` : '';
-                    alert(`截圖已儲存，但鎖定名額失敗${code}，請稍後再試或聯絡場主。`);
+            try {
+                const bridgeReady = await waitForDbBridge();
+                if (!bridgeReady || typeof window.dbReserveActivity !== 'function') {
+                    throw new Error('雲端資料庫暫時未連線');
                 }
-            };
-            reader.onerror = () => {
-                alert('讀取截圖失敗，請再試一次。');
-            };
-            reader.readAsDataURL(file);
+
+                const result = await window.dbReserveActivity(match);
+                await loadActivitiesFromCloud();
+
+                if (!Array.isArray(match.waitlist)) match.waitlist = [];
+                match.waitlist = match.waitlist.filter(uid => uid !== authUid);
+                if (!Array.isArray(match.pendingParticipantUids)) match.pendingParticipantUids = [];
+                if (!match.pendingParticipantUids.includes(authUid)) {
+                    match.pendingParticipantUids.push(authUid);
+                }
+                if (!match.participants || typeof match.participants !== 'object') match.participants = {};
+                match.participants[authUid] = {
+                    uid: authUid,
+                    displayName: currentUserName,
+                    email: authEmail,
+                    photoURL: window.firebaseAuthUser?.photoURL || null,
+                    status: 'pending'
+                };
+
+                saveMatches();
+                togglePaymentSheet(false);
+                await renderMatches();
+                renderInviteMatchSection();
+                await renderMyActivities();
+                alert(result?.alreadyJoined
+                    ? '你已提交報名申請。'
+                    : '報名申請已提交，待場主批准後才會確認名額。');
+            } catch (err) {
+                console.error('提交報名失敗:', err);
+                const code = err?.code ? `（${err.code}）` : '';
+                alert(`提交報名失敗${code}，請稍後再試或聯絡場主。`);
+            }
+        }
+
+        window.confirmBooking = confirmBooking;
+
+        let currentHostPaymentActivityId = null;
+        let currentHostManageActivityId = null;
+
+        function closeHostPaymentInfoModal() {
+            document.getElementById('host-payment-info-modal')?.classList.add('hidden');
+            currentHostPaymentActivityId = null;
+        }
+
+        function closeHostManageModal() {
+            document.getElementById('host-manage-modal')?.classList.add('hidden');
+            currentHostManageActivityId = null;
+        }
+
+        async function openHostPaymentInfoModal(activityId) {
+            if (!activityId) return;
+
+            const modal = document.getElementById('host-payment-info-modal');
+            const subtitle = document.getElementById('host-payment-info-subtitle');
+            const body = document.getElementById('host-payment-info-body');
+            if (!modal || !body) return;
+
+            currentHostPaymentActivityId = activityId;
+
+            let activity = matches.find(m => String(m.firestoreId) === String(activityId) || String(m.id) === String(activityId)) || null;
+            const bridgeReady = await waitForDbBridge();
+            if (bridgeReady && typeof window.dbFetchActivityById === 'function') {
+                try {
+                    const fresh = await window.dbFetchActivityById(activityId);
+                    if (fresh) activity = fresh;
+                } catch (err) {
+                    console.error('讀取場次失敗:', err);
+                }
+            }
+
+            if (!activity) {
+                alert('找不到場次資料。');
+                return;
+            }
+
+            let remoteHostSettings = null;
+            if (activity.hostUid && bridgeReady && typeof window.dbFetchHostPaymentSettings === 'function') {
+                try {
+                    remoteHostSettings = await window.dbFetchHostPaymentSettings(activity.hostUid);
+                } catch (err) {
+                    console.error('讀取場主收款設定失敗:', err);
+                }
+            }
+
+            const payment = getHostPaymentInfo(activity, remoteHostSettings);
+            const phone = extractPhoneFromContact(activity.contact);
+            const whatsappUrl = buildWhatsAppUrl(phone);
+
+            if (subtitle) {
+                subtitle.textContent = `${activity.venue || ''} · ${activity.region || ''}`;
+            }
+
+            const phoneRow = phone
+                ? `<a href="tel:${escapeHtml(phone)}" class="host-info-link">📞 ${escapeHtml(phone)}</a>`
+                : '<p class="host-info-empty">場主尚未提供電話</p>';
+            const fpsRow = payment.fpsId
+                ? `<button type="button" class="host-info-action" onclick="copyHostInfoFps('${escapeHtml(payment.fpsId)}')">FPS：${escapeHtml(payment.fpsId)}</button>`
+                : '<p class="host-info-empty">場主尚未設定 FPS</p>';
+            const whatsappRow = whatsappUrl
+                ? `<a href="${escapeHtml(whatsappUrl)}" target="_blank" rel="noopener noreferrer" class="host-info-action host-info-action--whatsapp">WhatsApp 聯絡場主</a>`
+                : '<p class="host-info-empty">無法建立 WhatsApp 連結</p>';
+
+            const paymeQrHtml = payment.paymeQrUrl
+                ? `<img src="${escapeHtml(payment.paymeQrUrl)}" alt="PayMe QR Code" class="host-info-qr-image" loading="lazy">`
+                : '<p class="host-info-empty">場主尚未上傳 PayMe QR</p>';
+            const fpsQrHtml = payment.fpsQrUrl
+                ? `<img src="${escapeHtml(payment.fpsQrUrl)}" alt="FPS QR Code" class="host-info-qr-image" loading="lazy">`
+                : '<p class="host-info-empty">場主尚未上傳 FPS QR</p>';
+
+            body.innerHTML = `
+                <div class="host-info-section">
+                    <p class="host-info-label">場主電話</p>
+                    ${phoneRow}
+                </div>
+                <div class="host-info-section">
+                    <p class="host-info-label">轉數快 (FPS)</p>
+                    ${fpsRow}
+                </div>
+                <div class="host-info-section">
+                    <p class="host-info-label">WhatsApp</p>
+                    ${whatsappRow}
+                </div>
+                <div class="host-info-qr-grid">
+                    <section class="host-info-qr-block">
+                        <p class="host-info-label">PayMe QR</p>
+                        ${paymeQrHtml}
+                        ${payment.paymeLink ? `<button type="button" class="host-info-action" onclick="openHostInfoPayme('${escapeHtml(payment.paymeLink)}')">一鍵跳轉 PayMe</button>` : ''}
+                    </section>
+                    <section class="host-info-qr-block">
+                        <p class="host-info-label">FPS QR</p>
+                        ${fpsQrHtml}
+                    </section>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+        }
+
+        window.openHostPaymentInfoModal = openHostPaymentInfoModal;
+
+        window.copyHostInfoFps = async function copyHostInfoFps(fpsId) {
+            if (!fpsId) return;
+            try {
+                await navigator.clipboard.writeText(fpsId);
+                alert(`已複製 FPS 識別碼：${fpsId}`);
+            } catch (_err) {
+                prompt('請手動複製 FPS 識別碼：', fpsId);
+            }
+        };
+
+        window.openHostInfoPayme = function openHostInfoPayme(link) {
+            if (!link) {
+                alert('場主尚未設定 PayMe 連結。');
+                return;
+            }
+            const url = link.startsWith('http') ? link : `https://${link}`;
+            window.open(url, '_blank', 'noopener,noreferrer');
+        };
+
+        function renderHostManageParticipantRow(participant, { pending = false, activityId } = {}) {
+            const name = escapeHtml(participant.name || '波友');
+            const uid = escapeHtml(participant.uid || '');
+            const avatarHtml = participant.photoURL
+                ? `<img src="${escapeHtml(participant.photoURL)}" alt="${name}" class="session-manage-avatar-image">`
+                : `<span class="session-manage-avatar-initial">${escapeHtml((participant.name || '友').charAt(0))}</span>`;
+
+            const actions = pending
+                ? `
+                    <div class="session-manage-actions">
+                        <button type="button" class="session-manage-btn session-manage-btn--approve" onclick="handleApproveParticipant('${escapeHtml(activityId)}', '${uid}')">批准</button>
+                        <button type="button" class="session-manage-btn session-manage-btn--reject" onclick="handleRejectParticipant('${escapeHtml(activityId)}', '${uid}')">拒絕</button>
+                    </div>
+                `
+                : '<span class="session-manage-approved-tag">已批准</span>';
+
+            return `
+                <div class="session-manage-item">
+                    <div class="session-manage-user">
+                        <div class="session-manage-avatar">${avatarHtml}</div>
+                        <span class="session-manage-name">${name}</span>
+                    </div>
+                    ${actions}
+                </div>
+            `;
+        }
+
+        function getPendingParticipants(activity) {
+            const pendingUids = getMatchPendingUids(activity);
+            const participants = activity?.participants && typeof activity.participants === 'object'
+                ? activity.participants
+                : {};
+            return pendingUids.map(uid => {
+                const profile = participants[uid] || {};
+                const rawName = profile.displayName || profile.name || '波友';
+                const name = String(rawName).replace(/^波友_/, '').trim() || '波友';
+                return {
+                    uid,
+                    name,
+                    photoURL: profile.photoURL || null
+                };
+            });
+        }
+
+        async function openHostManageModal(activityId) {
+            if (!activityId) return;
+            if (!window.firebaseAuthUid) {
+                alert('請先登入 +1。');
+                return;
+            }
+
+            const modal = document.getElementById('host-manage-modal');
+            const subtitle = document.getElementById('host-manage-subtitle');
+            const slotsEl = document.getElementById('host-manage-slots');
+            const listEl = document.getElementById('host-manage-participants');
+            const emptyEl = document.getElementById('host-manage-empty');
+            if (!modal || !listEl) return;
+
+            currentHostManageActivityId = activityId;
+
+            let activity = null;
+            const bridgeReady = await waitForDbBridge();
+            if (bridgeReady && typeof window.dbFetchActivityById === 'function') {
+                try {
+                    activity = await window.dbFetchActivityById(activityId);
+                } catch (err) {
+                    console.error('讀取場次失敗:', err);
+                }
+            }
+            if (!activity) {
+                activity = matches.find(m => String(m.firestoreId) === String(activityId) || String(m.id) === String(activityId)) || null;
+            }
+            if (!activity) {
+                alert('找不到場次資料。');
+                return;
+            }
+            if (activity.hostUid !== window.firebaseAuthUid) {
+                alert('只有場主可以管理此場次。');
+                return;
+            }
+
+            const maxSlots = Number(activity.maxSlots ?? 6);
+            const currentPlayers = Number(activity.currentPlayers ?? 0);
+            const pendingList = getPendingParticipants(activity);
+            const approvedList = getActivityParticipants(activity);
+
+            if (subtitle) {
+                subtitle.textContent = `${activity.venue || ''} · ${activity.region || ''}`;
+            }
+            if (slotsEl) {
+                slotsEl.textContent = `已批准 ${currentPlayers} / ${maxSlots} 位 · ${pendingList.length} 人待批准`;
+            }
+
+            const approvedHtml = approvedList.length
+                ? `<p class="session-manage-group-label">已批准</p>${approvedList.map(p => renderHostManageParticipantRow(p, { pending: false, activityId })).join('')}`
+                : '';
+            const pendingHtml = pendingList.length
+                ? `<p class="session-manage-group-label">待批准</p>${pendingList.map(p => renderHostManageParticipantRow(p, { pending: true, activityId })).join('')}`
+                : '';
+
+            listEl.innerHTML = pendingHtml + approvedHtml;
+
+            if (emptyEl) {
+                const isEmpty = !pendingList.length && !approvedList.length;
+                emptyEl.classList.toggle('hidden', !isEmpty);
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        window.openHostManageModal = openHostManageModal;
+
+        async function handleApproveParticipant(activityId, participantUid) {
+            if (!activityId || !participantUid) return;
+            try {
+                const bridgeReady = await waitForDbBridge();
+                if (!bridgeReady || typeof window.dbApproveParticipant !== 'function') {
+                    throw new Error('雲端資料庫暫時未連線');
+                }
+                await window.dbApproveParticipant(activityId, participantUid);
+                await loadActivitiesFromCloud();
+                await openHostManageModal(activityId);
+                await renderMyActivities();
+                await renderMatches();
+                renderInviteMatchSection();
+            } catch (err) {
+                console.error('批准報名失敗:', err);
+                const code = err?.code ? `（${err.code}）` : '';
+                alert(`批准失敗${code}，請稍後再試。`);
+            }
+        }
+
+        async function handleRejectParticipant(activityId, participantUid) {
+            if (!activityId || !participantUid) return;
+            const confirmed = confirm('確定拒絕此球友的報名申請？');
+            if (!confirmed) return;
+            try {
+                const bridgeReady = await waitForDbBridge();
+                if (!bridgeReady || typeof window.dbRejectParticipant !== 'function') {
+                    throw new Error('雲端資料庫暫時未連線');
+                }
+                await window.dbRejectParticipant(activityId, participantUid);
+                await loadActivitiesFromCloud();
+                await openHostManageModal(activityId);
+                await renderMyActivities();
+                await renderMatches();
+                renderInviteMatchSection();
+            } catch (err) {
+                console.error('拒絕報名失敗:', err);
+                const code = err?.code ? `（${err.code}）` : '';
+                alert(`拒絕失敗${code}，請稍後再試。`);
+            }
+        }
+
+        window.handleApproveParticipant = handleApproveParticipant;
+        window.handleRejectParticipant = handleRejectParticipant;
+
+        function bindSessionModals() {
+            document.getElementById('host-payment-info-close')?.addEventListener('click', closeHostPaymentInfoModal);
+            document.getElementById('host-manage-close')?.addEventListener('click', closeHostManageModal);
+            document.getElementById('host-payment-info-modal')?.addEventListener('click', event => {
+                if (event.target.id === 'host-payment-info-modal') closeHostPaymentInfoModal();
+            });
+            document.getElementById('host-manage-modal')?.addEventListener('click', event => {
+                if (event.target.id === 'host-manage-modal') closeHostManageModal();
+            });
         }
 
         async function cancelReservation(id) {
             const match = findMatchByBookId(id) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(id) ? inviteMatch : null);
             if (!match) return;
 
-            const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
-            const isReservedByMe = !!window.firebaseAuthUid && participantUids.includes(window.firebaseAuthUid);
-            if (!isReservedByMe && !match.joined && match.userStatus !== 'pending' && match.userStatus !== 'verified') {
-                return;
-            }
+            const joinStatus = getUserJoinStatus(match);
+            if (joinStatus === 'none') return;
 
             if (!window.firebaseAuthUid) {
                 alert('請先登入 +1，然後再取消預約。');
                 return;
             }
 
-            const confirmed = confirm('確定取消預約？\n\n名額將會釋放。如已付款，請私訊場主安排退款。');
+            const isPending = joinStatus === 'pending';
+            const confirmed = confirm(isPending
+                ? '確定取消報名申請？'
+                : '確定取消預約？\n\n名額將會釋放。如已付款，請私訊場主安排退款。');
             if (!confirmed) return;
 
             if (!match.firestoreId) {
@@ -1568,27 +1887,27 @@
                 await window.dbCancelReservation(match);
                 await loadActivitiesFromCloud();
 
-                match.joined = false;
-                match.userStatus = 'none';
-                match.paymentStatus = null;
-                match.paymentProofName = null;
-                match.paymentProofDataUrl = null;
-                match.applicantName = null;
-                match.applicantUid = null;
-                match.applicantEmail = null;
+                const uid = window.firebaseAuthUid;
                 if (Array.isArray(match.participantUids)) {
-                    match.participantUids = match.participantUids.filter(uid => uid !== window.firebaseAuthUid);
+                    match.participantUids = match.participantUids.filter(id => id !== uid);
+                }
+                if (Array.isArray(match.pendingParticipantUids)) {
+                    match.pendingParticipantUids = match.pendingParticipantUids.filter(id => id !== uid);
                 }
                 if (match.participants && typeof match.participants === 'object') {
-                    delete match.participants[window.firebaseAuthUid];
+                    delete match.participants[uid];
                 }
-                match.currentPlayers = Math.max(0, Number(match.currentPlayers ?? 0) - 1);
+                if (!isPending) {
+                    match.currentPlayers = Math.max(0, Number(match.currentPlayers ?? 0) - 1);
+                }
 
                 saveMatches();
                 await renderMatches();
                 renderInviteMatchSection();
                 await renderMyActivities();
-                alert('已取消預約，名額已釋放。\n如已付款，請私訊場主安排退款。');
+                alert(isPending
+                    ? '已取消報名申請。'
+                    : '已取消預約，名額已釋放。\n如已付款，請私訊場主安排退款。');
             } catch (err) {
                 console.error('取消預約失敗:', err);
                 const code = err?.code ? `（${err.code}）` : '';
@@ -1750,6 +2069,7 @@
             bindTimeSlotForm();
             refreshHostPaymentSettings();
             bindPrivateShareUI();
+            bindSessionModals();
             inviteActivityId = getInviteIdFromUrl();
             await loadActivitiesFromCloud();
             await loadInviteActivity();
