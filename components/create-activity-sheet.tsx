@@ -46,7 +46,7 @@ export function CreateActivitySheet({
     venue: "",
     date: "",
     time: "",
-    shuttlecock: "RSL No.1",
+    shuttlecock: "",
     pricePerPerson: "",
     totalSlots: "",
     contactPhone: "",
@@ -99,7 +99,7 @@ export function CreateActivitySheet({
       venue: "",
       date: "",
       time: "",
-      shuttlecock: "RSL No.1",
+      shuttlecock: "",
       pricePerPerson: "",
       totalSlots: "",
       contactPhone: "",
@@ -158,12 +158,11 @@ export function CreateActivitySheet({
                       體育館
                     </Label>
                     <Input
-                      placeholder="例如：藍田體育館"
                       value={formData.venue}
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, venue: e.target.value }))
                       }
-                      className="h-12 rounded-xl border-border bg-background px-4 text-foreground placeholder:text-muted-foreground"
+                      className="h-12 rounded-xl border-border bg-background px-4 text-foreground"
                     />
                   </div>
 
@@ -187,12 +186,11 @@ export function CreateActivitySheet({
                         時間
                       </Label>
                       <Input
-                        placeholder="19:00-21:00"
                         value={formData.time}
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, time: e.target.value }))
                         }
-                        className="h-12 rounded-xl border-border bg-background px-4 text-foreground placeholder:text-muted-foreground"
+                        className="h-12 rounded-xl border-border bg-background px-4 text-foreground"
                       />
                     </div>
                   </div>
@@ -200,31 +198,18 @@ export function CreateActivitySheet({
                   {/* Shuttlecock */}
                   <div className="space-y-2">
                     <Label className="text-sm font-medium tracking-[0.05em] text-foreground">
-                      用球
+                      用球 <span className="text-muted-foreground font-normal">（選填）</span>
                     </Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {["RSL No.1", "Victor Master Ace", "Yonex AS-30", "其他"].map(
-                        (option) => (
-                          <button
-                            key={option}
-                            type="button"
-                            onClick={() =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                shuttlecock: option,
-                              }))
-                            }
-                            className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
-                              formData.shuttlecock === option
-                                ? "border-foreground bg-foreground text-background"
-                                : "border-border bg-background text-foreground hover:bg-secondary"
-                            }`}
-                          >
-                            {option}
-                          </button>
-                        )
-                      )}
-                    </div>
+                    <Input
+                      value={formData.shuttlecock}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          shuttlecock: e.target.value,
+                        }))
+                      }
+                      className="h-12 rounded-xl border-border bg-background px-4 text-foreground"
+                    />
                   </div>
 
                   {/* Price and Slots */}
@@ -239,7 +224,6 @@ export function CreateActivitySheet({
                         </span>
                         <Input
                           type="number"
-                          placeholder="45"
                           value={formData.pricePerPerson}
                           onChange={(e) =>
                             setFormData((prev) => ({
@@ -247,7 +231,7 @@ export function CreateActivitySheet({
                               pricePerPerson: e.target.value,
                             }))
                           }
-                          className="h-12 rounded-xl border-border bg-background pl-8 pr-4 text-foreground placeholder:text-muted-foreground"
+                          className="h-12 rounded-xl border-border bg-background pl-8 pr-4 text-foreground"
                         />
                       </div>
                     </div>
@@ -257,7 +241,6 @@ export function CreateActivitySheet({
                       </Label>
                       <Input
                         type="number"
-                        placeholder="8"
                         value={formData.totalSlots}
                         onChange={(e) =>
                           setFormData((prev) => ({
@@ -265,7 +248,7 @@ export function CreateActivitySheet({
                             totalSlots: e.target.value,
                           }))
                         }
-                        className="h-12 rounded-xl border-border bg-background px-4 text-foreground placeholder:text-muted-foreground"
+                        className="h-12 rounded-xl border-border bg-background px-4 text-foreground"
                       />
                     </div>
                   </div>
@@ -277,7 +260,6 @@ export function CreateActivitySheet({
                     </Label>
                     <Input
                       type="tel"
-                      placeholder="9123 4567"
                       value={formData.contactPhone}
                       onChange={(e) =>
                         setFormData((prev) => ({
@@ -285,7 +267,7 @@ export function CreateActivitySheet({
                           contactPhone: e.target.value,
                         }))
                       }
-                      className="h-12 rounded-xl border-border bg-background px-4 text-foreground placeholder:text-muted-foreground"
+                      className="h-12 rounded-xl border-border bg-background px-4 text-foreground"
                     />
                   </div>
 

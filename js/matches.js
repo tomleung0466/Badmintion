@@ -467,7 +467,6 @@
             formSelectedSkillLevel = DEFAULT_SKILL_LEVEL;
             document.getElementById('form-region').value = '';
             document.getElementById('form-venue').value = '';
-            document.getElementById('form-brand').value = '';
             document.getElementById('form-skill-level').value = DEFAULT_SKILL_LEVEL;
             const maxSlotsInput = document.getElementById('form-maxslots');
             if (maxSlotsInput) maxSlotsInput.value = '6';
@@ -475,10 +474,10 @@
             if (currentPlayersInput) currentPlayersInput.value = '1';
             document.getElementById('form-region-text').textContent = '請滾動選擇分區';
             document.getElementById('form-venue-text').textContent = '請先選擇分區';
-            document.getElementById('form-brand-text').textContent = '請滾動選擇品牌';
             document.getElementById('form-skill-level-text').textContent = getSkillLevelShortLabel(DEFAULT_SKILL_LEVEL);
             document.getElementById('form-venue-note').value = '';
-            document.getElementById('form-shuttle-model').value = '';
+            const shuttleInfoInput = document.getElementById('form-shuttle-info');
+            if (shuttleInfoInput) shuttleInfoInput.value = '';
             const playTimeInput = document.getElementById('form-play-time');
             if (playTimeInput) playTimeInput.value = '';
             formSelectedDate = todayISO;
@@ -1254,7 +1253,7 @@
             const region = document.getElementById('form-region').value;
             const venueValue = document.getElementById('form-venue').value;
             const venueNoteInput = document.getElementById('form-venue-note');
-            const shuttleModel = document.getElementById('form-shuttle-model').value.trim();
+            const shuttleInfo = (document.getElementById('form-shuttle-info')?.value || '').trim();
             const maxSlots = parseInt(document.getElementById('form-maxslots').value) || 6;
             const currentPlayersRaw = parseInt(document.getElementById('form-current-players').value, 10);
             const currentPlayers = Number.isNaN(currentPlayersRaw) ? 0 : Math.max(0, currentPlayersRaw);
@@ -1281,10 +1280,6 @@
                 venueNoteInput.focus();
                 return;
             }
-            if (!document.getElementById('form-brand').value) {
-                alert('請選擇羽毛球品牌');
-                return;
-            }
             const playDate = document.getElementById('form-play-date').value;
             if (!playDate) {
                 alert('請選擇開場日期');
@@ -1292,7 +1287,7 @@
             }
             const playTime = document.getElementById('form-play-time').value.trim();
             if (!playTime) {
-                alert('請填寫場次時間，例如：19:00 - 21:00');
+                alert('請填寫場次時間');
                 document.getElementById('form-play-time').focus();
                 return;
             }
@@ -1312,8 +1307,9 @@
                 fee: parseInt(document.getElementById('form-fee').value) || 50,
                 hostRating: "5.0",
                 contact: document.getElementById('form-contact').value,
-                shuttleBrand: document.getElementById('form-brand').value,
-                shuttleModel: shuttleModel || '',
+                shuttleInfo: shuttleInfo || '',
+                shuttleBrand: shuttleInfo || '',
+                shuttleModel: '',
                 skillLevel: document.getElementById('form-skill-level').value || DEFAULT_SKILL_LEVEL,
                 joined: false,
                 maxSlots,
