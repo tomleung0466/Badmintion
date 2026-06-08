@@ -191,7 +191,7 @@
                 </div>
                 <div id="host-settings-panel" class="profile-subpanel hidden">
                     <p class="profile-subpanel-title">場主收款設定</p>
-                    <p class="profile-field-hint">選擇收款碼或修改 FPS 後按「儲存設定」；用家報名時會在付款彈窗看到你的 PayMe / 轉數快 QR Code。</p>
+                    <p class="profile-field-hint">上傳截圖後請裁切 QR 核心區域再儲存；修改 FPS 識別碼後按「儲存設定」。</p>
                     <p id="host-payment-status" class="profile-field-hint hidden"></p>
                     <div class="profile-field">
                         <label class="profile-field-label">PayMe QR Code</label>
@@ -486,6 +486,30 @@
         </div>
     </div>
 
+    <!-- 場主 QR Code 裁切 -->
+    <div id="host-qr-crop-modal" class="host-qr-crop-modal hidden fixed inset-0 z-[86] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-5">
+        <div class="host-qr-crop-panel w-full max-w-md rounded-t-2xl border border-[#E5E5E5] bg-white p-4 shadow-2xl sm:rounded-2xl">
+            <div class="mb-3 flex items-start justify-between gap-3">
+                <div>
+                    <h4 id="host-qr-crop-title" class="text-sm font-medium tracking-[0.05em] text-[#333333]">裁切 QR Code</h4>
+                    <p class="mt-1 text-[10px] leading-relaxed tracking-[0.04em] text-[#777777]">拖曳對準中央方框，雙指縮放。只會上傳框內的 QR 部分。</p>
+                </div>
+                <button id="host-qr-crop-close" type="button" class="host-qr-crop-close" aria-label="關閉">✕</button>
+            </div>
+            <div class="host-qr-crop-stage mb-4 overflow-hidden rounded-xl border border-[#E5E5E5] bg-[#F4F4F2]">
+                <img id="host-qr-crop-image" alt="待裁切的 QR Code" class="block max-w-full">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <button id="host-qr-crop-cancel" type="button" class="host-qr-crop-btn host-qr-crop-btn--ghost">
+                    取消
+                </button>
+                <button id="host-qr-crop-confirm" type="button" class="host-qr-crop-btn host-qr-crop-btn--primary">
+                    確認裁剪並上傳
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 大頭照裁切 -->
     <div id="avatar-crop-modal" class="hidden fixed inset-0 z-[85] flex items-end justify-center bg-black/55 p-0 sm:items-center sm:p-5">
         <div class="w-full max-w-md rounded-t-2xl border border-gray-200 bg-white p-4 shadow-2xl sm:rounded-2xl">
@@ -528,6 +552,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
     <script src="js/profile-avatar-crop.js"></script>
+    <script src="js/host-qr-crop.js"></script>
     <script src="js/app.js"></script>
     <script src="js/matches.js"></script>
     <script type="module" src="js/auth.js"></script>

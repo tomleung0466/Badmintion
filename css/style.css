@@ -294,6 +294,91 @@ button:hover {
   box-shadow: none;
 }
 
+/* 場主 QR Code 裁切 */
+.host-qr-crop-panel {
+  background: #fff;
+}
+
+.host-qr-crop-close {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  color: #999;
+  cursor: pointer;
+}
+
+.host-qr-crop-stage {
+  width: 100%;
+  height: min(62vh, 320px);
+}
+
+.host-qr-crop-stage > img {
+  display: block;
+  max-width: 100%;
+}
+
+.host-qr-crop-btn {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.host-qr-crop-btn--ghost {
+  border: 1px solid var(--muji-border);
+  background: #fff;
+  color: var(--muji-muted);
+}
+
+.host-qr-crop-btn--ghost:hover {
+  background: var(--muji-soft);
+}
+
+.host-qr-crop-btn--primary {
+  border: 1px solid var(--muji-text);
+  background: var(--muji-text);
+  color: #fff;
+}
+
+.host-qr-crop-btn--primary:hover:not(:disabled) {
+  background: #444;
+}
+
+.host-qr-crop-btn--primary:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+#host-qr-crop-modal .cropper-modal {
+  background-color: rgba(0, 0, 0, 0.55);
+}
+
+#host-qr-crop-modal .cropper-view-box {
+  outline: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 3px rgba(51, 51, 51, 0.35);
+}
+
+#host-qr-crop-modal .cropper-face {
+  background-color: transparent !important;
+}
+
+#host-qr-crop-modal .cropper-line,
+#host-qr-crop-modal .cropper-point,
+#host-qr-crop-modal .cropper-center {
+  display: none !important;
+}
+
+#host-qr-crop-modal .cropper-dashed {
+  opacity: 0.35;
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
 /* 已報名波友 */
 .participants-block {
   margin-top: 0.75rem;

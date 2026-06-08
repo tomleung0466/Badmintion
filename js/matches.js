@@ -156,10 +156,6 @@
         let inviteMatch = null;
 
         let cachedOwnHostSettings = null;
-        let pendingHostPaymeFile = null;
-        let pendingHostFpsFile = null;
-        let pendingHostPaymePreviewUrl = null;
-        let pendingHostFpsPreviewUrl = null;
         const participantAttendanceCache = new Map();
 
         function escapeHtml(value) {
@@ -217,7 +213,6 @@
 
         async function refreshHostPaymentSettings() {
             if (!window.firebaseAuthUid) {
-                clearPendingHostPaymentFiles();
                 cachedOwnHostSettings = getEmptyHostSettings();
                 applyHostSettingsToUI(cachedOwnHostSettings);
                 setHostPaymentStatus('');
@@ -1227,51 +1222,30 @@
             await refreshHostPaymentSettings();
         }
 
-        function revokePendingHostPreview(type) {
-            const url = type === 'payme' ? pendingHostPaymePreviewUrl : pendingHostFpsPreviewUrl;
-            if (url) URL.revokeObjectURL(url);
-            if (type === 'payme') {
-                pendingHostPaymePreviewUrl = null;
-            } else {
-                pendingHostFpsPreviewUrl = null;
-            }
-        }
-
-        function clearPendingHostPaymentFiles() {
-            revokePendingHostPreview('payme');
-            revokePendingHostPreview('fps');
-            pendingHostPaymeFile = null;
-            pendingHostFpsFile = null;
-        }
-
-        function stageHostQrFromInput(type, inputId) {
-            const input = document.getElementById(inputId);
-            const file = input?.files?.[0];
-            if (!file) return;
-
-            if (!file.type.startsWith('image/')) {
-                alert('請選擇圖片檔案。');
-                input.value = '';
-                return;
+        async function uploadCroppedHostQr(type, croppedFile) {
+            if (!window.firebaseAuthUid) {
+                alert('請先登入 +1，然後再上傳收款碼。');
+                const error = new Error('請先登入後再上傳收款碼');
+                error.code = 'auth/not-signed-in';
+                throw error;
             }
 
-            revokePendingHostPreview(type);
-            const previewUrl = URL.createObjectURL(file);
-            if (type === 'payme') {
-                pendingHostPaymeFile = file;
-                pendingHostPaymePreviewUrl = previewUrl;
-            } else {
-                pendingHostFpsFile = file;
-                pendingHostFpsPreviewUrl = previewUrl;
+            const bridgeReady = await waitForDbBridge();
+            if (!bridgeReady || typeof window.dbUploadHostPaymentQr !== 'function') {
+                throw new Error('雲端上傳服務暫時未連線');
             }
 
-            applyHostSettingsToUI({
+            setHostPaymentStatus('上傳中...');
+            const downloadUrl = await window.dbUploadHostPaymentQr(type, croppedFile);
+            cachedOwnHostSettings = {
                 ...(cachedOwnHostSettings || getEmptyHostSettings()),
-                [type === 'payme' ? 'paymeQrUrl' : 'fpsQrUrl']: previewUrl
-            });
-            setHostPaymentStatus('已選擇圖片，按「儲存設定」上傳');
-            input.value = '';
+                [type === 'payme' ? 'paymeQrUrl' : 'fpsQrUrl']: downloadUrl
+            };
+            applyHostSettingsToUI(cachedOwnHostSettings);
+            setHostPaymentStatus(`${type === 'payme' ? 'PayMe' : 'FPS'} QR 已上傳至雲端`);
         }
+
+        window.uploadCroppedHostQr = uploadCroppedHostQr;
 
         async function saveHostPaymentSettings() {
             const saveBtn = document.getElementById('save-host-payment-btn');
@@ -1283,9 +1257,8 @@
                 return;
             }
 
-            const hasPendingFiles = !!(pendingHostPaymeFile || pendingHostFpsFile);
             const fpsChanged = fpsId !== (cachedOwnHostSettings?.fpsId || '');
-            if (!hasPendingFiles && !fpsChanged) {
+            if (!fpsChanged) {
                 alert('沒有需要儲存的變更。');
                 return;
             }
@@ -1304,20 +1277,6 @@
                 }
                 setHostPaymentStatus('儲存中...');
 
-                if (pendingHostPaymeFile && typeof window.dbUploadHostPaymentQr === 'function') {
-                    const paymeUrl = await window.dbUploadHostPaymentQr('payme', pendingHostPaymeFile);
-                    cachedOwnHostSettings = {
-                        ...(cachedOwnHostSettings || getEmptyHostSettings()),
-                        paymeQrUrl: paymeUrl
-                    };
-                }
-                if (pendingHostFpsFile && typeof window.dbUploadHostPaymentQr === 'function') {
-                    const fpsUrl = await window.dbUploadHostPaymentQr('fps', pendingHostFpsFile);
-                    cachedOwnHostSettings = {
-                        ...(cachedOwnHostSettings || getEmptyHostSettings()),
-                        fpsQrUrl: fpsUrl
-                    };
-                }
                 if (fpsChanged && typeof window.dbSaveHostFpsId === 'function') {
                     await window.dbSaveHostFpsId(fpsId);
                     cachedOwnHostSettings = {
@@ -1326,10 +1285,9 @@
                     };
                 }
 
-                clearPendingHostPaymentFiles();
                 applyHostSettingsToUI(cachedOwnHostSettings || getEmptyHostSettings());
-                setHostPaymentStatus('已儲存設定');
-                alert('收款設定已儲存');
+                setHostPaymentStatus('FPS 識別碼已儲存');
+                alert('FPS 識別碼已儲存');
             } catch (err) {
                 console.error('儲存收款設定失敗:', err);
                 const code = err?.code ? `（${err.code}）` : '';
@@ -1352,12 +1310,6 @@
                 showHostSettingsPanel();
             });
 
-            document.getElementById('host-payme-qr-input')?.addEventListener('change', () => {
-                stageHostQrFromInput('payme', 'host-payme-qr-input');
-            });
-            document.getElementById('host-fps-qr-input')?.addEventListener('change', () => {
-                stageHostQrFromInput('fps', 'host-fps-qr-input');
-            });
             document.getElementById('save-host-payment-btn')?.addEventListener('click', saveHostPaymentSettings);
         }
 
