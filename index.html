@@ -187,7 +187,7 @@
                 </div>
                 <div id="host-settings-panel" class="profile-subpanel hidden">
                     <p class="profile-subpanel-title">場主收款設定</p>
-                    <p class="profile-field-hint">上傳收款碼後，用家報名時會在付款彈窗看到你的 PayMe / 轉數快 QR Code。</p>
+                    <p class="profile-field-hint">選擇收款碼或修改 FPS 後按「儲存設定」；用家報名時會在付款彈窗看到你的 PayMe / 轉數快 QR Code。</p>
                     <p id="host-payment-status" class="profile-field-hint hidden"></p>
                     <div class="profile-field">
                         <label class="profile-field-label">PayMe QR Code</label>
@@ -211,6 +211,14 @@
                         <label for="host-fps-id-input" class="profile-field-label">FPS 電話 / 識別碼</label>
                         <input type="text" id="host-fps-id-input" class="profile-field-input" autocomplete="off" inputmode="text">
                     </div>
+                    <button type="button" id="save-host-payment-btn" class="profile-subpanel-btn">
+                        儲存設定
+                    </button>
+                </div>
+                <div id="profile-logout-wrap" class="hidden mt-4">
+                    <button type="button" id="profile-logout-btn" class="profile-logout-btn">
+                        登出
+                    </button>
                 </div>
                 <div class="space-y-2.5 text-sm">
                     <p class="text-gray-800 font-medium">最近3次出席紀錄：<span id="profile-credit-points" class="font-extrabold text-amber-600">3／3</span></p>

@@ -96,10 +96,13 @@ function updateAuthHeader(user) {
     const avatar = byId("auth-user-avatar");
     if (!loginBtn || !userWrap || !userLabel || !avatar) return;
 
+    const profileLogoutWrap = byId("profile-logout-wrap");
+
     if (user) {
         loginBtn.classList.add("hidden");
         userWrap.classList.remove("hidden");
         userWrap.classList.add("flex");
+        profileLogoutWrap?.classList.remove("hidden");
         userLabel.textContent = user.displayName || user.email || "已登入會員";
         if (user.photoURL) {
             avatar.src = user.photoURL;
@@ -114,6 +117,7 @@ function updateAuthHeader(user) {
     loginBtn.classList.remove("hidden");
     userWrap.classList.add("hidden");
     userWrap.classList.remove("flex");
+    profileLogoutWrap?.classList.add("hidden");
     userLabel.textContent = "";
     avatar.removeAttribute("src");
     avatar.classList.add("hidden");
@@ -239,6 +243,7 @@ function bindAuthUI() {
     byId("auth-close-btn")?.addEventListener("click", closeAuthModal);
     byId("auth-google-btn")?.addEventListener("click", loginWithGoogle);
     byId("auth-logout-btn")?.addEventListener("click", logoutCurrentUser);
+    byId("profile-logout-btn")?.addEventListener("click", logoutCurrentUser);
 
     const modal = byId("auth-modal");
     modal?.addEventListener("click", event => {
