@@ -12,6 +12,8 @@ import {
     getRedirectResult,
     GoogleAuthProvider,
     signOut,
+    deleteUser,
+    reauthenticateWithPopup,
     onAuthStateChanged,
     updateProfile
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
@@ -31,6 +33,7 @@ import {
     deleteField,
     setDoc,
     updateDoc,
+    deleteDoc,
     increment,
     getCountFromServer,
     serverTimestamp
@@ -39,7 +42,8 @@ import {
     getStorage,
     ref,
     uploadBytes,
-    getDownloadURL
+    getDownloadURL,
+    deleteObject
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
 const firebaseConfig = {
@@ -134,7 +138,8 @@ function mapAuthError(errorCode) {
         "auth/popup-blocked": "彈出視窗被封鎖，正在改用跳轉登入",
         "auth/operation-not-supported-in-this-environment": "目前環境不支援彈窗，正在改用跳轉登入",
         "auth/unauthorized-domain": "此網域尚未加入 Firebase 授權清單",
-        "auth/too-many-requests": "嘗試次數過多，請稍後再試"
+        "auth/too-many-requests": "嘗試次數過多，請稍後再試",
+        "auth/requires-recent-login": "為保障帳戶安全，請重新登入後再注銷帳號"
     };
     return map[errorCode] || "操作失敗，請稍後再試";
 }
@@ -950,6 +955,61 @@ window.dbSaveHostFpsId = async function dbSaveHostFpsId(fpsId) {
         console.error("儲存 FPS 識別碼失敗:", err);
         throw err;
     }
+};
+
+async function deleteStorageObjectIfExists(path) {
+    try {
+        await deleteObject(ref(storage, path));
+    } catch (err) {
+        if (err?.code !== "storage/object-not-found") {
+            console.warn(`刪除 Storage 檔案失敗 (${path}):`, err);
+        }
+    }
+}
+
+async function deleteUserStorageAssets(uid) {
+    if (!uid) return;
+    await Promise.all([
+        deleteStorageObjectIfExists(`avatars/${uid}`),
+        deleteStorageObjectIfExists(`payment-qr/${uid}/payme`),
+        deleteStorageObjectIfExists(`payment-qr/${uid}/fps`)
+    ]);
+}
+
+async function deleteUserHostedActivities(uid) {
+    if (!uid) return;
+    const hostedSnap = await getDocs(query(
+        collection(db, "activities"),
+        where("hostUid", "==", uid)
+    ));
+    await Promise.all(hostedSnap.docs.map(docSnap => deleteDoc(docSnap.ref)));
+}
+
+async function deleteUserFirestoreData(uid) {
+    if (!uid) return;
+    try {
+        await deleteDoc(doc(db, "users", uid, "attendance", "recent"));
+    } catch (err) {
+        console.warn("刪除出席紀錄失敗（可能不存在）:", err);
+    }
+    await deleteDoc(doc(db, "users", uid));
+}
+
+window.dbDeleteUserAccount = async function dbDeleteUserAccount() {
+    const user = auth.currentUser;
+    if (!user) {
+        const error = new Error("請先登入後再注銷帳號");
+        error.code = "auth/not-signed-in";
+        throw error;
+    }
+
+    const uid = user.uid;
+
+    await reauthenticateWithPopup(user, provider);
+    await deleteUserHostedActivities(uid);
+    await deleteUserFirestoreData(uid);
+    await deleteUserStorageAssets(uid);
+    await deleteUser(user);
 };
 
 window.dbUpdateUserProfile = async function dbUpdateUserProfile(newName, imageFile) {

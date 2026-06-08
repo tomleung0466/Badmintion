@@ -177,17 +177,17 @@ service cloud.firestore {
 
     // ── users：個人資料 + 收款 QR (paymeQR / fpsQR) ─────────
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow read: if isOwner(userId);
       allow create: if isOwner(userId);
       allow update: if isOwner(userId)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(userAllowedWriteKeys());
-      allow delete: if false;
+      allow delete: if isOwner(userId);
 
       // 出席率（卡片 hover 顯示）
       match /attendance/{docId} {
         allow read: if isSignedIn();
         allow create, update: if isOwner(userId);
-        allow delete: if false;
+        allow delete: if isOwner(userId);
       }
     }
 

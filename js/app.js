@@ -325,9 +325,56 @@ async function saveProfileChanges() {
     }
 }
 
+async function deleteUserAccount() {
+    if (!window.firebaseAuthUid) {
+        alert('請先登入 +1。');
+        return;
+    }
+    if (typeof window.dbDeleteUserAccount !== 'function') {
+        alert('帳戶服務暫時未連線，請稍後再試。');
+        return;
+    }
+
+    const confirmed = confirm(
+        '確定要注銷帳號？\n\n此操作無法復原。你的個人資料、收款設定及發佈的場次將被永久刪除。'
+    );
+    if (!confirmed) return;
+
+    const deleteBtn = document.getElementById('delete-account-btn');
+    const originalText = deleteBtn ? deleteBtn.textContent : '';
+    try {
+        if (deleteBtn) {
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = '注銷中...';
+        }
+        await window.dbDeleteUserAccount();
+        localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+        localStorage.removeItem(CURRENT_USER_NAME_STORAGE_KEY);
+        document.getElementById('profile-edit-panel')?.classList.add('hidden');
+        updateProfileUI();
+        alert('帳號已注銷。');
+    } catch (err) {
+        console.error('注銷帳號失敗:', err);
+        const code = err?.code ? `（${err.code}）` : '';
+        let message = `注銷失敗${code}，請稍後再試。`;
+        if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
+            message = '你已取消驗證，帳號未被注銷。';
+        } else if (err?.code === 'auth/requires-recent-login') {
+            message = '為保障帳戶安全，請先登出再重新登入，然後再試一次注銷。';
+        }
+        alert(message);
+    } finally {
+        if (deleteBtn) {
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = originalText || '注銷帳號';
+        }
+    }
+}
+
 function bindProfileEditUI() {
     document.getElementById('edit-profile-btn')?.addEventListener('click', showProfileEditPanel);
     document.getElementById('save-profile-btn')?.addEventListener('click', saveProfileChanges);
+    document.getElementById('delete-account-btn')?.addEventListener('click', deleteUserAccount);
     if (typeof window.bindHostSettingsUI === 'function') {
         window.bindHostSettingsUI();
     }
