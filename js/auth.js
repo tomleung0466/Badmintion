@@ -469,6 +469,83 @@ window.dbFetchMyJoinedActivities = async function dbFetchMyJoinedActivities(limi
     }
 };
 
+function mapHostPaymentSettings(data = {}) {
+    return {
+        paymeQrUrl: data.hostPaymeQrUrl || "",
+        fpsQrUrl: data.hostFpsQrUrl || "",
+        fpsId: data.hostFpsId || ""
+    };
+}
+
+window.dbFetchHostPaymentSettings = async function dbFetchHostPaymentSettings(uid) {
+    try {
+        if (!uid) return mapHostPaymentSettings();
+        const userSnap = await getDoc(doc(db, "users", uid));
+        if (!userSnap.exists()) return mapHostPaymentSettings();
+        return mapHostPaymentSettings(userSnap.data());
+    } catch (err) {
+        console.error("讀取場主收款設定失敗:", err);
+        throw err;
+    }
+};
+
+window.dbUploadHostPaymentQr = async function dbUploadHostPaymentQr(type, imageFile) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入後再上傳收款碼");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+        if (type !== "payme" && type !== "fps") {
+            const error = new Error("不支援的收款碼類型");
+            error.code = "host-payment/invalid-type";
+            throw error;
+        }
+        if (!imageFile || !imageFile.type?.startsWith("image/")) {
+            const error = new Error("請選擇圖片檔案");
+            error.code = "host-payment/invalid-file";
+            throw error;
+        }
+
+        const qrRef = ref(storage, `payment-qr/${user.uid}/${type}`);
+        await uploadBytes(qrRef, imageFile, { contentType: imageFile.type });
+        const downloadUrl = await getDownloadURL(qrRef);
+        const fieldName = type === "payme" ? "hostPaymeQrUrl" : "hostFpsQrUrl";
+
+        await updateDoc(doc(db, "users", user.uid), {
+            [fieldName]: downloadUrl,
+            hostPaymentUpdatedAt: serverTimestamp()
+        });
+
+        return downloadUrl;
+    } catch (err) {
+        console.error("上傳場主收款碼失敗:", err);
+        throw err;
+    }
+};
+
+window.dbSaveHostFpsId = async function dbSaveHostFpsId(fpsId) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入後再儲存 FPS 識別碼");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+
+        await updateDoc(doc(db, "users", user.uid), {
+            hostFpsId: (fpsId || "").trim(),
+            hostPaymentUpdatedAt: serverTimestamp()
+        });
+
+        return true;
+    } catch (err) {
+        console.error("儲存 FPS 識別碼失敗:", err);
+        throw err;
+    }
+};
+
 window.dbUpdateUserProfile = async function dbUpdateUserProfile(newName, imageFile) {
     try {
         const user = auth.currentUser;

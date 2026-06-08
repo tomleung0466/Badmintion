@@ -139,11 +139,8 @@
         let inviteActivityId = null;
         let inviteMatch = null;
 
-        const HOST_SETTINGS_STORAGE = {
-            paymeQr: 'vibeup_host_payme_qr',
-            fpsQr: 'vibeup_host_fps_qr',
-            fpsId: 'vibeup_host_fps_id'
-        };
+        let cachedOwnHostSettings = null;
+        let hostFpsSaveTimer = null;
 
         function escapeHtml(value) {
             return String(value ?? '')
@@ -154,27 +151,70 @@
                 .replace(/'/g, '&#39;');
         }
 
-        function getStoredHostSettings() {
-            try {
-                return {
-                    paymeQrUrl: localStorage.getItem(HOST_SETTINGS_STORAGE.paymeQr) || '',
-                    fpsQrUrl: localStorage.getItem(HOST_SETTINGS_STORAGE.fpsQr) || '',
-                    fpsId: localStorage.getItem(HOST_SETTINGS_STORAGE.fpsId) || ''
-                };
-            } catch (_err) {
-                return { paymeQrUrl: '', fpsQrUrl: '', fpsId: '' };
-            }
+        function getEmptyHostSettings() {
+            return { paymeQrUrl: '', fpsQrUrl: '', fpsId: '' };
         }
 
-        function getHostPaymentInfo(match) {
-            const stored = getStoredHostSettings();
+        function getHostPaymentInfo(match, remoteSettings = null) {
+            const ownSettings = cachedOwnHostSettings || getEmptyHostSettings();
+            const isOwnMatch = !!match?.hostUid && match.hostUid === window.firebaseAuthUid;
+            const settings = remoteSettings || (isOwnMatch ? ownSettings : getEmptyHostSettings());
             const phone = (match?.contact || '').match(/\d{8}/);
             return {
-                fpsId: stored.fpsId || match?.fpsId || (phone ? phone[0] : '91234567'),
-                paymeLink: match?.paymeLink || 'payme.hsbc/VibeUp_demo',
-                paymeQrUrl: stored.paymeQrUrl || match?.paymeQrUrl || '',
-                fpsQrUrl: stored.fpsQrUrl || match?.fpsQrUrl || ''
+                fpsId: settings.fpsId || match?.fpsId || (phone ? phone[0] : ''),
+                paymeLink: match?.paymeLink || '',
+                paymeQrUrl: settings.paymeQrUrl || match?.hostPaymeQrUrl || match?.paymeQrUrl || '',
+                fpsQrUrl: settings.fpsQrUrl || match?.hostFpsQrUrl || match?.fpsQrUrl || ''
             };
+        }
+
+        function setHostPaymentStatus(message, visible = true) {
+            const statusEl = document.getElementById('host-payment-status');
+            if (!statusEl) return;
+            statusEl.textContent = message || '';
+            statusEl.classList.toggle('hidden', !visible || !message);
+        }
+
+        function applyHostSettingsToUI(settings = getEmptyHostSettings()) {
+            const fpsInput = document.getElementById('host-fps-id-input');
+            if (fpsInput) fpsInput.value = settings.fpsId || '';
+
+            const renderPreview = (previewId, imageUrl) => {
+                const preview = document.getElementById(previewId);
+                if (!preview) return;
+                if (imageUrl) {
+                    preview.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="" class="host-qr-preview-image">`;
+                    preview.classList.add('is-visible');
+                } else {
+                    preview.innerHTML = '';
+                    preview.classList.remove('is-visible');
+                }
+            };
+
+            renderPreview('host-payme-qr-preview', settings.paymeQrUrl);
+            renderPreview('host-fps-qr-preview', settings.fpsQrUrl);
+        }
+
+        async function refreshHostPaymentSettings() {
+            if (!window.firebaseAuthUid) {
+                cachedOwnHostSettings = getEmptyHostSettings();
+                applyHostSettingsToUI(cachedOwnHostSettings);
+                return;
+            }
+
+            const bridgeReady = await waitForDbBridge();
+            if (!bridgeReady || typeof window.dbFetchHostPaymentSettings !== 'function') {
+                applyHostSettingsToUI(cachedOwnHostSettings || getEmptyHostSettings());
+                return;
+            }
+
+            try {
+                cachedOwnHostSettings = await window.dbFetchHostPaymentSettings(window.firebaseAuthUid);
+                applyHostSettingsToUI(cachedOwnHostSettings);
+            } catch (err) {
+                console.error('讀取場主收款設定失敗:', err);
+                applyHostSettingsToUI(cachedOwnHostSettings || getEmptyHostSettings());
+            }
         }
 
         function renderPaymentQrSlot(slotId, imageUrl, placeholderText) {
@@ -971,7 +1011,7 @@
             }
         }
 
-        function openPaymentPanel(matchId) {
+        async function openPaymentPanel(matchId) {
             const match = findMatchByBookId(matchId) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(matchId) ? inviteMatch : null);
             if (!match) return;
 
@@ -983,7 +1023,20 @@
             if (match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') return;
 
             pendingPaymentMatchId = matchId;
-            const payment = getHostPaymentInfo(match);
+
+            let remoteHostSettings = null;
+            if (match.hostUid && typeof window.dbFetchHostPaymentSettings === 'function') {
+                try {
+                    const bridgeReady = await waitForDbBridge();
+                    if (bridgeReady) {
+                        remoteHostSettings = await window.dbFetchHostPaymentSettings(match.hostUid);
+                    }
+                } catch (err) {
+                    console.error('讀取場主收款碼失敗:', err);
+                }
+            }
+
+            const payment = getHostPaymentInfo(match, remoteHostSettings);
             pendingPaymeLink = payment.paymeLink;
 
             document.getElementById('payment-venue-label').textContent = `${match.venue} · ${match.region}`;
@@ -1039,7 +1092,7 @@
 
         let hostSettingsBound = false;
 
-        function showHostSettingsPanel() {
+        async function showHostSettingsPanel() {
             const panel = document.getElementById('host-settings-panel');
             const profilePanel = document.getElementById('profile-edit-panel');
             const hostBtn = document.getElementById('edit-host-payment-btn');
@@ -1048,73 +1101,97 @@
             if (profileBtn) profileBtn.classList.remove('is-active-profile-action');
             if (panel) panel.classList.remove('hidden');
             if (hostBtn) hostBtn.classList.add('is-active-profile-action');
+            await refreshHostPaymentSettings();
+        }
+
+        async function uploadHostQrFromInput(type, inputId, previewId) {
+            const input = document.getElementById(inputId);
+            const file = input?.files?.[0];
+            if (!file) return;
+
+            if (!window.firebaseAuthUid) {
+                alert('請先登入 +1，然後再上傳收款碼。');
+                input.value = '';
+                return;
+            }
+            if (!file.type.startsWith('image/')) {
+                alert('請選擇圖片檔案。');
+                input.value = '';
+                return;
+            }
+            if (typeof window.dbUploadHostPaymentQr !== 'function') {
+                alert('雲端上傳服務暫時未連線，請稍後再試。');
+                input.value = '';
+                return;
+            }
+
+            const previewUrl = URL.createObjectURL(file);
+            applyHostSettingsToUI({
+                ...(cachedOwnHostSettings || getEmptyHostSettings()),
+                [type === 'payme' ? 'paymeQrUrl' : 'fpsQrUrl']: previewUrl
+            });
+            setHostPaymentStatus('上傳中...');
+
+            try {
+                const downloadUrl = await window.dbUploadHostPaymentQr(type, file);
+                cachedOwnHostSettings = {
+                    ...(cachedOwnHostSettings || getEmptyHostSettings()),
+                    [type === 'payme' ? 'paymeQrUrl' : 'fpsQrUrl']: downloadUrl
+                };
+                applyHostSettingsToUI(cachedOwnHostSettings);
+                setHostPaymentStatus('已上傳至雲端');
+            } catch (err) {
+                console.error('上傳收款碼失敗:', err);
+                const code = err?.code ? `（${err.code}）` : '';
+                alert(`上傳失敗${code}，請檢查 Firebase Storage 權限設定。`);
+                await refreshHostPaymentSettings();
+                setHostPaymentStatus('');
+            } finally {
+                URL.revokeObjectURL(previewUrl);
+                input.value = '';
+            }
         }
 
         function bindHostSettingsUI() {
             if (hostSettingsBound) return;
             hostSettingsBound = true;
 
-            document.getElementById('edit-host-payment-btn')?.addEventListener('click', showHostSettingsPanel);
+            document.getElementById('edit-host-payment-btn')?.addEventListener('click', () => {
+                showHostSettingsPanel();
+            });
 
-            const stored = getStoredHostSettings();
+            document.getElementById('host-payme-qr-input')?.addEventListener('change', () => {
+                uploadHostQrFromInput('payme', 'host-payme-qr-input', 'host-payme-qr-preview');
+            });
+            document.getElementById('host-fps-qr-input')?.addEventListener('change', () => {
+                uploadHostQrFromInput('fps', 'host-fps-qr-input', 'host-fps-qr-preview');
+            });
+
             const fpsInput = document.getElementById('host-fps-id-input');
-            if (fpsInput) fpsInput.value = stored.fpsId;
-
-            const renderPreview = (previewId, imageUrl) => {
-                const preview = document.getElementById(previewId);
-                if (!preview) return;
-                if (imageUrl) {
-                    preview.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="" class="host-qr-preview-image">`;
-                    preview.classList.add('is-visible');
-                } else {
-                    preview.innerHTML = '';
-                    preview.classList.remove('is-visible');
-                }
-            };
-
-            renderPreview('host-payme-qr-preview', stored.paymeQrUrl);
-            renderPreview('host-fps-qr-preview', stored.fpsQrUrl);
-
-            const bindFilePreview = (inputId, storageKey, previewId) => {
-                const input = document.getElementById(inputId);
-                if (!input) return;
-                input.addEventListener('change', event => {
-                    const file = event.target.files && event.target.files[0];
-                    if (!file || !file.type.startsWith('image/')) {
-                        alert('請選擇圖片檔案。');
-                        input.value = '';
-                        return;
+            fpsInput?.addEventListener('input', () => {
+                if (hostFpsSaveTimer) clearTimeout(hostFpsSaveTimer);
+                hostFpsSaveTimer = setTimeout(async () => {
+                    const fpsId = fpsInput.value.trim();
+                    if (!window.firebaseAuthUid) return;
+                    if (typeof window.dbSaveHostFpsId !== 'function') return;
+                    try {
+                        await window.dbSaveHostFpsId(fpsId);
+                        cachedOwnHostSettings = {
+                            ...(cachedOwnHostSettings || getEmptyHostSettings()),
+                            fpsId
+                        };
+                        setHostPaymentStatus('FPS 識別碼已儲存');
+                    } catch (err) {
+                        console.error('儲存 FPS 識別碼失敗:', err);
+                        setHostPaymentStatus('FPS 識別碼儲存失敗');
                     }
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        const dataUrl = reader.result;
-                        try {
-                            localStorage.setItem(storageKey, dataUrl);
-                        } catch (err) {
-                            console.error('儲存收款碼預覽失敗:', err);
-                            alert('圖片太大，暫時無法在本機預覽儲存。稍後連接資料庫後再上傳。');
-                            return;
-                        }
-                        renderPreview(previewId, dataUrl);
-                    };
-                    reader.readAsDataURL(file);
-                });
-            };
-
-            bindFilePreview('host-payme-qr-input', HOST_SETTINGS_STORAGE.paymeQr, 'host-payme-qr-preview');
-            bindFilePreview('host-fps-qr-input', HOST_SETTINGS_STORAGE.fpsQr, 'host-fps-qr-preview');
-
-            fpsInput?.addEventListener('change', () => {
-                try {
-                    localStorage.setItem(HOST_SETTINGS_STORAGE.fpsId, fpsInput.value.trim());
-                } catch (err) {
-                    console.error('儲存 FPS 識別碼失敗:', err);
-                }
+                }, 600);
             });
         }
 
         window.bindHostSettingsUI = bindHostSettingsUI;
         window.showHostSettingsPanel = showHostSettingsPanel;
+        window.refreshHostPaymentSettings = refreshHostPaymentSettings;
 
         function onPaymentScreenshotChange(event) {
             const file = event.target.files && event.target.files[0];
@@ -1377,6 +1454,7 @@
             migrateMatchSlots();
             bindPaymentActions();
             bindHostSettingsUI();
+            refreshHostPaymentSettings();
             bindPrivateShareUI();
             inviteActivityId = getInviteIdFromUrl();
             await loadActivitiesFromCloud();

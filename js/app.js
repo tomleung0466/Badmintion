@@ -112,11 +112,14 @@ function getCurrentUserName() {
     return currentUser.name || '波友_阿強';
 }
 
-function handleAuthUserChange(user) {
+async function handleAuthUserChange(user) {
     loadCurrentUser();
     updateProfileUI();
     if (typeof window.renderMyActivities === 'function') {
         window.renderMyActivities();
+    }
+    if (user && typeof window.refreshHostPaymentSettings === 'function') {
+        window.refreshHostPaymentSettings();
     }
 }
 
