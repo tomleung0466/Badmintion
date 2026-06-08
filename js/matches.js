@@ -75,6 +75,7 @@
                 if (typeof m.maxSlots !== 'number' || Number.isNaN(m.maxSlots)) m.maxSlots = 6;
                 if (typeof m.currentPlayers !== 'number' || Number.isNaN(m.currentPlayers)) m.currentPlayers = 0;
                 if (!Array.isArray(m.waitingList)) m.waitingList = [];
+                if (!Array.isArray(m.waitlist)) m.waitlist = [];
                 if (m.paymentStatus === undefined) m.paymentStatus = null;
                 if (!m.fpsId) {
                     const phone = (m.contact || '').match(/\d{8}/);
@@ -144,6 +145,7 @@
         let pendingHostFpsFile = null;
         let pendingHostPaymePreviewUrl = null;
         let pendingHostFpsPreviewUrl = null;
+        const participantAttendanceCache = new Map();
 
         function escapeHtml(value) {
             return String(value ?? '')
@@ -166,8 +168,8 @@
             return {
                 fpsId: settings.fpsId || match?.fpsId || (phone ? phone[0] : ''),
                 paymeLink: match?.paymeLink || '',
-                paymeQrUrl: settings.paymeQrUrl || match?.hostPaymeQrUrl || match?.paymeQrUrl || '',
-                fpsQrUrl: settings.fpsQrUrl || match?.hostFpsQrUrl || match?.fpsQrUrl || ''
+                paymeQrUrl: settings.paymeQrUrl || match?.paymeQR || match?.hostPaymeQrUrl || match?.paymeQrUrl || '',
+                fpsQrUrl: settings.fpsQrUrl || match?.fpsQR || match?.hostFpsQrUrl || match?.fpsQrUrl || ''
             };
         }
 
@@ -226,7 +228,7 @@
             const slot = document.getElementById(slotId);
             if (!slot) return;
             if (imageUrl) {
-                slot.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(placeholderText)}" class="payment-qr-image">`;
+                slot.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(placeholderText)}" class="payment-qr-image" loading="lazy">`;
                 return;
             }
             slot.innerHTML = `
@@ -235,6 +237,31 @@
                     <span class="payment-qr-placeholder-text">${escapeHtml(placeholderText)}</span>
                 </div>
             `;
+        }
+
+        function getAttendancePercent(uid) {
+            const rate = participantAttendanceCache.get(uid);
+            return rate ? rate.percent : null;
+        }
+
+        function formatAttendanceTooltip(name, uid) {
+            const percent = getAttendancePercent(uid);
+            const rateText = percent === null ? '—' : `${percent}%`;
+            return `${name} (出席率: ${rateText})`;
+        }
+
+        async function prefetchParticipantAttendance(uids = []) {
+            const missing = [...new Set(uids.filter(uid => uid && !participantAttendanceCache.has(uid)))];
+            if (!missing.length || typeof window.dbFetchUsersAttendanceRates !== 'function') return;
+
+            try {
+                const rates = await window.dbFetchUsersAttendanceRates(missing);
+                Object.entries(rates || {}).forEach(([uid, rate]) => {
+                    participantAttendanceCache.set(uid, rate);
+                });
+            } catch (err) {
+                console.error('讀取出席率失敗:', err);
+            }
         }
 
         function getActivityParticipants(match) {
@@ -267,20 +294,37 @@
                 const avatarHtml = participant.photoURL
                     ? `<img src="${escapeHtml(participant.photoURL)}" alt="${escapeHtml(participant.name)}" class="participant-avatar-image">`
                     : `<span class="participant-avatar-initial">${escapeHtml(participant.initial)}</span>`;
+                const tooltip = formatAttendanceTooltip(participant.name, participant.uid);
                 return `
-                    <div class="participant-chip">
-                        <div class="participant-avatar" aria-hidden="true">${avatarHtml}</div>
-                        <span class="participant-name">${escapeHtml(participant.name)}</span>
+                    <div class="participant-chip" title="${escapeHtml(tooltip)}">
+                        <div class="participant-chip-inner">
+                            <div class="participant-avatar" aria-hidden="true">${avatarHtml}</div>
+                            <span class="participant-name">${escapeHtml(participant.name)}</span>
+                            <span class="participant-attendance-tip">${escapeHtml(tooltip)}</span>
+                        </div>
                     </div>
                 `;
             }).join('');
 
             return `
                 <div class="participants-block">
-                    <p class="participants-label">已報名波友</p>
+                    <p class="participants-label">已報名</p>
                     <div class="participants-list">${chips}</div>
                 </div>
             `;
+        }
+
+        function getMatchWaitlistUids(match) {
+            if (Array.isArray(match?.waitlist) && match.waitlist.length) {
+                return match.waitlist;
+            }
+            return [];
+        }
+
+        function isUserOnWaitlist(match) {
+            const uid = window.firebaseAuthUid;
+            if (!uid) return false;
+            return getMatchWaitlistUids(match).includes(uid);
         }
 
         function getMatchDatesSet() {
@@ -724,17 +768,44 @@
             const { showPrivateBadge = false } = options;
             const maxSlots = Number(match.maxSlots ?? 6);
             const currentPlayers = Number(match.currentPlayers ?? 0);
-            const waitingList = Array.isArray(match.waitingList) ? match.waitingList : [];
             const isFull = currentPlayers >= maxSlots;
             const remainingSlots = Math.max(0, maxSlots - currentPlayers);
-            const currentUserName = getCurrentUserName();
-            const isWaiting = waitingList.includes(currentUserName);
+            const isOnWaitlist = isUserOnWaitlist(match);
             const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
             const isReservedByMe = !!window.firebaseAuthUid && participantUids.includes(window.firebaseAuthUid);
             const bookId = getMatchBookId(match);
             const privateBadge = showPrivateBadge || match.isPrivate
                 ? '<span class="session-private-badge">私人邀請</span>'
                 : '';
+
+            let actionHtml = '';
+            if (isReservedByMe) {
+                actionHtml = `
+                    <div class="match-book-actions">
+                        <button type="button" class="match-book-btn match-book-btn-reserved" disabled>已預約</button>
+                        <button type="button" class="match-cancel-link" onclick="cancelReservation('${bookId}')">取消預約</button>
+                    </div>
+                `;
+            } else if (isFull) {
+                actionHtml = `
+                    <div class="match-book-actions">
+                        <button
+                            type="button"
+                            onclick="bookMatch('${bookId}', this)"
+                            class="match-book-btn match-book-btn-waitlist${isOnWaitlist ? ' is-active' : ''}"
+                            ${isOnWaitlist ? 'disabled' : ''}
+                        >
+                            ${isOnWaitlist ? '✓ 已加入後補' : '加入後補 (Waitlist)'}
+                        </button>
+                    </div>
+                `;
+            } else {
+                actionHtml = `
+                    <div class="match-book-actions">
+                        <button type="button" onclick="bookMatch('${bookId}', this)" class="match-book-btn">點擊報名</button>
+                    </div>
+                `;
+            }
 
             return `
                 <div class="bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]">
@@ -766,21 +837,7 @@
                         ${renderParticipantsBlock(match)}
                     </div>
 
-                    <div class="flex gap-2 flex-wrap pt-5">
-                        <button
-                            onclick="bookMatch('${bookId}', this)"
-                            class="flex-1 min-w-[140px] ${isReservedByMe ? 'bg-[#F4F4F2] text-[#777777]' : 'bg-[#F4F4F2] text-[#333333] hover:bg-[#E9E9E6]'} border border-[#E5E5E5] font-medium py-2.5 rounded-lg text-xs tracking-[0.08em] transition-colors"
-                            ${isReservedByMe ? 'disabled' : ''}
-                        >
-                            ${
-                                isReservedByMe
-                                    ? '✓ 已留位'
-                                    : isFull
-                                      ? (isWaiting ? '✓ 已加入後備名單' : '加入後備名單')
-                                      : '點擊報名'
-                            }
-                        </button>
-                    </div>
+                    <div class="pt-5">${actionHtml}</div>
                 </div>
             `;
         }
@@ -932,10 +989,9 @@
         window.renderMyActivities = renderMyActivities;
 
         // 渲染搵波打列表（私人球局不顯示於大廳，僅專屬連結可見）
-        function renderMatches() {
+        async function renderMatches() {
             const listContainer = document.getElementById('matches-list');
             listContainer.innerHTML = '';
-            renderInviteMatchSection();
 
             let filtered = matches.filter(m => !m.isPrivate);
             filtered = filtered.filter(m => !m.playDate || !isPastDate(m.playDate));
@@ -952,11 +1008,21 @@
                     : homeSelectedDate
                       ? `${formatDateDisplay(homeSelectedDate)} 暫時沒有開場。`
                       : '該區域暫時沒有開場。';
+                if (inviteMatch) {
+                    await prefetchParticipantAttendance(getActivityParticipants(inviteMatch).map(p => p.uid));
+                }
+                renderInviteMatchSection();
                 listContainer.innerHTML = `<div class="text-center py-12 text-gray-400 text-xs">${emptyMsg}</div>`;
                 saveMatches();
                 renderCalendar('home');
                 return;
             }
+
+            const prefetchMatches = inviteMatch ? [...filtered, inviteMatch] : filtered;
+            const participantUids = prefetchMatches.flatMap(match => getActivityParticipants(match).map(p => p.uid));
+            await prefetchParticipantAttendance(participantUids);
+
+            renderInviteMatchSection();
 
             filtered.forEach(match => {
                 const card = document.createElement('div');
@@ -967,23 +1033,21 @@
             renderCalendar('home');
         }
 
-        // 預留位置功能 (帶有流暢動畫效果)
         async function bookMatch(id, btn) {
             const match = findMatchByBookId(id) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(id) ? inviteMatch : null);
             if (!match) return;
 
             if (!window.firebaseAuthUid) {
-                alert('請先登入 VibeUp 波友，然後再留位。');
+                alert('請先登入 +1，然後再報名。');
                 return;
             }
 
-            const currentUserName = getCurrentUserName();
             const maxSlots = Number(match.maxSlots ?? 6);
             match.currentPlayers = Number(match.currentPlayers ?? 0);
-            if (!Array.isArray(match.waitingList)) match.waitingList = [];
+            if (!Array.isArray(match.waitlist)) match.waitlist = [];
             const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
             if (participantUids.includes(window.firebaseAuthUid)) {
-                alert('你已經成功留位。');
+                alert('你已預約此場次。');
                 return;
             }
 
@@ -994,15 +1058,52 @@
                 return;
             }
 
-            // 已滿額：加入後備名單
-            if (match.waitingList.includes(currentUserName)) {
-                alert('你已在後備名單上啦，有位會即刻通知你！');
-                renderMatches();
+            if (isUserOnWaitlist(match)) {
+                alert('你已加入後補名單，有名額釋放時場主會通知你。');
+                await renderMatches();
                 return;
             }
-            match.waitingList.push(currentUserName);
-            alert('已加入後備名單！有位釋放會優先叫你開波 🏸');
-            renderMatches();
+
+            if (!match.firestoreId) {
+                alert('此場次尚未連接雲端，暫時無法加入後補。');
+                return;
+            }
+
+            const originalText = btn ? btn.textContent : '';
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = '加入中...';
+                }
+
+                const bridgeReady = await waitForDbBridge();
+                if (!bridgeReady || typeof window.dbJoinWaitlist !== 'function') {
+                    throw new Error('雲端資料庫暫時未連線');
+                }
+
+                const result = await window.dbJoinWaitlist(match);
+                if (!Array.isArray(match.waitlist)) match.waitlist = [];
+                if (!match.waitlist.includes(window.firebaseAuthUid)) {
+                    match.waitlist.push(window.firebaseAuthUid);
+                }
+
+                saveMatches();
+                await loadActivitiesFromCloud();
+                await renderMatches();
+                renderInviteMatchSection();
+                alert(result?.alreadyWaitlisted
+                    ? '你已加入後補名單。'
+                    : '已加入後補名單！有名額釋放時場主會優先通知你。');
+            } catch (err) {
+                console.error('加入後補失敗:', err);
+                const code = err?.code ? `（${err.code}）` : '';
+                alert(`加入後補失敗${code}，請稍後再試。`);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = originalText || '加入後補 (Waitlist)';
+                }
+            }
         }
 
         function togglePaymentSheet(show) {
@@ -1022,7 +1123,7 @@
 
             const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
             if (participantUids.includes(window.firebaseAuthUid)) {
-                alert('你已經成功留位。');
+                alert('你已預約此場次。');
                 return;
             }
             if (match.joined || match.userStatus === 'pending' || match.userStatus === 'verified') return;
@@ -1269,15 +1370,15 @@
                 return;
             }
             if (!window.firebaseAuthUid) {
-                alert('請先登入 VibeUp 波友，然後再報名。');
+                alert('請先登入 +1，然後再報名。');
                 return;
             }
 
             const currentUserName = getCurrentUserName();
             const authUid = window.firebaseAuthUid || null;
             const authEmail = window.firebaseAuthUser?.email || null;
-            if (!Array.isArray(match.waitingList)) match.waitingList = [];
-            match.waitingList = match.waitingList.filter(n => n !== currentUserName);
+            if (!Array.isArray(match.waitlist)) match.waitlist = [];
+            match.waitlist = match.waitlist.filter(uid => uid !== authUid);
 
             match.paymentProofName = file.name;
             match.applicantName = currentUserName;
@@ -1335,36 +1436,64 @@
             reader.readAsDataURL(file);
         }
 
-        // 臨時取消：如有後備，自動遞補第一位
-        function cancelBooking(id) {
-            const match = matches.find(m => m.id === id);
+        async function cancelReservation(id) {
+            const match = findMatchByBookId(id) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(id) ? inviteMatch : null);
             if (!match) return;
-            if (!match.joined && match.userStatus !== 'pending' && match.userStatus !== 'verified') return;
 
-            const wasVerified = match.userStatus === 'verified';
-            match.joined = false;
-            match.userStatus = 'none';
-            match.paymentStatus = null;
-            match.paymentProofName = null;
-            match.paymentProofDataUrl = null;
-            match.applicantName = null;
-            match.applicantUid = null;
-            match.applicantEmail = null;
+            const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
+            const isReservedByMe = !!window.firebaseAuthUid && participantUids.includes(window.firebaseAuthUid);
+            if (!isReservedByMe && !match.joined && match.userStatus !== 'pending' && match.userStatus !== 'verified') {
+                return;
+            }
 
-            if (wasVerified) {
+            if (!window.firebaseAuthUid) {
+                alert('請先登入 +1，然後再取消預約。');
+                return;
+            }
+
+            const confirmed = confirm('確定取消預約？\n\n名額將會釋放。如已付款，請私訊場主安排退款。');
+            if (!confirmed) return;
+
+            if (!match.firestoreId) {
+                alert('此場次尚未連接雲端，暫時無法取消預約。');
+                return;
+            }
+
+            try {
+                const bridgeReady = await waitForDbBridge();
+                if (!bridgeReady || typeof window.dbCancelReservation !== 'function') {
+                    throw new Error('雲端資料庫暫時未連線');
+                }
+
+                await window.dbCancelReservation(match);
+                await loadActivitiesFromCloud();
+
+                match.joined = false;
+                match.userStatus = 'none';
+                match.paymentStatus = null;
+                match.paymentProofName = null;
+                match.paymentProofDataUrl = null;
+                match.applicantName = null;
+                match.applicantUid = null;
+                match.applicantEmail = null;
+                if (Array.isArray(match.participantUids)) {
+                    match.participantUids = match.participantUids.filter(uid => uid !== window.firebaseAuthUid);
+                }
+                if (match.participants && typeof match.participants === 'object') {
+                    delete match.participants[window.firebaseAuthUid];
+                }
                 match.currentPlayers = Math.max(0, Number(match.currentPlayers ?? 0) - 1);
-            }
 
-            if (wasVerified && Array.isArray(match.waitingList) && match.waitingList.length > 0) {
-                match.waitingList.shift();
-                match.currentPlayers = Math.min(Number(match.maxSlots ?? 6), match.currentPlayers + 1);
-                alert('已釋放名額，後備名單第一位波友自動補位！');
-            } else {
-                alert('已取消留位，期待下次同你開波！');
+                saveMatches();
+                await renderMatches();
+                renderInviteMatchSection();
+                await renderMyActivities();
+                alert('已取消預約，名額已釋放。\n如已付款，請私訊場主安排退款。');
+            } catch (err) {
+                console.error('取消預約失敗:', err);
+                const code = err?.code ? `（${err.code}）` : '';
+                alert(`取消預約失敗${code}，請稍後再試或聯絡場主。`);
             }
-
-            saveMatches();
-            renderMatches();
         }
 
         // 模擬五星評分制度
@@ -1516,6 +1645,6 @@
             saveMatches();
             initCalendars();
             resetPublishForm();
-            renderMatches();
+            await renderMatches();
             if (typeof updateProfileUI === 'function') updateProfileUI();
         }

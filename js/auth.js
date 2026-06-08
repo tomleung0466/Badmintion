@@ -27,6 +27,8 @@ import {
     where,
     runTransaction,
     arrayUnion,
+    arrayRemove,
+    deleteField,
     setDoc,
     updateDoc,
     serverTimestamp
@@ -398,7 +400,8 @@ window.dbReserveActivity = async function dbReserveActivity(activityData) {
                 throw error;
             }
 
-            transaction.update(activityRef, {
+            const waitlist = Array.isArray(activity.waitlist) ? activity.waitlist : [];
+            const updatePayload = {
                 currentPlayers: currentPlayers + 1,
                 participantUids: arrayUnion(user.uid),
                 [`participants.${user.uid}`]: {
@@ -410,12 +413,176 @@ window.dbReserveActivity = async function dbReserveActivity(activityData) {
                     joinedAt: serverTimestamp()
                 },
                 updatedAt: serverTimestamp()
-            });
+            };
+
+            if (waitlist.includes(user.uid)) {
+                updatePayload.waitlist = arrayRemove(user.uid);
+                updatePayload[`waitlistProfiles.${user.uid}`] = deleteField();
+            }
+
+            transaction.update(activityRef, updatePayload);
 
             return { alreadyJoined: false };
         });
     } catch (err) {
         console.error("留位寫入 Firestore 失敗:", err);
+        throw err;
+    }
+};
+
+function mapAttendanceRate(data = {}) {
+    const total = Number(data.total) || 0;
+    const attended = Number(data.attended) || 0;
+    const percent = total > 0 ? Math.round((attended / total) * 100) : 100;
+    return {
+        attended,
+        total,
+        percent,
+        label: data.label || (total > 0 ? `${attended}／${total}` : "—")
+    };
+}
+
+window.dbFetchUsersAttendanceRates = async function dbFetchUsersAttendanceRates(uids = []) {
+    const uniqueUids = [...new Set((uids || []).filter(Boolean))];
+    const result = {};
+    if (!uniqueUids.length) return result;
+
+    await Promise.all(uniqueUids.map(async uid => {
+        try {
+            const attendanceSnap = await getDoc(doc(db, "users", uid, "attendance", "recent"));
+            if (attendanceSnap.exists()) {
+                result[uid] = mapAttendanceRate(attendanceSnap.data());
+                return;
+            }
+
+            const userSnap = await getDoc(doc(db, "users", uid));
+            if (userSnap.exists()) {
+                const recentAttendance = userSnap.data()?.recentAttendance;
+                if (recentAttendance) {
+                    result[uid] = mapAttendanceRate(recentAttendance);
+                    return;
+                }
+            }
+
+            result[uid] = mapAttendanceRate({ attended: 0, total: 0, label: "—" });
+        } catch (err) {
+            console.error(`讀取用戶 ${uid} 出席率失敗:`, err);
+            result[uid] = mapAttendanceRate({ attended: 0, total: 0, label: "—" });
+        }
+    }));
+
+    return result;
+};
+
+window.dbJoinWaitlist = async function dbJoinWaitlist(activityData) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入後再加入後補");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+        if (!activityData?.firestoreId) {
+            const error = new Error("缺少 Firestore 場次 ID");
+            error.code = "activity/missing-firestore-id";
+            throw error;
+        }
+
+        const activityRef = doc(db, "activities", activityData.firestoreId);
+
+        return await runTransaction(db, async transaction => {
+            const activitySnap = await transaction.get(activityRef);
+            if (!activitySnap.exists()) {
+                const error = new Error("場次不存在");
+                error.code = "activity/not-found";
+                throw error;
+            }
+
+            const activity = activitySnap.data();
+            const participantUids = Array.isArray(activity.participantUids) ? activity.participantUids : [];
+            if (participantUids.includes(user.uid)) {
+                const error = new Error("你已預約此場次");
+                error.code = "activity/already-joined";
+                throw error;
+            }
+
+            const waitlist = Array.isArray(activity.waitlist) ? activity.waitlist : [];
+            if (waitlist.includes(user.uid)) {
+                return { alreadyWaitlisted: true };
+            }
+
+            const maxSlots = Number(activity.maxSlots ?? 6);
+            const currentPlayers = Number(activity.currentPlayers ?? 0);
+            if (currentPlayers < maxSlots) {
+                const error = new Error("場次仍有空位，請直接報名");
+                error.code = "activity/not-full";
+                throw error;
+            }
+
+            transaction.update(activityRef, {
+                waitlist: arrayUnion(user.uid),
+                [`waitlistProfiles.${user.uid}`]: {
+                    uid: user.uid,
+                    displayName: user.displayName || user.email?.split("@")[0] || "波友",
+                    photoURL: user.photoURL || null,
+                    joinedAt: serverTimestamp()
+                },
+                updatedAt: serverTimestamp()
+            });
+
+            return { alreadyWaitlisted: false };
+        });
+    } catch (err) {
+        console.error("加入後補名單失敗:", err);
+        throw err;
+    }
+};
+
+window.dbCancelReservation = async function dbCancelReservation(activityData) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入後再取消預約");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+        if (!activityData?.firestoreId) {
+            const error = new Error("缺少 Firestore 場次 ID");
+            error.code = "activity/missing-firestore-id";
+            throw error;
+        }
+
+        const activityRef = doc(db, "activities", activityData.firestoreId);
+
+        return await runTransaction(db, async transaction => {
+            const activitySnap = await transaction.get(activityRef);
+            if (!activitySnap.exists()) {
+                const error = new Error("場次不存在");
+                error.code = "activity/not-found";
+                throw error;
+            }
+
+            const activity = activitySnap.data();
+            const participantUids = Array.isArray(activity.participantUids) ? activity.participantUids : [];
+            if (!participantUids.includes(user.uid)) {
+                const error = new Error("你尚未預約此場次");
+                error.code = "activity/not-joined";
+                throw error;
+            }
+
+            const currentPlayers = Number(activity.currentPlayers ?? 0);
+
+            transaction.update(activityRef, {
+                currentPlayers: Math.max(0, currentPlayers - 1),
+                participantUids: arrayRemove(user.uid),
+                [`participants.${user.uid}`]: deleteField(),
+                updatedAt: serverTimestamp()
+            });
+
+            return { cancelled: true };
+        });
+    } catch (err) {
+        console.error("取消預約失敗:", err);
         throw err;
     }
 };
@@ -476,9 +643,9 @@ window.dbFetchMyJoinedActivities = async function dbFetchMyJoinedActivities(limi
 
 function mapHostPaymentSettings(data = {}) {
     return {
-        paymeQrUrl: data.hostPaymeQrUrl || "",
-        fpsQrUrl: data.hostFpsQrUrl || "",
-        fpsId: data.hostFpsId || ""
+        paymeQrUrl: data.paymeQR || data.hostPaymeQrUrl || "",
+        fpsQrUrl: data.fpsQR || data.hostFpsQrUrl || "",
+        fpsId: data.hostFpsId || data.fpsId || ""
     };
 }
 
@@ -516,10 +683,12 @@ window.dbUploadHostPaymentQr = async function dbUploadHostPaymentQr(type, imageF
         const qrRef = ref(storage, `payment-qr/${user.uid}/${type}`);
         await uploadBytes(qrRef, imageFile, { contentType: imageFile.type });
         const downloadUrl = await getDownloadURL(qrRef);
-        const fieldName = type === "payme" ? "hostPaymeQrUrl" : "hostFpsQrUrl";
+        const canonicalField = type === "payme" ? "paymeQR" : "fpsQR";
+        const legacyField = type === "payme" ? "hostPaymeQrUrl" : "hostFpsQrUrl";
 
         await updateDoc(doc(db, "users", user.uid), {
-            [fieldName]: downloadUrl,
+            [canonicalField]: downloadUrl,
+            [legacyField]: downloadUrl,
             hostPaymentUpdatedAt: serverTimestamp()
         });
 
