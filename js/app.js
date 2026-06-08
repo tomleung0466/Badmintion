@@ -40,7 +40,28 @@ const HONG_KONG_18_DISTRICTS = [
 ];
 
 let currentFilter = 'all';
-let pickerScrollListenerAttached = false;
+
+const MACRO_REGION_VALUES = ['港島', '九龍', '新界'];
+
+const DISTRICT_TO_MACRO = {
+    '中西區': '港島', '東區': '港島', '南區': '港島', '灣仔區': '港島',
+    '油尖旺區': '九龍', '深水埗區': '九龍', '黃大仙區': '九龍', '九龍城區': '九龍', '觀塘區': '九龍',
+    '葵青區': '新界', '荃灣區': '新界', '屯門區': '新界', '元朗區': '新界',
+    '沙田區': '新界', '大埔區': '新界', '北區': '新界', '西貢區': '新界', '離島區': '新界'
+};
+
+function getMatchMacroRegion(match) {
+    const region = match?.region;
+    if (!region) return '';
+    if (MACRO_REGION_VALUES.includes(region)) return region;
+    return DISTRICT_TO_MACRO[region] || '';
+}
+
+function getRegionFilterLabel(filter) {
+    if (filter === 'all') return '全部';
+    if (filter === '港島') return '香港';
+    return filter;
+}
 
 /* ---------- 登入用家（Demo） ---------- */
 const CURRENT_USER_STORAGE_KEY = 'uber_badminton_user';
@@ -302,36 +323,51 @@ function scrollPickerToValue(value) {
     scrollWheelToValue('picker-scroller', 'wheel-item', value);
 }
 
-function initRegionPickers() {
-    const scroller = document.getElementById('picker-scroller');
-    scroller.innerHTML = [
-        { val: 'all', label: '全港場次' },
-        ...HONG_KONG_18_DISTRICTS.map(d => ({ val: d, label: d }))
-    ].map(({ val, label }) =>
-        `<div class="wheel-item snap-center flex h-10 items-center justify-center text-sm font-medium text-gray-400" data-val="${val}">${label}</div>`
-    ).join('');
+function setRegionFilter(filter) {
+    currentFilter = filter || 'all';
+    document.querySelectorAll('.region-filter-btn').forEach(btn => {
+        const active = btn.dataset.filter === currentFilter;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    applyRegionFilter();
 }
 
-function toggleScrollPicker(show) {
-    document.getElementById('scroll-picker').classList.toggle('hidden', !show);
-    const scroller = document.getElementById('picker-scroller');
+function applyRegionFilter() {
+    const cards = document.querySelectorAll('#matches-list > [data-region], #invite-match-section [data-region]');
+    let visibleCount = 0;
 
-    if (show) {
-        if (!pickerScrollListenerAttached) {
-            scroller.addEventListener('scroll', updatePickerHighlight, { passive: true });
-            pickerScrollListenerAttached = true;
-        }
-        requestAnimationFrame(() => scrollPickerToValue(currentFilter));
+    cards.forEach(card => {
+        const region = card.getAttribute('data-region') || '';
+        const show = currentFilter === 'all' || region === currentFilter;
+        card.classList.toggle('hidden', !show);
+        if (show) visibleCount += 1;
+    });
+
+    const list = document.getElementById('matches-list');
+    let emptyEl = document.getElementById('region-filter-empty');
+    if (!emptyEl && list) {
+        emptyEl = document.createElement('div');
+        emptyEl.id = 'region-filter-empty';
+        emptyEl.className = 'region-filter-empty hidden';
+        list.appendChild(emptyEl);
+    }
+
+    if (emptyEl) {
+        const hasCards = cards.length > 0;
+        const showEmpty = hasCards && visibleCount === 0 && currentFilter !== 'all';
+        emptyEl.textContent = `${getRegionFilterLabel(currentFilter)}暫時沒有開場。`;
+        emptyEl.classList.toggle('hidden', !showEmpty);
     }
 }
 
-function confirmPickerRegion() {
-    const selected = getPickerSelection();
-    currentFilter = selected;
-    const label = selected === 'all' ? '全港地區' : selected;
-    document.getElementById('current-region-text').textContent = `地區：${label}`;
-    toggleScrollPicker(false);
-    renderMatches();
+function initRegionFilter() {
+    document.querySelectorAll('.region-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            setRegionFilter(btn.dataset.filter || 'all');
+        });
+    });
+    setRegionFilter('all');
 }
 
 /* ---------- 分頁與啟動畫面 ---------- */
@@ -363,7 +399,7 @@ function initApp() {
     updateProfileUI();
     bindProfileEditUI();
     initSplashScreen();
-    initRegionPickers();
+    initRegionFilter();
     if (typeof initMatchesApp === 'function') {
         initMatchesApp();
     }

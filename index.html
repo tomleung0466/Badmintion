@@ -40,11 +40,15 @@
                 </div>
             </div>
 
-            <!-- 地區篩選 (模擬高級滾筒選擇器按鈕) -->
-            <button onclick="toggleScrollPicker(true)" class="w-full bg-white border border-[#E5E5E5] rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center mb-4">
-                <span id="current-region-text">全港場次</span>
-                <span class="text-gray-400">▼</span>
-            </button>
+            <!-- 地區篩選膠囊 -->
+            <div class="region-filter-scroll no-scrollbar mb-4">
+                <div id="region-filter" class="region-filter" role="tablist" aria-label="地區篩選">
+                    <button type="button" class="region-filter-btn is-active" data-filter="all" role="tab" aria-selected="true">全部</button>
+                    <button type="button" class="region-filter-btn" data-filter="港島" role="tab" aria-selected="false">香港</button>
+                    <button type="button" class="region-filter-btn" data-filter="九龍" role="tab" aria-selected="false">九龍</button>
+                    <button type="button" class="region-filter-btn" data-filter="新界" role="tab" aria-selected="false">新界</button>
+                </div>
+            </div>
 
             <!-- 日期篩選日曆（預設收起，顯示當日） -->
             <div class="bg-white border border-[#E5E5E5] rounded-xl p-3 mb-6">
@@ -276,17 +280,27 @@
                 
                 <form onsubmit="handleFormSubmit(event)" class="space-y-4 text-xs">
                     <div>
-                        <label class="block text-gray-500 mb-1 font-medium">選擇香港具體分區</label>
-                        <button type="button" onclick="openFormPicker('region')" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center">
-                            <span id="form-region-text">請滾動選擇分區</span>
-                            <span class="text-gray-400">▼</span>
-                        </button>
+                        <label class="block text-gray-500 mb-2 font-medium">活動地區</label>
+                        <div class="macro-region-group" role="radiogroup" aria-label="活動地區">
+                            <label class="macro-region-option">
+                                <input type="radio" name="form-macro-region" value="港島" class="macro-region-input">
+                                <span class="macro-region-label">港島</span>
+                            </label>
+                            <label class="macro-region-option">
+                                <input type="radio" name="form-macro-region" value="九龍" class="macro-region-input">
+                                <span class="macro-region-label">九龍</span>
+                            </label>
+                            <label class="macro-region-option">
+                                <input type="radio" name="form-macro-region" value="新界" class="macro-region-input">
+                                <span class="macro-region-label">新界</span>
+                            </label>
+                        </div>
                         <input type="hidden" id="form-region" required>
                     </div>
                     <div>
                         <label class="block text-gray-500 mb-1 font-medium">體育館名稱</label>
                         <button type="button" id="form-venue-btn" onclick="openFormPicker('venue')" disabled class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center opacity-50 cursor-not-allowed">
-                            <span id="form-venue-text">請先選擇分區</span>
+                            <span id="form-venue-text">請先選擇活動地區</span>
                             <span class="text-gray-400">▼</span>
                         </button>
                         <input type="hidden" id="form-venue" required>
@@ -394,23 +408,6 @@
                 <div class="relative">
                     <div class="pointer-events-none absolute inset-x-4 top-1/2 z-10 h-10 -translate-y-1/2 rounded-lg border-y border-emerald-200 bg-emerald-50/30"></div>
                     <div id="form-picker-scroller" class="no-scrollbar h-56 max-h-[45vh] overflow-y-auto overscroll-contain snap-y snap-mandatory scroll-smooth py-[calc(50%-1.25rem)] text-center"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ==================== 彈出層 C：首頁地區滾筒選擇器 ==================== -->
-        <div id="scroll-picker" class="hidden fixed inset-0 bg-black/40 z-50 flex items-end justify-center">
-            <div class="absolute inset-0" onclick="toggleScrollPicker(false)"></div>
-            <div class="bg-white w-full max-w-md rounded-t-2xl shadow-2xl relative z-10">
-                <div class="flex justify-between items-center px-5 py-4 border-b border-gray-100">
-                    <button onclick="toggleScrollPicker(false)" class="text-sm text-gray-400">取消</button>
-                    <span class="font-bold text-sm">選擇地區</span>
-                    <button onclick="confirmPickerRegion()" class="text-sm font-bold text-emerald-600">完成</button>
-                </div>
-                <!-- 滾筒滾動區域（十八區 + 全港） -->
-                <div class="relative">
-                    <div class="pointer-events-none absolute inset-x-4 top-1/2 z-10 h-10 -translate-y-1/2 rounded-lg border-y border-emerald-200 bg-emerald-50/30"></div>
-                    <div id="picker-scroller" class="no-scrollbar h-64 max-h-[50vh] overflow-y-auto overscroll-contain snap-y snap-mandatory scroll-smooth py-[calc(50%-1.25rem)] text-center"></div>
                 </div>
             </div>
         </div>
