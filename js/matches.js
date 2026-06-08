@@ -30,21 +30,6 @@
         const PRIVATE_VENUE_LABEL = '🏢 私人會所 / 學校 / 其他地方';
         const SHUTTLE_BRANDS = ['RSL', 'YY', 'VICTOR', 'LI-NING'];
 
-        const MACRO_REGION_DISTRICTS = {
-            '港島': ['中西區', '東區', '南區', '灣仔區'],
-            '九龍': ['油尖旺區', '深水埗區', '黃大仙區', '九龍城區', '觀塘區'],
-            '新界': ['葵青區', '荃灣區', '屯門區', '元朗區', '沙田區', '大埔區', '北區', '西貢區', '離島區']
-        };
-
-        function getVenuesForMacroRegion(macroRegion) {
-            const districts = MACRO_REGION_DISTRICTS[macroRegion] || [];
-            const venues = [];
-            districts.forEach(district => {
-                (VENUES_BY_DISTRICT[district] || []).forEach(venue => venues.push(venue));
-            });
-            return venues;
-        }
-
         const SKILL_LEVELS = [
             '歡樂級 (純娛樂/未掌握基本擊球)',
             '初級 (能打中球/懂基本規則)',
@@ -496,8 +481,11 @@
         }
 
         function buildFormPickerItems(mode) {
+            if (mode === 'region') {
+                return HONG_KONG_18_DISTRICTS.map(d => ({ val: d, label: d }));
+            }
             if (mode === 'venue') {
-                const venues = getVenuesForMacroRegion(formSelectedRegion);
+                const venues = VENUES_BY_DISTRICT[formSelectedRegion] || [];
                 return [
                     ...venues.map(v => ({ val: v, label: v })),
                     { val: PRIVATE_VENUE_VALUE, label: PRIVATE_VENUE_LABEL }
@@ -533,7 +521,7 @@
             venueBtn.classList.toggle('cursor-not-allowed', !hasRegion);
 
             if (!hasRegion) {
-                venueText.textContent = '請先選擇活動地區';
+                venueText.textContent = '請先選擇分區';
                 venueInput.value = '';
                 formSelectedVenue = '';
                 handleVenueSelectionChange();
@@ -556,6 +544,99 @@
             }
         }
 
+        function formatTimeCompact(timeValue) {
+            if (!timeValue) return '';
+            return String(timeValue).trim().replace(':', '');
+        }
+
+        function parseTimeToMinutes(timeValue) {
+            if (!timeValue || !String(timeValue).includes(':')) return null;
+            const [hours, minutes] = String(timeValue).split(':').map(Number);
+            if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+            return hours * 60 + minutes;
+        }
+
+        function calculateDurationHours(startTime, endTime) {
+            const startMinutes = parseTimeToMinutes(startTime);
+            const endMinutes = parseTimeToMinutes(endTime);
+            if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+                return null;
+            }
+            return (endMinutes - startMinutes) / 60;
+        }
+
+        function formatDurationLabel(durationHours) {
+            if (durationHours === null || Number.isNaN(durationHours)) return '';
+            return Number.isInteger(durationHours) ? String(durationHours) : durationHours.toFixed(1);
+        }
+
+        function formatCourtCountLabel(courtCount) {
+            const count = Math.max(1, Number(courtCount) || 1);
+            return count === 1 ? '1個場地' : `${count}個場地`;
+        }
+
+        function buildDisplayTimeSlot(startTime, endTime, courtCount) {
+            const duration = calculateDurationHours(startTime, endTime);
+            if (duration === null) return '';
+            const start = formatTimeCompact(startTime);
+            const end = formatTimeCompact(endTime);
+            return `${start}-${end} (${formatDurationLabel(duration)}小時，${formatCourtCountLabel(courtCount)})`;
+        }
+
+        function getTimeSlotFormValues() {
+            const startInput = document.getElementById('form-start-time');
+            const endInput = document.getElementById('form-end-time');
+            const courtInput = document.getElementById('form-court-count');
+            const startTime = startInput ? startInput.value : '';
+            const endTime = endInput ? endInput.value : '';
+            const courtCountRaw = courtInput ? parseInt(courtInput.value, 10) : 1;
+            const courtCount = Number.isNaN(courtCountRaw) ? 1 : Math.max(1, courtCountRaw);
+            const duration = calculateDurationHours(startTime, endTime);
+            const displayTimeSlot = buildDisplayTimeSlot(startTime, endTime, courtCount);
+
+            return {
+                startTime: formatTimeCompact(startTime),
+                endTime: formatTimeCompact(endTime),
+                startTimeValue: startTime,
+                endTimeValue: endTime,
+                duration,
+                courtCount,
+                displayTimeSlot
+            };
+        }
+
+        function updateTimePreview() {
+            const preview = document.getElementById('timePreview');
+            if (!preview) return;
+
+            const { startTimeValue, endTimeValue, courtCount } = getTimeSlotFormValues();
+            preview.classList.remove('time-preview--empty', 'time-preview--warn');
+
+            if (!startTimeValue || !endTimeValue) {
+                preview.textContent = '請選擇開始與結束時間';
+                preview.classList.add('time-preview--empty');
+                return;
+            }
+
+            const duration = calculateDurationHours(startTimeValue, endTimeValue);
+            if (duration === null) {
+                preview.textContent = '結束時間須晚於開始時間';
+                preview.classList.add('time-preview--warn');
+                return;
+            }
+
+            preview.textContent = buildDisplayTimeSlot(startTimeValue, endTimeValue, courtCount);
+        }
+
+        function bindTimeSlotForm() {
+            ['form-start-time', 'form-end-time', 'form-court-count'].forEach(id => {
+                const input = document.getElementById(id);
+                input?.addEventListener('input', updateTimePreview);
+                input?.addEventListener('change', updateTimePreview);
+            });
+            updateTimePreview();
+        }
+
         function resetPublishForm() {
             formSelectedRegion = '';
             formSelectedVenue = '';
@@ -564,20 +645,23 @@
             document.getElementById('form-region').value = '';
             document.getElementById('form-venue').value = '';
             document.getElementById('form-skill-level').value = DEFAULT_SKILL_LEVEL;
-            document.querySelectorAll('input[name="form-macro-region"]').forEach(radio => {
-                radio.checked = false;
-            });
             const maxSlotsInput = document.getElementById('form-maxslots');
             if (maxSlotsInput) maxSlotsInput.value = '6';
             const currentPlayersInput = document.getElementById('form-current-players');
             if (currentPlayersInput) currentPlayersInput.value = '1';
-            document.getElementById('form-venue-text').textContent = '請先選擇活動地區';
+            document.getElementById('form-region-text').textContent = '請滾動選擇分區';
+            document.getElementById('form-venue-text').textContent = '請先選擇分區';
             document.getElementById('form-skill-level-text').textContent = getSkillLevelShortLabel(DEFAULT_SKILL_LEVEL);
             document.getElementById('form-venue-note').value = '';
             const shuttleInfoInput = document.getElementById('form-shuttle-info');
             if (shuttleInfoInput) shuttleInfoInput.value = '';
-            const playTimeInput = document.getElementById('form-play-time');
-            if (playTimeInput) playTimeInput.value = '';
+            const startTimeInput = document.getElementById('form-start-time');
+            const endTimeInput = document.getElementById('form-end-time');
+            const courtCountInput = document.getElementById('form-court-count');
+            if (startTimeInput) startTimeInput.value = '09:00';
+            if (endTimeInput) endTimeInput.value = '11:00';
+            if (courtCountInput) courtCountInput.value = '1';
+            updateTimePreview();
             formSelectedDate = todayISO;
             formCalendarExpanded = false;
             document.getElementById('form-play-date').value = todayISO;
@@ -593,16 +677,18 @@
 
         function openFormPicker(mode) {
             if (mode === 'venue' && !formSelectedRegion) {
-                alert('請先選擇活動地區');
+                alert('請先選擇香港具體分區');
                 return;
             }
 
             formPickerMode = mode;
-            const titles = { venue: '選擇體育館', brand: '選擇羽毛球品牌', skill: '選擇球技要求' };
+            const titles = { region: '選擇分區', venue: '選擇體育館', brand: '選擇羽毛球品牌', skill: '選擇球技要求' };
             document.getElementById('form-picker-title').textContent = titles[mode];
 
-            const scrollTo = mode === 'venue'
-                ? (formSelectedVenue || getVenuesForMacroRegion(formSelectedRegion)[0])
+            const scrollTo = mode === 'region'
+                ? (formSelectedRegion || HONG_KONG_18_DISTRICTS[0])
+                : mode === 'venue'
+                ? (formSelectedVenue || (VENUES_BY_DISTRICT[formSelectedRegion] || [])[0])
                 : mode === 'brand'
                     ? (formSelectedBrand || SHUTTLE_BRANDS[0])
                     : (formSelectedSkillLevel || DEFAULT_SKILL_LEVEL);
@@ -626,7 +712,18 @@
         function confirmFormPicker() {
             const selected = getWheelSelection('form-picker-scroller', 'form-wheel-item', '');
 
-            if (formPickerMode === 'venue') {
+            if (formPickerMode === 'region') {
+                if (selected !== formSelectedRegion) {
+                    formSelectedRegion = selected;
+                    document.getElementById('form-region').value = selected;
+                    document.getElementById('form-region-text').textContent = selected;
+                    formSelectedVenue = '';
+                    document.getElementById('form-venue').value = '';
+                    document.getElementById('form-venue-text').textContent = '請滾動選擇體育館';
+                    handleVenueSelectionChange();
+                }
+                updateVenueFieldState();
+            } else if (formPickerMode === 'venue') {
                 formSelectedVenue = selected;
                 document.getElementById('form-venue').value = selected;
                 document.getElementById('form-venue-text').textContent =
@@ -803,10 +900,11 @@
                 `;
             }
 
-            const macroRegion = typeof getMatchMacroRegion === 'function' ? getMatchMacroRegion(match) : (match.region || '');
+            const district = match.region || '';
+            const macroRegion = typeof getMatchMacroRegion === 'function' ? getMatchMacroRegion(match) : '';
 
             return `
-                <div data-region="${escapeHtml(macroRegion)}" class="match-card bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]">
+                <div data-macro-region="${escapeHtml(macroRegion)}" data-district="${escapeHtml(district)}" class="match-card bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]">
                     <div class="flex justify-between items-start gap-4 mb-5">
                         <div>
                             <p class="text-[10px] tracking-[0.18em] text-[#777777]">日期時間 ${privateBadge}</p>
@@ -1028,21 +1126,6 @@
             saveMatches();
             renderCalendar('home');
             if (typeof applyRegionFilter === 'function') applyRegionFilter();
-        }
-
-        function bindMacroRegionForm() {
-            document.querySelectorAll('input[name="form-macro-region"]').forEach(radio => {
-                radio.addEventListener('change', () => {
-                    if (!radio.checked) return;
-                    formSelectedRegion = radio.value;
-                    document.getElementById('form-region').value = radio.value;
-                    formSelectedVenue = '';
-                    document.getElementById('form-venue').value = '';
-                    document.getElementById('form-venue-text').textContent = '請滾動選擇體育館';
-                    handleVenueSelectionChange();
-                    updateVenueFieldState();
-                });
-            });
         }
 
         async function bookMatch(id, btn) {
@@ -1492,8 +1575,8 @@
                 return;
             }
 
-            if (!region || !MACRO_REGION_DISTRICTS[region]) {
-                alert('請選擇活動地區（港島、九龍或新界）');
+            if (!region || !HONG_KONG_18_DISTRICTS.includes(region)) {
+                alert('請選擇香港具體分區');
                 return;
             }
             if (!venueValue) {
@@ -1514,10 +1597,15 @@
                 alert('請選擇開場日期');
                 return;
             }
-            const playTime = document.getElementById('form-play-time').value.trim();
-            if (!playTime) {
-                alert('請填寫場次時間');
-                document.getElementById('form-play-time').focus();
+            const timeSlot = getTimeSlotFormValues();
+            if (!timeSlot.startTimeValue || !timeSlot.endTimeValue) {
+                alert('請選擇開始與結束時間');
+                document.getElementById('form-start-time')?.focus();
+                return;
+            }
+            if (timeSlot.duration === null || timeSlot.duration <= 0) {
+                alert('結束時間須晚於開始時間');
+                document.getElementById('form-end-time')?.focus();
                 return;
             }
 
@@ -1530,9 +1618,14 @@
                 region,
                 venue: finalVenue,
                 playDate,
-                playTime,
-                courts: parseInt(document.getElementById('form-courts').value) || 1,
-                hours: parseInt(document.getElementById('form-hours').value) || 2,
+                playTime: timeSlot.displayTimeSlot,
+                startTime: timeSlot.startTime,
+                endTime: timeSlot.endTime,
+                duration: timeSlot.duration,
+                courtCount: timeSlot.courtCount,
+                displayTimeSlot: timeSlot.displayTimeSlot,
+                courts: timeSlot.courtCount,
+                hours: timeSlot.duration,
                 fee: parseInt(document.getElementById('form-fee').value) || 50,
                 hostRating: "5.0",
                 contact: document.getElementById('form-contact').value,
@@ -1606,7 +1699,7 @@
             migrateMatchSlots();
             bindPaymentActions();
             bindHostSettingsUI();
-            bindMacroRegionForm();
+            bindTimeSlotForm();
             refreshHostPaymentSettings();
             bindPrivateShareUI();
             inviteActivityId = getInviteIdFromUrl();

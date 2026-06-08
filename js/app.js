@@ -40,6 +40,7 @@ const HONG_KONG_18_DISTRICTS = [
 ];
 
 let currentFilter = 'all';
+let pickerScrollListenerAttached = false;
 
 const MACRO_REGION_VALUES = ['港島', '九龍', '新界'];
 
@@ -60,7 +61,16 @@ function getMatchMacroRegion(match) {
 function getRegionFilterLabel(filter) {
     if (filter === 'all') return '全部';
     if (filter === '港島') return '香港';
+    if (MACRO_REGION_VALUES.includes(filter)) return filter;
     return filter;
+}
+
+function isMacroRegionFilter(filter) {
+    return MACRO_REGION_VALUES.includes(filter);
+}
+
+function isDistrictFilter(filter) {
+    return filter !== 'all' && !isMacroRegionFilter(filter);
 }
 
 /* ---------- 登入用家（Demo） ---------- */
@@ -323,23 +333,47 @@ function scrollPickerToValue(value) {
     scrollWheelToValue('picker-scroller', 'wheel-item', value);
 }
 
+function updateDistrictPickerLabel() {
+    const label = document.getElementById('current-region-text');
+    if (!label) return;
+    if (currentFilter === 'all') {
+        label.textContent = '全港十八區';
+    } else if (isDistrictFilter(currentFilter)) {
+        label.textContent = currentFilter;
+    } else {
+        label.textContent = '全港十八區';
+    }
+}
+
 function setRegionFilter(filter) {
     currentFilter = filter || 'all';
     document.querySelectorAll('.region-filter-btn').forEach(btn => {
-        const active = btn.dataset.filter === currentFilter;
+        const active = isMacroRegionFilter(currentFilter) && btn.dataset.filter === currentFilter
+            || currentFilter === 'all' && btn.dataset.filter === 'all';
         btn.classList.toggle('is-active', active);
         btn.setAttribute('aria-selected', active ? 'true' : 'false');
     });
+    updateDistrictPickerLabel();
     applyRegionFilter();
 }
 
 function applyRegionFilter() {
-    const cards = document.querySelectorAll('#matches-list > [data-region], #invite-match-section [data-region]');
+    const cards = document.querySelectorAll('#matches-list > .match-card, #invite-match-section .match-card');
     let visibleCount = 0;
 
     cards.forEach(card => {
-        const region = card.getAttribute('data-region') || '';
-        const show = currentFilter === 'all' || region === currentFilter;
+        const macroRegion = card.getAttribute('data-macro-region') || '';
+        const district = card.getAttribute('data-district') || '';
+        let show = false;
+
+        if (currentFilter === 'all') {
+            show = true;
+        } else if (isMacroRegionFilter(currentFilter)) {
+            show = macroRegion === currentFilter;
+        } else if (isDistrictFilter(currentFilter)) {
+            show = district === currentFilter;
+        }
+
         card.classList.toggle('hidden', !show);
         if (show) visibleCount += 1;
     });
@@ -361,12 +395,56 @@ function applyRegionFilter() {
     }
 }
 
+function initRegionPickers() {
+    const scroller = document.getElementById('picker-scroller');
+    if (!scroller) return;
+    scroller.innerHTML = [
+        { val: 'all', label: '全港場次' },
+        ...HONG_KONG_18_DISTRICTS.map(d => ({ val: d, label: d }))
+    ].map(({ val, label }) =>
+        `<div class="wheel-item snap-center flex h-10 items-center justify-center text-sm font-medium text-gray-400" data-val="${val}">${label}</div>`
+    ).join('');
+}
+
+function toggleScrollPicker(show) {
+    const picker = document.getElementById('scroll-picker');
+    if (!picker) return;
+    picker.classList.toggle('hidden', !show);
+    const scroller = document.getElementById('picker-scroller');
+    if (!scroller) return;
+
+    if (show) {
+        if (!pickerScrollListenerAttached) {
+            scroller.addEventListener('scroll', updatePickerHighlight, { passive: true });
+            pickerScrollListenerAttached = true;
+        }
+        const scrollTarget = isDistrictFilter(currentFilter) ? currentFilter : 'all';
+        requestAnimationFrame(() => scrollPickerToValue(scrollTarget));
+    }
+}
+
+function confirmPickerRegion() {
+    const selected = getPickerSelection();
+    currentFilter = selected;
+
+    document.querySelectorAll('.region-filter-btn').forEach(btn => {
+        const active = selected === 'all' && btn.dataset.filter === 'all';
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+
+    updateDistrictPickerLabel();
+    toggleScrollPicker(false);
+    applyRegionFilter();
+}
+
 function initRegionFilter() {
     document.querySelectorAll('.region-filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             setRegionFilter(btn.dataset.filter || 'all');
         });
     });
+    initRegionPickers();
     setRegionFilter('all');
 }
 
