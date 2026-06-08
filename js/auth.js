@@ -317,6 +317,21 @@ window.dbPublishActivity = async function dbPublishActivity(activityData) {
     }
 };
 
+window.dbFetchActivityById = async function dbFetchActivityById(activityId) {
+    try {
+        if (!activityId) return null;
+        const activitySnap = await getDoc(doc(db, "activities", activityId));
+        if (!activitySnap.exists()) return null;
+        return {
+            ...activitySnap.data(),
+            firestoreId: activitySnap.id
+        };
+    } catch (err) {
+        console.error("讀取單一 Firestore 場次失敗:", err);
+        throw err;
+    }
+};
+
 window.dbFetchActivities = async function dbFetchActivities() {
     try {
         const todayISO = getTodayISO();
@@ -332,7 +347,8 @@ window.dbFetchActivities = async function dbFetchActivities() {
                 ...docSnap.data(),
                 firestoreId: docSnap.id
             }))
-            .filter(activity => activity.playDate && activity.playDate >= todayISO);
+            .filter(activity => activity.playDate && activity.playDate >= todayISO)
+            .filter(activity => !activity.isPrivate);
     } catch (err) {
         console.error("讀取 Firestore 場次失敗:", err);
         throw err;

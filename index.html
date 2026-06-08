@@ -69,6 +69,9 @@
                 </div>
             </div>
 
+            <!-- 專屬連結私人球局 -->
+            <div id="invite-match-section" class="hidden mb-4"></div>
+
             <!-- 活動列表 -->
             <div id="matches-list" class="space-y-4">
                 <!-- 資料會由 JavaScript 自動生成 -->
@@ -368,6 +371,21 @@
                             <input type="text" id="form-contact" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm" required>
                         </div>
                     </div>
+                    <fieldset class="session-visibility-field">
+                        <legend class="session-visibility-legend">球局可見度</legend>
+                        <div class="session-visibility-options">
+                            <label class="session-visibility-option">
+                                <input type="radio" name="form-visibility" value="public" class="session-visibility-input" checked>
+                                <span class="session-visibility-label">公開球局</span>
+                                <span class="session-visibility-desc">所有人可在大廳看見</span>
+                            </label>
+                            <label class="session-visibility-option">
+                                <input type="radio" name="form-visibility" value="private" class="session-visibility-input">
+                                <span class="session-visibility-label">私人球局</span>
+                                <span class="session-visibility-desc">首頁隱形，僅限專屬連結</span>
+                            </label>
+                        </div>
+                    </fieldset>
                     <button type="submit" class="w-full bg-[#F4F4F2] text-[#333333] border border-[#E5E5E5] font-medium py-3.5 rounded-xl mt-4 text-sm tracking-wide">
                         確認發佈
                     </button>
@@ -472,6 +490,22 @@
             <button type="button" onclick="closeScreenshotPreview()" class="absolute top-3 right-3 text-gray-400 text-sm font-bold">✕</button>
             <h4 class="text-sm font-extrabold mb-3 pr-6">付款截圖預覽</h4>
             <div id="screenshot-preview-body" class="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center text-xs text-gray-500 min-h-[120px] flex items-center justify-center"></div>
+        </div>
+    </div>
+
+    <!-- 私人球局分享 -->
+    <div id="private-share-modal" class="hidden fixed inset-0 z-[88] flex items-center justify-center bg-black/45 p-5">
+        <div class="private-share-panel w-full max-w-sm rounded-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl">
+            <button id="private-share-close" type="button" class="private-share-close" aria-label="關閉">✕</button>
+            <p class="private-share-kicker">🔒 私人隱形球局</p>
+            <h4 class="private-share-title">已成功建立</h4>
+            <p class="private-share-copy">此球局不會顯示在大廳。請將專屬連結分享給想邀請的人。</p>
+            <label for="private-share-url" class="private-share-url-label">專屬連結</label>
+            <input type="text" id="private-share-url" readonly class="private-share-url-input">
+            <button type="button" id="private-share-copy-btn" class="private-share-copy-btn">
+                一鍵複製專屬連結至 WhatsApp / Signal 群組
+            </button>
+            <button type="button" id="private-share-done-btn" class="private-share-done-btn">完成</button>
         </div>
     </div>
 

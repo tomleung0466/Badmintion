@@ -107,6 +107,7 @@
                 if (m.applicantEmail === undefined) m.applicantEmail = null;
                 if (m.hostUid === undefined) m.hostUid = null;
                 if (m.hostEmail === undefined) m.hostEmail = null;
+                if (m.isPrivate === undefined) m.isPrivate = false;
 
                 if (m.maxSlots < 1) m.maxSlots = 1;
                 if (m.currentPlayers < 0) m.currentPlayers = 0;
@@ -135,6 +136,8 @@
         let formSelectedSkillLevel = DEFAULT_SKILL_LEVEL;
         let pendingPaymentMatchId = null;
         let pendingPaymeLink = '';
+        let inviteActivityId = null;
+        let inviteMatch = null;
 
         const HOST_SETTINGS_STORAGE = {
             paymeQr: 'vibeup_host_payme_qr',
@@ -487,6 +490,8 @@
             updateCalendarExpandUI('form');
             renderCalendar('form');
             updateVenueFieldState();
+            const publicVisibility = document.querySelector('input[name="form-visibility"][value="public"]');
+            if (publicVisibility) publicVisibility.checked = true;
         }
 
         function openFormPicker(mode) {
@@ -629,11 +634,14 @@
             const maxSlots = Number(activity.maxSlots ?? 6);
             const currentPlayers = Number(activity.currentPlayers ?? 0);
             const remainingSlots = Math.max(0, maxSlots - currentPlayers);
+            const privateBadge = activity.isPrivate
+                ? '<span class="session-private-badge">私人</span>'
+                : '';
             return `
                 <div class="px-4 py-4">
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <p class="text-[10px] tracking-[0.12em] text-gray-400">${getActivityDateTimeLabel(activity)}</p>
+                            <p class="text-[10px] tracking-[0.12em] text-gray-400">${getActivityDateTimeLabel(activity)} ${privateBadge}</p>
                             <p class="mt-1 text-sm font-medium text-gray-900">${activity.region || ''} · ${activity.venue || ''}</p>
                         </div>
                         <span class="shrink-0 text-xs text-gray-500">剩餘 ${remainingSlots} 位</span>
@@ -641,6 +649,201 @@
                     <p class="mt-2 text-xs text-gray-500">HK$ ${activity.fee || 0} / 人</p>
                 </div>
             `;
+        }
+
+        function getMatchBookId(match) {
+            if (!match) return '';
+            return match.id ?? match.firestoreId;
+        }
+
+        function findMatchByBookId(bookId) {
+            const id = String(bookId);
+            return matches.find(m => String(m.id) === id || String(m.firestoreId) === id) || null;
+        }
+
+        function getInviteIdFromUrl() {
+            try {
+                return new URLSearchParams(window.location.search).get('id')?.trim() || null;
+            } catch (_err) {
+                return null;
+            }
+        }
+
+        function buildPrivateShareUrl(firestoreId) {
+            const url = new URL(window.location.href);
+            url.search = '';
+            url.searchParams.set('id', firestoreId);
+            return url.toString();
+        }
+
+        function buildMatchCardHtml(match, options = {}) {
+            const { showPrivateBadge = false } = options;
+            const maxSlots = Number(match.maxSlots ?? 6);
+            const currentPlayers = Number(match.currentPlayers ?? 0);
+            const waitingList = Array.isArray(match.waitingList) ? match.waitingList : [];
+            const isFull = currentPlayers >= maxSlots;
+            const remainingSlots = Math.max(0, maxSlots - currentPlayers);
+            const currentUserName = getCurrentUserName();
+            const isWaiting = waitingList.includes(currentUserName);
+            const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
+            const isReservedByMe = !!window.firebaseAuthUid && participantUids.includes(window.firebaseAuthUid);
+            const bookId = getMatchBookId(match);
+            const privateBadge = showPrivateBadge || match.isPrivate
+                ? '<span class="session-private-badge">私人邀請</span>'
+                : '';
+
+            return `
+                <div class="bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]">
+                    <div class="flex justify-between items-start gap-4 mb-5">
+                        <div>
+                            <p class="text-[10px] tracking-[0.18em] text-[#777777]">日期時間 ${privateBadge}</p>
+                            <h4 class="text-base font-medium leading-relaxed tracking-[0.05em] text-[#333333] mt-1">
+                                ${getActivityDateTimeLabel(match)}
+                            </h4>
+                        </div>
+                        <span class="shrink-0 rounded-full border border-[#E5E5E5] px-3 py-1 text-[10px] tracking-[0.08em] text-[#777777]">
+                            ${isFull ? '已滿額' : `剩餘 ${remainingSlots} 位`}
+                        </span>
+                    </div>
+
+                    <div class="border-y border-[#E5E5E5] py-4 space-y-3 text-sm tracking-[0.05em] leading-relaxed">
+                        <div class="flex justify-between gap-4">
+                            <span class="text-[#777777]">地點</span>
+                            <span class="text-right font-medium text-[#333333]">${match.region} · ${match.venue}</span>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <span class="text-[#777777]">費用</span>
+                            <span class="font-medium text-[#333333]">HK$ ${match.fee} / 人</span>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <span class="text-[#777777]">名額</span>
+                            <span class="font-medium text-[#333333]">${isFull ? '已滿額' : `剩餘 ${remainingSlots} 位`}</span>
+                        </div>
+                        ${renderParticipantsBlock(match)}
+                    </div>
+
+                    <div class="flex gap-2 flex-wrap pt-5">
+                        <button
+                            onclick="bookMatch('${bookId}', this)"
+                            class="flex-1 min-w-[140px] ${isReservedByMe ? 'bg-[#F4F4F2] text-[#777777]' : 'bg-[#F4F4F2] text-[#333333] hover:bg-[#E9E9E6]'} border border-[#E5E5E5] font-medium py-2.5 rounded-lg text-xs tracking-[0.08em] transition-colors"
+                            ${isReservedByMe ? 'disabled' : ''}
+                        >
+                            ${
+                                isReservedByMe
+                                    ? '✓ 已留位'
+                                    : isFull
+                                      ? (isWaiting ? '✓ 已加入後備名單' : '加入後備名單')
+                                      : '點擊報名'
+                            }
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderInviteMatchSection() {
+            const section = document.getElementById('invite-match-section');
+            if (!section) return;
+
+            if (!inviteMatch || inviteMatch.isPrivate !== true) {
+                section.classList.add('hidden');
+                section.innerHTML = '';
+                return;
+            }
+
+            if (inviteMatch.playDate && isPastDate(inviteMatch.playDate)) {
+                section.classList.remove('hidden');
+                section.innerHTML = `
+                    <div class="invite-match-wrap">
+                        <p class="invite-match-note">此私人球局已過期或不存在。</p>
+                    </div>
+                `;
+                return;
+            }
+
+            section.classList.remove('hidden');
+            section.innerHTML = `
+                <div class="invite-match-wrap">
+                    <p class="invite-match-note">你透過專屬連結進入的私人球局</p>
+                    ${buildMatchCardHtml(inviteMatch, { showPrivateBadge: true })}
+                </div>
+            `;
+        }
+
+        async function loadInviteActivity() {
+            inviteActivityId = getInviteIdFromUrl();
+            inviteMatch = null;
+            if (!inviteActivityId) {
+                renderInviteMatchSection();
+                return;
+            }
+
+            const bridgeReady = await waitForDbBridge();
+            if (!bridgeReady || typeof window.dbFetchActivityById !== 'function') {
+                renderInviteMatchSection();
+                return;
+            }
+
+            try {
+                const activity = await window.dbFetchActivityById(inviteActivityId);
+                if (!activity) {
+                    inviteMatch = null;
+                    renderInviteMatchSection();
+                    return;
+                }
+
+                if (!activity.id) {
+                    activity.id = activity.firestoreId;
+                }
+                inviteMatch = activity;
+
+                const existingIndex = matches.findIndex(
+                    m => String(m.firestoreId) === String(activity.firestoreId) || String(m.id) === String(activity.id)
+                );
+                if (existingIndex >= 0) {
+                    matches[existingIndex] = { ...matches[existingIndex], ...activity };
+                } else {
+                    matches.push(activity);
+                    saveMatches();
+                }
+            } catch (err) {
+                console.error('載入專屬連結球局失敗:', err);
+                inviteMatch = null;
+            }
+
+            renderInviteMatchSection();
+        }
+
+        function openPrivateShareModal(firestoreId) {
+            const modal = document.getElementById('private-share-modal');
+            const urlInput = document.getElementById('private-share-url');
+            if (!modal || !urlInput || !firestoreId) return;
+            urlInput.value = buildPrivateShareUrl(firestoreId);
+            modal.classList.remove('hidden');
+        }
+
+        function closePrivateShareModal() {
+            document.getElementById('private-share-modal')?.classList.add('hidden');
+        }
+
+        async function copyPrivateShareLink() {
+            const urlInput = document.getElementById('private-share-url');
+            const link = urlInput ? urlInput.value.trim() : '';
+            if (!link) return;
+            try {
+                await navigator.clipboard.writeText(link);
+                alert('已複製專屬連結，可貼到 WhatsApp / Signal 群組分享。');
+            } catch (_err) {
+                urlInput?.select();
+                document.execCommand?.('copy');
+                alert('已複製專屬連結，可貼到 WhatsApp / Signal 群組分享。');
+            }
+        }
+
+        function bindPrivateShareUI() {
+            document.getElementById('private-share-copy-btn')?.addEventListener('click', copyPrivateShareLink);
+            document.getElementById('private-share-close')?.addEventListener('click', closePrivateShareModal);
+            document.getElementById('private-share-done-btn')?.addEventListener('click', closePrivateShareModal);
         }
 
         async function renderMyActivities() {
@@ -684,11 +887,14 @@
 
         window.renderMyActivities = renderMyActivities;
 
-        // 渲染搵波打列表
+        // 渲染搵波打列表（私人球局不顯示於大廳，僅專屬連結可見）
         function renderMatches() {
             const listContainer = document.getElementById('matches-list');
             listContainer.innerHTML = '';
-            let filtered = matches.filter(m => !m.playDate || !isPastDate(m.playDate));
+            renderInviteMatchSection();
+
+            let filtered = matches.filter(m => !m.isPrivate);
+            filtered = filtered.filter(m => !m.playDate || !isPastDate(m.playDate));
             if (currentFilter !== 'all') {
                 filtered = filtered.filter(m => m.region === currentFilter);
             }
@@ -696,72 +902,22 @@
                 filtered = filtered.filter(m => m.playDate === homeSelectedDate);
             }
 
-            if(filtered.length === 0) {
-                const emptyMsg = homeSelectedDate
-                    ? `${formatDateDisplay(homeSelectedDate)} 暫時沒有開場。`
-                    : '該區域暫時沒有開場。';
+            if (filtered.length === 0) {
+                const emptyMsg = inviteMatch && inviteMatch.isPrivate
+                    ? '大廳暫時沒有其他公開球局。'
+                    : homeSelectedDate
+                      ? `${formatDateDisplay(homeSelectedDate)} 暫時沒有開場。`
+                      : '該區域暫時沒有開場。';
                 listContainer.innerHTML = `<div class="text-center py-12 text-gray-400 text-xs">${emptyMsg}</div>`;
+                saveMatches();
+                renderCalendar('home');
                 return;
             }
 
             filtered.forEach(match => {
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]";
-                const maxSlots = Number(match.maxSlots ?? 6);
-                const currentPlayers = Number(match.currentPlayers ?? 0);
-                const waitingList = Array.isArray(match.waitingList) ? match.waitingList : [];
-                const isFull = currentPlayers >= maxSlots;
-                const remainingSlots = Math.max(0, maxSlots - currentPlayers);
-                const currentUserName = getCurrentUserName();
-                const isWaiting = waitingList.includes(currentUserName);
-                const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
-                const isReservedByMe = !!window.firebaseAuthUid && participantUids.includes(window.firebaseAuthUid);
-                card.innerHTML = `
-                    <div class="flex justify-between items-start gap-4 mb-5">
-                        <div>
-                            <p class="text-[10px] tracking-[0.18em] text-[#777777]">日期時間</p>
-                            <h4 class="text-base font-medium leading-relaxed tracking-[0.05em] text-[#333333] mt-1">
-                                ${getActivityDateTimeLabel(match)}
-                            </h4>
-                        </div>
-                        <span class="shrink-0 rounded-full border border-[#E5E5E5] px-3 py-1 text-[10px] tracking-[0.08em] text-[#777777]">
-                            ${isFull ? '已滿額' : `剩餘 ${remainingSlots} 位`}
-                        </span>
-                    </div>
-
-                    <div class="border-y border-[#E5E5E5] py-4 space-y-3 text-sm tracking-[0.05em] leading-relaxed">
-                        <div class="flex justify-between gap-4">
-                            <span class="text-[#777777]">地點</span>
-                            <span class="text-right font-medium text-[#333333]">${match.region} · ${match.venue}</span>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <span class="text-[#777777]">費用</span>
-                            <span class="font-medium text-[#333333]">HK$ ${match.fee} / 人</span>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <span class="text-[#777777]">名額</span>
-                            <span class="font-medium text-[#333333]">${isFull ? '已滿額' : `剩餘 ${remainingSlots} 位`}</span>
-                        </div>
-                        ${renderParticipantsBlock(match)}
-                    </div>
-
-                    <div class="flex gap-2 flex-wrap pt-5">
-                        <button
-                            onclick="bookMatch(${match.id}, this)"
-                            class="flex-1 min-w-[140px] ${isReservedByMe ? 'bg-[#F4F4F2] text-[#777777]' : 'bg-[#F4F4F2] text-[#333333] hover:bg-[#E9E9E6]'} border border-[#E5E5E5] font-medium py-2.5 rounded-lg text-xs tracking-[0.08em] transition-colors"
-                            ${isReservedByMe ? 'disabled' : ''}
-                        >
-                            ${
-                                isReservedByMe
-                                    ? '✓ 已留位'
-                                    : isFull
-                                      ? (isWaiting ? '✓ 已加入後備名單' : '加入後備名單')
-                                      : '點擊報名'
-                            }
-                        </button>
-                    </div>
-                `;
-                listContainer.appendChild(card);
+                card.innerHTML = buildMatchCardHtml(match);
+                listContainer.appendChild(card.firstElementChild || card);
             });
             saveMatches();
             renderCalendar('home');
@@ -769,7 +925,7 @@
 
         // 預留位置功能 (帶有流暢動畫效果)
         async function bookMatch(id, btn) {
-            const match = matches.find(m => m.id === id);
+            const match = findMatchByBookId(id) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(id) ? inviteMatch : null);
             if (!match) return;
 
             if (!window.firebaseAuthUid) {
@@ -817,7 +973,7 @@
         }
 
         function openPaymentPanel(matchId) {
-            const match = matches.find(m => m.id === matchId);
+            const match = findMatchByBookId(matchId) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(matchId) ? inviteMatch : null);
             if (!match) return;
 
             const participantUids = Array.isArray(match.participantUids) ? match.participantUids : [];
@@ -862,7 +1018,7 @@
 
         async function copyPaymentFpsId() {
             const match = pendingPaymentMatchId
-                ? matches.find(m => m.id === pendingPaymentMatchId)
+                ? findMatchByBookId(pendingPaymentMatchId) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(pendingPaymentMatchId) ? inviteMatch : null)
                 : null;
             const fpsId = getHostPaymentInfo(match).fpsId;
             if (!fpsId) {
@@ -949,7 +1105,7 @@
         async function submitPaymentProof() {
             if (!pendingPaymentMatchId) return;
 
-            const match = matches.find(m => m.id === pendingPaymentMatchId);
+            const match = findMatchByBookId(pendingPaymentMatchId) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(pendingPaymentMatchId) ? inviteMatch : null);
             const fileInput = document.getElementById('payment-screenshot');
             const file = fileInput.files && fileInput.files[0];
 
@@ -1216,8 +1372,12 @@
                 return;
             }
 
+            const visibility = document.querySelector('input[name="form-visibility"]:checked')?.value || 'public';
+            const isPrivate = visibility === 'private';
+
             const newMatch = {
                 id: Date.now(),
+                isPrivate,
                 region,
                 venue: finalVenue,
                 playDate,
@@ -1261,8 +1421,9 @@
                 return;
             }
 
+            let publishedFirestoreId = null;
             try {
-                await window.dbPublishActivity(newMatch);
+                publishedFirestoreId = await window.dbPublishActivity(newMatch);
                 await loadActivitiesFromCloud();
             } catch (err) {
                 console.error('發佈場次失敗:', err);
@@ -1276,6 +1437,11 @@
             resetPublishForm();
             renderCalendar('home');
             renderMatches();
+            await renderMyActivities();
+
+            if (isPrivate && publishedFirestoreId) {
+                openPrivateShareModal(publishedFirestoreId);
+            }
         }
 
         function toggleBottomSheet(show) {
@@ -1290,7 +1456,10 @@
             migrateMatchSlots();
             bindPaymentActions();
             bindHostSettingsUI();
+            bindPrivateShareUI();
+            inviteActivityId = getInviteIdFromUrl();
             await loadActivitiesFromCloud();
+            await loadInviteActivity();
             saveMatches();
             initCalendars();
             resetPublishForm();
