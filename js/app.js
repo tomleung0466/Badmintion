@@ -371,6 +371,54 @@ async function deleteUserAccount() {
     }
 }
 
+function ensureCopyFeedbackSpan(button) {
+    if (!button) return null;
+    let span = button.querySelector('.copy-feedback-text');
+    if (!span) {
+        span = document.createElement('span');
+        span.className = 'copy-feedback-text';
+        span.textContent = button.textContent.trim();
+        button.textContent = '';
+        button.classList.add('copy-feedback-btn');
+        button.appendChild(span);
+    }
+    return span;
+}
+
+window.runCopyButtonFeedback = function runCopyButtonFeedback(button, options = {}) {
+    const span = ensureCopyFeedbackSpan(button);
+    if (!span) return Promise.resolve();
+
+    const originalText = options.originalText || span.dataset.originalText || span.textContent.trim();
+    const successText = options.successText || '✓ 已複製';
+    const holdMs = options.holdMs ?? 1500;
+    const fadeOutMs = options.fadeOutMs ?? 200;
+
+    if (!span.dataset.originalText) {
+        span.dataset.originalText = originalText;
+    }
+    if (!span.dataset.copyWidthLocked) {
+        span.style.minWidth = `${Math.ceil(span.getBoundingClientRect().width)}px`;
+        span.dataset.copyWidthLocked = '1';
+    }
+
+    span.textContent = successText;
+    span.classList.remove('copy-feedback--fade-out');
+    span.classList.add('copy-feedback--fade-in');
+
+    return new Promise(resolve => {
+        setTimeout(() => {
+            span.classList.remove('copy-feedback--fade-in');
+            span.classList.add('copy-feedback--fade-out');
+            setTimeout(() => {
+                span.textContent = originalText;
+                span.classList.remove('copy-feedback--fade-out');
+                resolve();
+            }, fadeOutMs);
+        }, holdMs);
+    });
+};
+
 function bindProfileEditUI() {
     document.getElementById('edit-profile-btn')?.addEventListener('click', showProfileEditPanel);
     document.getElementById('save-profile-btn')?.addEventListener('click', saveProfileChanges);
@@ -510,24 +558,58 @@ function setRegionFilter(filter) {
     applyRegionFilter();
 }
 
+function shouldShowMatchCard(card) {
+    const macroRegion = card.getAttribute('data-macro-region') || '';
+    const district = card.getAttribute('data-district') || '';
+
+    if (districtFilter) {
+        return district === districtFilter;
+    }
+    if (macroFilter !== 'all') {
+        return macroRegion === macroFilter;
+    }
+    return true;
+}
+
+function onMatchCardFilterLeaveEnd(event) {
+    if (event.animationName !== 'matchCardFilterOut') return;
+    const card = event.currentTarget;
+    card.classList.remove('is-filter-leaving');
+    card.classList.add('is-filter-collapsed', 'hidden');
+    card.removeEventListener('animationend', onMatchCardFilterLeaveEnd);
+}
+
+function onMatchCardFilterEnterEnd(event) {
+    if (event.animationName !== 'matchCardEnter') return;
+    event.currentTarget.classList.remove('is-filter-entering');
+    event.currentTarget.removeEventListener('animationend', onMatchCardFilterEnterEnd);
+}
+
+function setMatchCardFilterVisibility(card, show) {
+    const collapsed = card.classList.contains('is-filter-collapsed');
+
+    if (show) {
+        if (collapsed) {
+            card.classList.remove('is-filter-collapsed', 'hidden', 'is-filter-leaving');
+            card.classList.add('is-filter-entering');
+            card.addEventListener('animationend', onMatchCardFilterEnterEnd);
+        }
+        return;
+    }
+
+    if (!collapsed && !card.classList.contains('is-filter-leaving')) {
+        card.classList.add('is-filter-leaving');
+        card.addEventListener('animationend', onMatchCardFilterLeaveEnd);
+    }
+}
+
 function applyRegionFilter() {
     const cards = document.querySelectorAll('#matches-list > .match-card, #invite-match-section .match-card');
     let visibleCount = 0;
 
     cards.forEach(card => {
-        const macroRegion = card.getAttribute('data-macro-region') || '';
-        const district = card.getAttribute('data-district') || '';
-        let show = false;
-
-        if (districtFilter) {
-            show = district === districtFilter;
-        } else if (macroFilter !== 'all') {
-            show = macroRegion === macroFilter;
-        } else {
-            show = true;
-        }
-
-        card.classList.toggle('hidden', !show);
+        const show = shouldShowMatchCard(card);
+        setMatchCardFilterVisibility(card, show);
         if (show) visibleCount += 1;
     });
 

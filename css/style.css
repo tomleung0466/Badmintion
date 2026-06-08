@@ -71,22 +71,24 @@ button {
   padding: 0.5rem 1rem;
   border: 1px solid var(--muji-border);
   border-radius: 9999px;
-  background: #fff;
+  background: #f9fafb;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
   color: var(--muji-muted);
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition: all 300ms ease-in-out;
 }
 
 .region-filter-btn:hover:not(.is-active) {
-  background: var(--muji-soft);
+  background: #f3f4f6;
+  border-color: #e5e7eb;
 }
 
 .region-filter-btn.is-active {
-  border-color: var(--muji-text);
-  background: var(--muji-text);
-  color: #fff;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+  letter-spacing: 0.12em;
 }
 
 .region-filter-empty {
@@ -671,9 +673,106 @@ button:hover {
   color: #777777;
 }
 
+/* 大廳卡片篩選動畫 */
+@keyframes matchCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes matchCardFilterOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.match-card.match-card--mount-enter,
+.match-card.is-filter-entering {
+  animation: matchCardEnter 400ms ease forwards;
+  animation-delay: var(--card-enter-delay, 0ms);
+}
+
+.match-card.is-filter-leaving {
+  animation: matchCardFilterOut 400ms ease forwards;
+  pointer-events: none;
+}
+
+.match-card.is-filter-collapsed {
+  display: none !important;
+}
+
 /* 付款彈窗 */
+.payment-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.1);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 300ms ease-in-out;
+}
+
+.payment-sheet.is-open .payment-sheet-backdrop {
+  opacity: 1;
+}
+
 .payment-sheet-panel {
   border-top: 1px solid var(--muji-border);
+  opacity: 0;
+  transform: scale(0.95);
+  transform-origin: center bottom;
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+@media (min-width: 640px) {
+  .payment-sheet-panel {
+    transform-origin: center center;
+  }
+}
+
+.payment-sheet.is-open .payment-sheet-panel {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 複製按鈕回饋（固定寬度防抖動） */
+.copy-feedback-btn {
+  position: relative;
+}
+
+.copy-feedback-text {
+  display: inline-block;
+  text-align: center;
+  vertical-align: middle;
+  transition: opacity 200ms ease-in-out;
+  opacity: 1;
+}
+
+.copy-feedback-text.copy-feedback--fade-in {
+  animation: copyFeedbackFadeIn 200ms ease-in-out forwards;
+}
+
+.copy-feedback-text.copy-feedback--fade-out {
+  opacity: 0;
+}
+
+@keyframes copyFeedbackFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .payment-sheet-title {

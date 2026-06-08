@@ -1105,6 +1105,21 @@
                     ${buildMatchCardHtml(inviteMatch, { showPrivateBadge: true })}
                 </div>
             `;
+            const inviteCard = section.querySelector('.match-card');
+            if (inviteCard) {
+                inviteCard.classList.add('match-card--mount-enter');
+                bindMatchCardEnterAnimation(inviteCard);
+            }
+        }
+
+        function bindMatchCardEnterAnimation(card) {
+            if (!card) return;
+            const cleanup = event => {
+                if (event.animationName !== 'matchCardEnter') return;
+                card.classList.remove('match-card--mount-enter');
+                card.removeEventListener('animationend', cleanup);
+            };
+            card.addEventListener('animationend', cleanup);
         }
 
         async function loadInviteActivity() {
@@ -1263,10 +1278,14 @@
 
             renderInviteMatchSection();
 
-            filtered.forEach(match => {
+            filtered.forEach((match, index) => {
                 const card = document.createElement('div');
                 card.innerHTML = buildMatchCardHtml(match);
-                listContainer.appendChild(card.firstElementChild || card);
+                const el = card.firstElementChild || card;
+                el.style.setProperty('--card-enter-delay', `${Math.min(index * 40, 240)}ms`);
+                el.classList.add('match-card--mount-enter');
+                bindMatchCardEnterAnimation(el);
+                listContainer.appendChild(el);
             });
             saveMatches();
             renderCalendar('home');
@@ -1350,14 +1369,34 @@
             }
         }
 
+        let paymentSheetCloseTimer = null;
+
         function togglePaymentSheet(show) {
-            document.getElementById('payment-sheet').classList.toggle('hidden', !show);
+            const sheet = document.getElementById('payment-sheet');
             const newHostTip = document.getElementById('payment-new-host-tip');
-            if (!show) {
-                pendingPaymentMatchId = null;
-                pendingPaymeLink = '';
-                newHostTip?.classList.add('hidden');
+            if (!sheet) return;
+
+            if (paymentSheetCloseTimer) {
+                clearTimeout(paymentSheetCloseTimer);
+                paymentSheetCloseTimer = null;
             }
+
+            if (show) {
+                sheet.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => sheet.classList.add('is-open'));
+                });
+                return;
+            }
+
+            sheet.classList.remove('is-open');
+            pendingPaymentMatchId = null;
+            pendingPaymeLink = '';
+            newHostTip?.classList.add('hidden');
+            paymentSheetCloseTimer = setTimeout(() => {
+                sheet.classList.add('hidden');
+                paymentSheetCloseTimer = null;
+            }, 300);
         }
 
         async function openPaymentPanel(matchId) {
@@ -1434,9 +1473,15 @@
                 alert('場主尚未設定 FPS 識別碼。');
                 return;
             }
+            const copyBtn = document.getElementById('payment-fps-copy-btn');
             try {
                 await navigator.clipboard.writeText(fpsId);
-                alert(`已複製 FPS 識別碼：${fpsId}`);
+                if (typeof window.runCopyButtonFeedback === 'function' && copyBtn) {
+                    await window.runCopyButtonFeedback(copyBtn, {
+                        originalText: '複製 FPS',
+                        successText: '✓ 已複製'
+                    });
+                }
             } catch (_err) {
                 prompt('請手動複製 FPS 識別碼：', fpsId);
             }
@@ -1694,7 +1739,7 @@
                 ? `<a href="tel:${escapeHtml(phone)}" class="host-info-link">📞 ${escapeHtml(phone)}</a>`
                 : '<p class="host-info-empty">場主尚未提供電話</p>';
             const fpsRow = payment.fpsId
-                ? `<button type="button" class="host-info-action" onclick="copyHostInfoFps('${escapeHtml(payment.fpsId)}')">FPS：${escapeHtml(payment.fpsId)}</button>`
+                ? `<button type="button" class="host-info-action copy-feedback-btn" onclick="copyHostInfoFps('${escapeHtml(payment.fpsId)}', this)"><span class="copy-feedback-text" data-original-text="FPS：${escapeHtml(payment.fpsId)}">FPS：${escapeHtml(payment.fpsId)}</span></button>`
                 : '<p class="host-info-empty">場主尚未設定 FPS</p>';
             const whatsappRow = whatsappUrl
                 ? `<a href="${escapeHtml(whatsappUrl)}" target="_blank" rel="noopener noreferrer" class="host-info-action host-info-action--whatsapp">WhatsApp 聯絡場主</a>`
@@ -1738,11 +1783,19 @@
 
         window.openHostPaymentInfoModal = openHostPaymentInfoModal;
 
-        window.copyHostInfoFps = async function copyHostInfoFps(fpsId) {
+        window.copyHostInfoFps = async function copyHostInfoFps(fpsId, button) {
             if (!fpsId) return;
+            const originalText = button?.querySelector('.copy-feedback-text')?.dataset.originalText
+                || button?.querySelector('.copy-feedback-text')?.textContent?.trim()
+                || `FPS：${fpsId}`;
             try {
                 await navigator.clipboard.writeText(fpsId);
-                alert(`已複製 FPS 識別碼：${fpsId}`);
+                if (typeof window.runCopyButtonFeedback === 'function' && button) {
+                    await window.runCopyButtonFeedback(button, {
+                        originalText,
+                        successText: '✓ 已複製'
+                    });
+                }
             } catch (_err) {
                 prompt('請手動複製 FPS 識別碼：', fpsId);
             }

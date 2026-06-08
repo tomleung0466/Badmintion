@@ -448,8 +448,8 @@
         </div>
 
         <!-- ==================== 彈出層 D：確認付款面板 ==================== -->
-        <div id="payment-sheet" class="hidden fixed inset-0 bg-black/40 z-[70] flex items-end justify-center">
-            <div class="absolute inset-0" onclick="togglePaymentSheet(false)"></div>
+        <div id="payment-sheet" class="payment-sheet hidden fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:p-5">
+            <div class="payment-sheet-backdrop" onclick="togglePaymentSheet(false)" aria-hidden="true"></div>
             <div class="payment-sheet-panel relative z-10 w-full max-w-md max-h-[92vh] overflow-y-auto rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6">
                 <div class="mx-auto mb-4 h-1 w-12 rounded-full bg-[#E5E5E5]"></div>
                 <h3 class="payment-sheet-title">確認付款</h3>
@@ -486,7 +486,7 @@
                                 <span class="payment-qr-placeholder-text">FPS QR Code</span>
                             </div>
                         </div>
-                        <button type="button" id="payment-fps-copy-btn" class="payment-qr-action">複製 FPS</button>
+                        <button type="button" id="payment-fps-copy-btn" class="payment-qr-action copy-feedback-btn"><span class="copy-feedback-text">複製 FPS</span></button>
                         <p id="payment-fps-id-label" class="payment-fps-id"></p>
                     </section>
                 </div>
