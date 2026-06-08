@@ -778,15 +778,28 @@
             toggleFormPicker(true);
         }
 
-        function toggleFormPicker(show) {
-            document.getElementById('form-picker').classList.toggle('hidden', !show);
+        async function toggleFormPicker(show) {
+            const picker = document.getElementById('form-picker');
             const scroller = document.getElementById('form-picker-scroller');
+            if (!picker) return;
 
             if (show) {
-                if (!formPickerScrollListenerAttached) {
+                if (typeof window.openMujiOverlay === 'function') {
+                    await window.openMujiOverlay(picker);
+                } else {
+                    picker.classList.remove('hidden');
+                }
+                if (!formPickerScrollListenerAttached && scroller) {
                     scroller.addEventListener('scroll', () => updateWheelHighlight('form-picker-scroller', 'form-wheel-item'), { passive: true });
                     formPickerScrollListenerAttached = true;
                 }
+                return;
+            }
+
+            if (typeof window.closeMujiOverlay === 'function') {
+                await window.closeMujiOverlay(picker);
+            } else {
+                picker.classList.add('hidden');
             }
         }
 
@@ -1166,16 +1179,26 @@
             renderInviteMatchSection();
         }
 
-        function openPrivateShareModal(firestoreId) {
+        async function openPrivateShareModal(firestoreId) {
             const modal = document.getElementById('private-share-modal');
             const urlInput = document.getElementById('private-share-url');
             if (!modal || !urlInput || !firestoreId) return;
             urlInput.value = buildPrivateShareUrl(firestoreId);
-            modal.classList.remove('hidden');
+            if (typeof window.openMujiOverlay === 'function') {
+                await window.openMujiOverlay(modal);
+            } else {
+                modal.classList.remove('hidden');
+            }
         }
 
-        function closePrivateShareModal() {
-            document.getElementById('private-share-modal')?.classList.add('hidden');
+        async function closePrivateShareModal() {
+            const modal = document.getElementById('private-share-modal');
+            if (!modal) return;
+            if (typeof window.closeMujiOverlay === 'function') {
+                await window.closeMujiOverlay(modal);
+            } else {
+                modal.classList.add('hidden');
+            }
         }
 
         async function copyPrivateShareLink() {
@@ -1369,34 +1392,28 @@
             }
         }
 
-        let paymentSheetCloseTimer = null;
-
-        function togglePaymentSheet(show) {
+        async function togglePaymentSheet(show) {
             const sheet = document.getElementById('payment-sheet');
             const newHostTip = document.getElementById('payment-new-host-tip');
             if (!sheet) return;
 
-            if (paymentSheetCloseTimer) {
-                clearTimeout(paymentSheetCloseTimer);
-                paymentSheetCloseTimer = null;
-            }
-
             if (show) {
-                sheet.classList.remove('hidden');
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => sheet.classList.add('is-open'));
-                });
+                if (typeof window.openMujiOverlay === 'function') {
+                    await window.openMujiOverlay(sheet);
+                } else {
+                    sheet.classList.remove('hidden');
+                }
                 return;
             }
 
-            sheet.classList.remove('is-open');
             pendingPaymentMatchId = null;
             pendingPaymeLink = '';
             newHostTip?.classList.add('hidden');
-            paymentSheetCloseTimer = setTimeout(() => {
+            if (typeof window.closeMujiOverlay === 'function') {
+                await window.closeMujiOverlay(sheet);
+            } else {
                 sheet.classList.add('hidden');
-                paymentSheetCloseTimer = null;
-            }, 300);
+            }
         }
 
         async function openPaymentPanel(matchId) {
@@ -1682,14 +1699,26 @@
         let currentHostPaymentActivityId = null;
         let currentHostManageActivityId = null;
 
-        function closeHostPaymentInfoModal() {
-            document.getElementById('host-payment-info-modal')?.classList.add('hidden');
+        async function closeHostPaymentInfoModal() {
+            const modal = document.getElementById('host-payment-info-modal');
             currentHostPaymentActivityId = null;
+            if (!modal) return;
+            if (typeof window.closeMujiOverlay === 'function') {
+                await window.closeMujiOverlay(modal);
+            } else {
+                modal.classList.add('hidden');
+            }
         }
 
-        function closeHostManageModal() {
-            document.getElementById('host-manage-modal')?.classList.add('hidden');
+        async function closeHostManageModal() {
+            const modal = document.getElementById('host-manage-modal');
             currentHostManageActivityId = null;
+            if (!modal) return;
+            if (typeof window.closeMujiOverlay === 'function') {
+                await window.closeMujiOverlay(modal);
+            } else {
+                modal.classList.add('hidden');
+            }
         }
 
         async function openHostPaymentInfoModal(activityId) {
@@ -1778,7 +1807,11 @@
                 </div>
             `;
 
-            modal.classList.remove('hidden');
+            if (typeof window.openMujiOverlay === 'function') {
+                await window.openMujiOverlay(modal);
+            } else {
+                modal.classList.remove('hidden');
+            }
         }
 
         window.openHostPaymentInfoModal = openHostPaymentInfoModal;
@@ -1917,7 +1950,11 @@
                 emptyEl.classList.toggle('hidden', !isEmpty);
             }
 
-            modal.classList.remove('hidden');
+            if (typeof window.openMujiOverlay === 'function') {
+                await window.openMujiOverlay(modal);
+            } else {
+                modal.classList.remove('hidden');
+            }
         }
 
         window.openHostManageModal = openHostManageModal;
@@ -1971,10 +2008,14 @@
             document.getElementById('host-payment-info-close')?.addEventListener('click', closeHostPaymentInfoModal);
             document.getElementById('host-manage-close')?.addEventListener('click', closeHostManageModal);
             document.getElementById('host-payment-info-modal')?.addEventListener('click', event => {
-                if (event.target.id === 'host-payment-info-modal') closeHostPaymentInfoModal();
+                if (event.target.id === 'host-payment-info-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
+                    closeHostPaymentInfoModal();
+                }
             });
             document.getElementById('host-manage-modal')?.addEventListener('click', event => {
-                if (event.target.id === 'host-manage-modal') closeHostManageModal();
+                if (event.target.id === 'host-manage-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
+                    closeHostManageModal();
+                }
             });
         }
 
@@ -2177,10 +2218,24 @@
             }
         }
 
-        function toggleBottomSheet(show) {
-            document.getElementById('bottom-sheet').classList.toggle('hidden', !show);
+        async function toggleBottomSheet(show) {
+            const sheet = document.getElementById('bottom-sheet');
+            if (!sheet) return;
+
             if (show) {
                 resetPublishForm();
+                if (typeof window.openMujiOverlay === 'function') {
+                    await window.openMujiOverlay(sheet);
+                } else {
+                    sheet.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (typeof window.closeMujiOverlay === 'function') {
+                await window.closeMujiOverlay(sheet);
+            } else {
+                sheet.classList.add('hidden');
             }
         }
 
@@ -2202,3 +2257,15 @@
             await renderMatches();
             if (typeof updateProfileUI === 'function') updateProfileUI();
         }
+
+        window.toggleBottomSheet = toggleBottomSheet;
+        window.toggleFormPicker = toggleFormPicker;
+        window.togglePaymentSheet = togglePaymentSheet;
+        window.openFormPicker = openFormPicker;
+        window.confirmFormPicker = confirmFormPicker;
+        window.handleFormSubmit = handleFormSubmit;
+        window.confirmBooking = confirmBooking;
+        window.clearHomeDateFilter = clearHomeDateFilter;
+        window.toggleCalendarExpand = toggleCalendarExpand;
+        window.changeCalendarMonth = changeCalendarMonth;
+        window.renderMyActivities = renderMyActivities;

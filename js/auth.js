@@ -94,7 +94,12 @@ function setAuthError(message = "") {
     }
     errorEl.textContent = message;
     errorEl.classList.remove("hidden");
-    byId("auth-modal")?.classList.remove("hidden");
+    const modal = byId("auth-modal");
+    if (modal && typeof window.openMujiOverlay === "function") {
+        window.openMujiOverlay(modal);
+    } else {
+        modal?.classList.remove("hidden");
+    }
 }
 
 function updateAuthHeader(user) {
@@ -144,8 +149,13 @@ function mapAuthError(errorCode) {
     return map[errorCode] || "操作失敗，請稍後再試";
 }
 
-function closeAuthModal() {
-    byId("auth-modal")?.classList.add("hidden");
+async function closeAuthModal() {
+    const modal = byId("auth-modal");
+    if (modal && typeof window.closeMujiOverlay === "function") {
+        await window.closeMujiOverlay(modal);
+    } else {
+        modal?.classList.add("hidden");
+    }
     const errorEl = byId("auth-error");
     if (errorEl) {
         errorEl.classList.add("hidden");
@@ -258,7 +268,9 @@ function bindAuthUI() {
 
     const modal = byId("auth-modal");
     modal?.addEventListener("click", event => {
-        if (event.target === modal) closeAuthModal();
+        if (event.target === modal || event.target.classList.contains("muji-overlay__backdrop")) {
+            closeAuthModal();
+        }
     });
 }
 

@@ -33,9 +33,15 @@
         return type === 'payme' ? 'PayMe' : '轉數快 (FPS)';
     }
 
-    function closeCropModal() {
+    async function closeCropModal() {
         const modal = byId('host-qr-crop-modal');
-        if (modal) modal.classList.add('hidden');
+        if (modal) {
+            if (typeof window.closeMujiOverlay === 'function') {
+                await window.closeMujiOverlay(modal);
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
         destroyCropper();
         revokeObjectUrl();
         const img = byId('host-qr-crop-image');
@@ -59,7 +65,7 @@
         });
     }
 
-    function openCropModal(type, file, sourceInput) {
+    async function openCropModal(type, file, sourceInput) {
         const modal = byId('host-qr-crop-modal');
         const img = byId('host-qr-crop-image');
         const title = byId('host-qr-crop-title');
@@ -77,7 +83,11 @@
 
         objectUrl = URL.createObjectURL(file);
         img.style.display = 'block';
-        modal.classList.remove('hidden');
+        if (typeof window.openMujiOverlay === 'function') {
+            await window.openMujiOverlay(modal);
+        } else {
+            modal.classList.remove('hidden');
+        }
 
         img.onload = function onQrCropImageReady() {
             img.onload = null;

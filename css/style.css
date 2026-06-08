@@ -110,14 +110,14 @@ button {
   padding: 0.125rem;
 }
 
-/* ── 全站分頁路由過渡（MUJI 毛玻璃） ── */
+/* ── 全站 MUJI 毛玻璃過渡（分頁 + 彈窗） ── */
 .page-transition-root {
   position: relative;
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden;
+  isolation: isolate;
 }
 
 .page-transition-veil {
@@ -126,9 +126,9 @@ button {
   inset: 0;
   z-index: 30;
   opacity: 0;
-  background: rgba(255, 255, 255, 0.4);
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
   transition: opacity 300ms ease-in-out;
 }
 
@@ -140,6 +140,7 @@ button {
   flex: 1 1 auto;
   width: 100%;
   min-height: 0;
+  will-change: opacity, transform;
 }
 
 .app-page.hidden {
@@ -179,24 +180,165 @@ button {
   transform-origin: center top;
 }
 
+.app-page.app-page--preenter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
 .app-page.app-page--entering {
+  opacity: 0;
+  transform: translateY(20px);
   animation: mujiPageEnter 400ms ease-out forwards;
   transform-origin: center top;
 }
 
-.app-page.app-page--active {
+.app-page.app-page--active:not(.app-page--leaving):not(.app-page--entering) {
   opacity: 1;
   transform: none;
+}
+
+/* 彈窗 / 底部面板 — 統一毛玻璃（grid 疊層，修正 iOS PWA 點擊穿透） */
+.muji-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  z-index: 80;
+  pointer-events: none;
+  touch-action: manipulation;
+}
+
+.muji-overlay.hidden {
+  display: none !important;
+}
+
+.muji-overlay.is-open {
+  pointer-events: auto;
+}
+
+.muji-overlay--modal {
+  padding: 1.25rem;
+  place-items: center;
+  align-content: center;
+}
+
+.muji-overlay--sheet {
+  align-content: end;
+}
+
+.muji-overlay__backdrop {
+  grid-area: 1 / 1;
+  align-self: stretch;
+  justify-self: stretch;
+  min-height: 100%;
+  min-width: 100%;
+  z-index: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  background: rgba(0, 0, 0, 0.1);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 300ms ease-in-out;
+  pointer-events: auto;
+}
+
+.muji-overlay.is-open .muji-overlay__backdrop {
+  opacity: 1;
+}
+
+.muji-overlay__panel {
+  grid-area: 1 / 1;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 28rem;
+  justify-self: center;
+  opacity: 0;
+  pointer-events: auto;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+.muji-overlay--sheet .muji-overlay__panel {
+  align-self: end;
+  max-width: 28rem;
+  transform: translateY(20px) translateZ(0);
+  transform-origin: center bottom;
+}
+
+.muji-overlay--modal .muji-overlay__panel {
+  align-self: center;
+  transform: scale(0.95) translateY(10px) translateZ(0);
+  transform-origin: center center;
+}
+
+.muji-overlay--modal.is-open .muji-overlay__panel {
+  opacity: 1;
+  transform: scale(1) translateY(0) translateZ(0);
+}
+
+.muji-overlay--sheet.is-open .muji-overlay__panel {
+  opacity: 1;
+  transform: translateY(0) translateZ(0);
+}
+
+body.muji-overlay-open {
+  overflow: hidden;
+}
+
+#bottom-sheet.muji-overlay,
+#scroll-picker.muji-overlay {
+  z-index: 90;
+}
+
+#form-picker.muji-overlay {
+  z-index: 100;
+}
+
+#payment-sheet.muji-overlay {
+  z-index: 110;
+}
+
+#host-payment-info-modal.muji-overlay,
+#host-manage-modal.muji-overlay,
+#private-share-modal.muji-overlay {
+  z-index: 120;
+}
+
+#host-qr-crop-modal.muji-overlay,
+#avatar-crop-modal.muji-overlay {
+  z-index: 130;
+}
+
+#auth-modal.muji-overlay {
+  z-index: 140;
+}
+
+#disclaimer-modal.muji-overlay {
+  z-index: 150;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .app-page.app-page--leaving,
   .app-page.app-page--entering {
     animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 
-  .page-transition-veil {
+  .page-transition-veil,
+  .muji-overlay__backdrop,
+  .muji-overlay__panel {
     transition: none !important;
+  }
+
+  .muji-overlay.is-open .muji-overlay__panel,
+  .muji-overlay.is-open .muji-overlay__backdrop {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
@@ -862,38 +1004,9 @@ button:hover {
   display: none !important;
 }
 
-/* 付款彈窗 */
-.payment-sheet-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.1);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  opacity: 0;
-  transition: opacity 300ms ease-in-out;
-}
-
-.payment-sheet.is-open .payment-sheet-backdrop {
-  opacity: 1;
-}
-
+/* 付款彈窗（面板樣式；動畫由 .muji-overlay 統一處理） */
 .payment-sheet-panel {
   border-top: 1px solid var(--muji-border);
-  opacity: 0;
-  transform: scale(0.95);
-  transform-origin: center bottom;
-  transition: opacity 300ms ease-out, transform 300ms ease-out;
-}
-
-@media (min-width: 640px) {
-  .payment-sheet-panel {
-    transform-origin: center center;
-  }
-}
-
-.payment-sheet.is-open .payment-sheet-panel {
-  opacity: 1;
-  transform: scale(1);
 }
 
 /* 複製按鈕回饋（固定寬度防抖動） */

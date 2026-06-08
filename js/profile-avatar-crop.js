@@ -33,9 +33,15 @@
         hint.classList.toggle('hidden', !visible);
     }
 
-    function closeCropModal() {
+    async function closeCropModal() {
         const modal = byId('avatar-crop-modal');
-        if (modal) modal.classList.add('hidden');
+        if (modal) {
+            if (typeof window.closeMujiOverlay === 'function') {
+                await window.closeMujiOverlay(modal);
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
         destroyCropper();
         revokeObjectUrl();
         const img = byId('avatar-crop-image');
@@ -45,7 +51,7 @@
         }
     }
 
-    function openCropModal(file) {
+    async function openCropModal(file) {
         const modal = byId('avatar-crop-modal');
         const img = byId('avatar-crop-image');
         if (!modal || !img) return;
@@ -55,7 +61,11 @@
 
         objectUrl = URL.createObjectURL(file);
         img.style.display = 'block';
-        modal.classList.remove('hidden');
+        if (typeof window.openMujiOverlay === 'function') {
+            await window.openMujiOverlay(modal);
+        } else {
+            modal.classList.remove('hidden');
+        }
 
         img.onload = function onCropImageReady() {
             img.onload = null;

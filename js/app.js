@@ -664,14 +664,25 @@ function getPickerScrollTarget() {
     return districtFilter || 'all';
 }
 
-function toggleScrollPicker(show) {
+async function toggleScrollPicker(show) {
     if (show && macroFilter === 'all') {
         return;
     }
 
     const picker = document.getElementById('scroll-picker');
     if (!picker) return;
-    picker.classList.toggle('hidden', !show);
+
+    if (show) {
+        if (typeof window.openMujiOverlay === 'function') {
+            await window.openMujiOverlay(picker);
+        } else {
+            picker.classList.remove('hidden');
+        }
+    } else if (typeof window.closeMujiOverlay === 'function') {
+        await window.closeMujiOverlay(picker);
+    } else {
+        picker.classList.add('hidden');
+    }
     const scroller = document.getElementById('picker-scroller');
     if (!scroller) return;
 
@@ -735,40 +746,6 @@ function updatePageNavActive(pageId) {
     });
 }
 
-function setPageTransitionVeil(visible) {
-    const veil = document.getElementById('page-transition-veil');
-    if (!veil) return;
-    veil.classList.toggle('is-visible', visible);
-    veil.setAttribute('aria-hidden', visible ? 'false' : 'true');
-}
-
-function prefersReducedPageMotion() {
-    return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
-}
-
-function waitPageAnimation(el, animationName, timeoutMs) {
-    return new Promise(resolve => {
-        let settled = false;
-        const finish = () => {
-            if (settled) return;
-            settled = true;
-            el.removeEventListener('animationend', onEnd);
-            resolve();
-        };
-        const onEnd = event => {
-            if (event.target !== el) return;
-            if (!animationName || event.animationName === animationName) finish();
-        };
-        el.addEventListener('animationend', onEnd);
-        setTimeout(finish, timeoutMs);
-    });
-}
-
-function resetAppPageState(el) {
-    if (!el) return;
-    el.classList.remove('app-page--leaving', 'app-page--entering', 'app-page--active');
-}
-
 function showAppPageInstant(pageId) {
     PAGE_IDS.forEach(id => {
         const el = getAppPageEl(id);
@@ -781,6 +758,36 @@ function showAppPageInstant(pageId) {
     currentPageId = pageId;
 }
 
+function initInitialPageState() {
+    const page = getAppPageEl('match');
+    if (!page) return;
+    if (typeof window.prefersReducedMotion === 'function' && window.prefersReducedMotion()) {
+        page.classList.add('app-page--active');
+        return;
+    }
+    page.classList.remove('app-page--active');
+    page.classList.add('app-page--preenter');
+}
+
+async function playInitialPageEnter() {
+    const page = getAppPageEl('match');
+    if (!page) return;
+
+    if (typeof window.prefersReducedMotion === 'function' && window.prefersReducedMotion()) {
+        page.classList.add('app-page--active');
+        return;
+    }
+
+    page.classList.remove('app-page--preenter');
+    if (typeof window.showPageVeil === 'function') await window.showPageVeil();
+    if (typeof window.playPageEnter === 'function') {
+        await window.playPageEnter(page);
+    } else {
+        page.classList.add('app-page--active');
+    }
+    if (typeof window.hidePageVeil === 'function') await window.hidePageVeil();
+}
+
 async function switchPage(pageId, options = {}) {
     if (!PAGE_IDS.includes(pageId)) return;
     if (pageTransitionLock || pageId === currentPageId) return;
@@ -789,7 +796,9 @@ async function switchPage(pageId, options = {}) {
     const toEl = getAppPageEl(pageId);
     if (!toEl) return;
 
-    const animate = options.animate !== false && !prefersReducedPageMotion();
+    const animate = options.animate !== false
+        && typeof window.prefersReducedMotion === 'function'
+        && !window.prefersReducedMotion();
     pageTransitionLock = true;
     updatePageNavActive(pageId);
 
@@ -797,24 +806,23 @@ async function switchPage(pageId, options = {}) {
         if (!animate || !fromEl || fromEl.classList.contains('hidden')) {
             showAppPageInstant(pageId);
         } else {
-            setPageTransitionVeil(true);
+            if (typeof window.showPageVeil === 'function') await window.showPageVeil();
 
-            fromEl.classList.add('app-page--leaving');
-            await waitPageAnimation(fromEl, 'mujiPageLeave', 320);
+            if (typeof window.playPageLeave === 'function') {
+                await window.playPageLeave(fromEl);
+            } else {
+                fromEl.classList.add('hidden');
+            }
 
-            fromEl.classList.add('hidden');
-            resetAppPageState(fromEl);
-
-            toEl.classList.remove('hidden');
-            toEl.classList.add('app-page--entering');
-            void toEl.offsetWidth;
-            await waitPageAnimation(toEl, 'mujiPageEnter', 420);
-
-            toEl.classList.remove('app-page--entering');
-            toEl.classList.add('app-page--active');
+            if (typeof window.playPageEnter === 'function') {
+                await window.playPageEnter(toEl);
+            } else {
+                toEl.classList.remove('hidden');
+                toEl.classList.add('app-page--active');
+            }
             currentPageId = pageId;
 
-            setPageTransitionVeil(false);
+            if (typeof window.hidePageVeil === 'function') await window.hidePageVeil();
         }
 
         if (pageId === 'profile' && typeof window.renderMyActivities === 'function') {
@@ -834,8 +842,12 @@ function initDisclaimerModal() {
     const ackBtn = document.getElementById('disclaimer-ack-btn');
     if (!modal || !ackBtn) return;
 
-    const dismiss = () => {
-        modal.classList.add('hidden');
+    const dismiss = async () => {
+        if (typeof window.closeMujiOverlay === 'function') {
+            await window.closeMujiOverlay(modal);
+        } else {
+            modal.classList.add('hidden');
+        }
         try {
             localStorage.setItem(DISCLAIMER_ACK_KEY, '1');
         } catch (_err) { /* ignore */ }
@@ -843,15 +855,23 @@ function initDisclaimerModal() {
 
     ackBtn.addEventListener('click', dismiss);
     modal.addEventListener('click', event => {
-        if (event.target === modal) dismiss();
+        if (event.target === modal || event.target.classList.contains('muji-overlay__backdrop')) dismiss();
     });
 
     try {
         if (!localStorage.getItem(DISCLAIMER_ACK_KEY)) {
-            modal.classList.remove('hidden');
+            if (typeof window.openMujiOverlay === 'function') {
+                window.openMujiOverlay(modal);
+            } else {
+                modal.classList.remove('hidden');
+            }
         }
     } catch (_err) {
-        modal.classList.remove('hidden');
+        if (typeof window.openMujiOverlay === 'function') {
+            window.openMujiOverlay(modal);
+        } else {
+            modal.classList.remove('hidden');
+        }
     }
 }
 
@@ -860,13 +880,15 @@ function initSplashScreen() {
     setTimeout(() => {
         splash.classList.add('opacity-0', 'pointer-events-none');
     }, 2000);
-    setTimeout(() => {
+    setTimeout(async () => {
         splash.style.display = 'none';
         splash.setAttribute('aria-hidden', 'true');
+        await playInitialPageEnter();
     }, 3000);
 }
 
 function initApp() {
+    initInitialPageState();
     loadCurrentUser();
     updateProfileUI();
     bindProfileEditUI();
