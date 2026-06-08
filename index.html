@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VibeUp 波友 - Badminton Matching</title>
+    <title>+1</title>
     <!-- 引入美化畫面的工具 Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="css/style.css">
@@ -13,9 +13,7 @@
 
     <!-- ==================== App 啟動畫面 (Splash Screen) ==================== -->
     <div id="splash-screen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white opacity-100 transition-opacity duration-1000 ease-out">
-        <p class="text-[10px] text-[#777777] tracking-[0.35em] uppercase font-medium mb-2">MATCHING</p>
-        <h1 class="text-4xl md:text-5xl font-medium text-[#333333] tracking-[0.05em] leading-relaxed text-center px-6">VibeUp</h1>
-        <p class="text-base text-[#333333] mt-1 tracking-[0.18em]">波友</p>
+        <h1 class="text-4xl md:text-5xl font-bold text-[#333333] tracking-[0.05em] leading-relaxed text-center px-6">+1</h1>
     </div>
 
     <!-- 手機寬度容器 (Uber 極簡風格) -->
@@ -25,10 +23,8 @@
         <div id="page-match" class="flex-1 p-5 pb-24">
             <div class="flex items-start justify-between gap-3 mb-2">
                 <div class="min-w-0 flex-1">
-                    <p class="text-[11px] font-medium tracking-[0.28em] uppercase text-[#777777]">MATCHING</p>
-                    <h1 class="text-2xl md:text-3xl font-medium tracking-[0.05em] text-[#333333] leading-relaxed">VibeUp</h1>
-                    <p class="text-sm text-[#333333] tracking-[0.14em]">波友</p>
-                    <p class="text-xs text-[#777777] mt-1.5 tracking-[0.08em]">羽毛球場次報名與球友配對</p>
+                    <h1 class="text-2xl md:text-3xl font-bold tracking-[0.05em] text-[#333333] leading-relaxed">+1</h1>
+                    <p class="mt-2 text-xs leading-relaxed tracking-[0.04em] text-[#777777]">一齊打波，拒絕放飛機。尋找跟你一夾即合的純粹波友。</p>
                 </div>
                 <div class="shrink-0 text-right">
                     <button id="loginBtn" type="button" class="bg-[#F4F4F2] text-[#333333] border border-[#E5E5E5] text-[11px] font-medium px-3.5 py-2 rounded-full">
@@ -159,7 +155,7 @@
                     <div id="profile-avatar" class="w-16 h-16 bg-black text-white rounded-full flex items-center justify-center text-xl font-extrabold shadow-md shrink-0">強</div>
                     <div>
                         <p class="text-[10px] text-gray-400 font-medium">羽毛球場次會員</p>
-                        <h2 id="profile-display-name" class="text-lg font-extrabold text-gray-900">波友_阿強</h2>
+                        <h2 id="profile-display-name" class="text-lg font-extrabold text-gray-900">阿強</h2>
                     </div>
                 </div>
                 <button
@@ -215,7 +211,7 @@
             <details class="host-settings-panel mt-6">
                 <summary class="host-settings-summary">場主收款設定</summary>
                 <div class="host-settings-body">
-                    <p class="host-settings-note">上傳收款碼後，波友報名時會在付款彈窗看到你的 PayMe / 轉數快 QR Code。（稍後連接資料庫）</p>
+                    <p class="host-settings-note">上傳收款碼後，用家報名時會在付款彈窗看到你的 PayMe / 轉數快 QR Code。（稍後連接資料庫）</p>
                     <div class="host-settings-field">
                         <label for="host-payme-qr-input" class="host-settings-label">上傳您的 PayMe QR Code 圖片</label>
                         <div id="host-payme-qr-preview" class="host-qr-preview" aria-hidden="true"></div>
@@ -239,7 +235,7 @@
             <div class="flex justify-between items-start mb-6">
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight mb-1">🛠️ 場主管理後台</h1>
-                    <p class="text-xs text-gray-400">審核波友付款截圖與放位</p>
+                    <p class="text-xs text-gray-400">審核付款截圖與放位</p>
                 </div>
                 <button type="button" onclick="toggleAdminView(false)" class="bg-black text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow shrink-0">
                     返回用戶模式
@@ -247,7 +243,7 @@
             </div>
 
             <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
-                <p class="text-[11px] text-amber-800 leading-relaxed">待審核的付款申請會顯示在下方。確認入數後波友才會正式佔位，並於完成場次後更新出席紀錄。</p>
+                <p class="text-[11px] text-amber-800 leading-relaxed">待審核的付款申請會顯示在下方。確認入數後用家才會正式佔位，並於完成場次後更新出席紀錄。</p>
             </div>
 
             <div id="admin-pending-list" class="space-y-3"></div>
@@ -507,7 +503,7 @@
     <div id="auth-modal" class="hidden fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-5">
         <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl relative">
             <button id="auth-close-btn" type="button" class="absolute top-3 right-3 text-gray-400 text-sm font-bold">✕</button>
-            <h4 id="auth-modal-title" class="text-base font-extrabold mb-1">加入 VibeUp 波友</h4>
+            <h4 id="auth-modal-title" class="text-base font-extrabold mb-1">加入 +1</h4>
             <p class="text-[11px] text-gray-400 mb-4">用 Google 帳號登入，綁定你的場次與誠信記錄</p>
 
             <p id="auth-error" class="hidden mt-3 text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-2"></p>

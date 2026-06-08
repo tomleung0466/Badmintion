@@ -7,8 +7,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'VibeUp 波友 - Badminton Matching',
-  description: 'VibeUp 波友讓香港羽毛球愛好者輕鬆查看場次、報名留位、結識球友',
+  title: '+1',
+  description: '一齊打波，拒絕放飛機。尋找跟你一夾即合的純粹波友。',
   generator: 'v0.app',
   icons: {
     icon: [

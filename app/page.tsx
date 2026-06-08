@@ -99,14 +99,11 @@ export default function Home() {
     <main className="min-h-screen bg-background pb-24 text-foreground">
       {/* Hero Header */}
       <header className="px-6 pt-14 pb-8">
-        <p className="mb-3 text-[11px] tracking-[0.28em] text-muted-foreground">
-          MATCHING
-        </p>
-        <h1 className="text-4xl font-medium tracking-[0.05em] leading-[1.6] text-balance">
-          VibeUp
+        <h1 className="text-4xl font-bold tracking-[0.05em] leading-[1.6] text-balance">
+          +1
         </h1>
-        <p className="text-base font-medium tracking-[0.12em] text-foreground">
-          波友
+        <p className="mt-3 max-w-sm text-sm leading-relaxed tracking-[0.03em] text-muted-foreground text-pretty">
+          一齊打波，拒絕放飛機。尋找跟你一夾即合的純粹波友。
         </p>
       </header>
 
