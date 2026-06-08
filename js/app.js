@@ -39,7 +39,8 @@ const HONG_KONG_18_DISTRICTS = [
     '大埔區', '沙田區', '西貢區', '離島區'
 ];
 
-let currentFilter = 'all';
+let macroFilter = 'all';
+let districtFilter = null;
 let pickerScrollListenerAttached = false;
 
 const MACRO_REGION_VALUES = ['港島', '九龍', '新界'];
@@ -71,6 +72,30 @@ function isMacroRegionFilter(filter) {
 
 function isDistrictFilter(filter) {
     return filter !== 'all' && !isMacroRegionFilter(filter);
+}
+
+function getDistrictsForMacro(macro) {
+    if (macro === 'all') return [...HONG_KONG_18_DISTRICTS];
+    return HONG_KONG_18_DISTRICTS.filter(d => DISTRICT_TO_MACRO[d] === macro);
+}
+
+function getMacroAllLabel(macro) {
+    if (macro === 'all') return '全港場次';
+    if (macro === '港島') return '香港全部';
+    return `${macro}全部`;
+}
+
+function syncMacroFromDistrict() {
+    if (!districtFilter) return;
+    const macro = DISTRICT_TO_MACRO[districtFilter];
+    if (macro) macroFilter = macro;
+}
+
+function clearDistrictIfOutsideMacro() {
+    if (!districtFilter || macroFilter === 'all') return;
+    if (DISTRICT_TO_MACRO[districtFilter] !== macroFilter) {
+        districtFilter = null;
+    }
 }
 
 /* ---------- 登入用家（Demo） ---------- */
@@ -382,26 +407,48 @@ function scrollPickerToValue(value) {
     scrollWheelToValue('picker-scroller', 'wheel-item', value);
 }
 
+function getActiveFilterLabel() {
+    if (districtFilter) return districtFilter;
+    if (macroFilter !== 'all') return getRegionFilterLabel(macroFilter);
+    return '全部';
+}
+
 function updateDistrictPickerLabel() {
     const label = document.getElementById('current-region-text');
     if (!label) return;
-    if (currentFilter === 'all') {
-        label.textContent = '全港十八區';
-    } else if (isDistrictFilter(currentFilter)) {
-        label.textContent = currentFilter;
-    } else {
-        label.textContent = '全港十八區';
+
+    if (districtFilter) {
+        label.textContent = districtFilter;
+        return;
     }
+
+    if (macroFilter !== 'all') {
+        label.textContent = `選擇${getRegionFilterLabel(macroFilter)}分區`;
+        return;
+    }
+
+    label.textContent = '全港十八區';
 }
 
-function setRegionFilter(filter) {
-    currentFilter = filter || 'all';
+function updateCapsuleActiveState() {
     document.querySelectorAll('.region-filter-btn').forEach(btn => {
-        const active = isMacroRegionFilter(currentFilter) && btn.dataset.filter === currentFilter
-            || currentFilter === 'all' && btn.dataset.filter === 'all';
+        const active = macroFilter !== 'all' && btn.dataset.filter === macroFilter
+            || macroFilter === 'all' && !districtFilter && btn.dataset.filter === 'all';
         btn.classList.toggle('is-active', active);
         btn.setAttribute('aria-selected', active ? 'true' : 'false');
     });
+}
+
+function setRegionFilter(filter) {
+    macroFilter = filter || 'all';
+
+    if (macroFilter === 'all') {
+        districtFilter = null;
+    } else {
+        clearDistrictIfOutsideMacro();
+    }
+
+    updateCapsuleActiveState();
     updateDistrictPickerLabel();
     applyRegionFilter();
 }
@@ -415,12 +462,12 @@ function applyRegionFilter() {
         const district = card.getAttribute('data-district') || '';
         let show = false;
 
-        if (currentFilter === 'all') {
+        if (districtFilter) {
+            show = district === districtFilter;
+        } else if (macroFilter !== 'all') {
+            show = macroRegion === macroFilter;
+        } else {
             show = true;
-        } else if (isMacroRegionFilter(currentFilter)) {
-            show = macroRegion === currentFilter;
-        } else if (isDistrictFilter(currentFilter)) {
-            show = district === currentFilter;
         }
 
         card.classList.toggle('hidden', !show);
@@ -438,19 +485,24 @@ function applyRegionFilter() {
 
     if (emptyEl) {
         const hasCards = cards.length > 0;
-        const showEmpty = hasCards && visibleCount === 0 && currentFilter !== 'all';
-        emptyEl.textContent = `${getRegionFilterLabel(currentFilter)}暫時沒有開場。`;
+        const hasActiveFilter = districtFilter || macroFilter !== 'all';
+        const showEmpty = hasCards && visibleCount === 0 && hasActiveFilter;
+        emptyEl.textContent = `${getActiveFilterLabel()}暫時沒有開場。`;
         emptyEl.classList.toggle('hidden', !showEmpty);
     }
 }
 
-function initRegionPickers() {
+function renderDistrictPickerScroller() {
     const scroller = document.getElementById('picker-scroller');
     if (!scroller) return;
-    scroller.innerHTML = [
-        { val: 'all', label: '全港場次' },
-        ...HONG_KONG_18_DISTRICTS.map(d => ({ val: d, label: d }))
-    ].map(({ val, label }) =>
+
+    const districts = getDistrictsForMacro(macroFilter);
+    const items = [
+        { val: 'all', label: getMacroAllLabel(macroFilter) },
+        ...districts.map(d => ({ val: d, label: d }))
+    ];
+
+    scroller.innerHTML = items.map(({ val, label }) =>
         `<div class="wheel-item snap-center flex h-10 items-center justify-center text-sm font-medium text-gray-400" data-val="${val}">${label}</div>`
     ).join('');
 }
@@ -467,21 +519,23 @@ function toggleScrollPicker(show) {
             scroller.addEventListener('scroll', updatePickerHighlight, { passive: true });
             pickerScrollListenerAttached = true;
         }
-        const scrollTarget = isDistrictFilter(currentFilter) ? currentFilter : 'all';
+        renderDistrictPickerScroller();
+        const scrollTarget = districtFilter || 'all';
         requestAnimationFrame(() => scrollPickerToValue(scrollTarget));
     }
 }
 
 function confirmPickerRegion() {
     const selected = getPickerSelection();
-    currentFilter = selected;
 
-    document.querySelectorAll('.region-filter-btn').forEach(btn => {
-        const active = selected === 'all' && btn.dataset.filter === 'all';
-        btn.classList.toggle('is-active', active);
-        btn.setAttribute('aria-selected', active ? 'true' : 'false');
-    });
+    if (selected === 'all') {
+        districtFilter = null;
+    } else {
+        districtFilter = selected;
+        syncMacroFromDistrict();
+    }
 
+    updateCapsuleActiveState();
     updateDistrictPickerLabel();
     toggleScrollPicker(false);
     applyRegionFilter();
@@ -493,7 +547,7 @@ function initRegionFilter() {
             setRegionFilter(btn.dataset.filter || 'all');
         });
     });
-    initRegionPickers();
+    renderDistrictPickerScroller();
     setRegionFilter('all');
 }
 
