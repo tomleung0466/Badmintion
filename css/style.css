@@ -49,6 +49,96 @@ button {
   color: var(--muji-text) !important;
 }
 
+/* ── 全站分頁路由過渡（MUJI 毛玻璃） ── */
+.page-transition-root {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.page-transition-veil {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  opacity: 0;
+  background: rgba(255, 255, 255, 0.4);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  transition: opacity 300ms ease-in-out;
+}
+
+.page-transition-veil.is-visible {
+  opacity: 1;
+}
+
+.app-page {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.app-page.hidden {
+  display: none !important;
+}
+
+@keyframes mujiPageLeave {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes mujiPageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.app-page.app-page--leaving {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: mujiPageLeave 300ms ease-in-out forwards;
+  pointer-events: none;
+  transform-origin: center top;
+}
+
+.app-page.app-page--entering {
+  animation: mujiPageEnter 400ms ease-out forwards;
+  transform-origin: center top;
+}
+
+.app-page.app-page--active {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-page.app-page--leaving,
+  .app-page.app-page--entering {
+    animation: none !important;
+  }
+
+  .page-transition-veil {
+    transition: none !important;
+  }
+}
+
 /* 地區篩選膠囊 */
 .region-filter-scroll {
   overflow-x: auto;

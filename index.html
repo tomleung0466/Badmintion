@@ -26,9 +26,12 @@
 
     <!-- 手機寬度容器 (Uber 極簡風格) -->
     <div class="w-full max-w-md bg-white min-h-screen relative flex flex-col border-x border-[#E5E5E5]">
-        
+
+        <div id="page-transition-root" class="page-transition-root flex-1 flex flex-col min-h-0">
+            <div id="page-transition-veil" class="page-transition-veil" aria-hidden="true"></div>
+
         <!-- ==================== 頁面 1：活動 ==================== -->
-        <div id="page-match" class="flex-1 p-5 pb-24">
+        <div id="page-match" class="app-page app-page--active flex-1 p-5 pb-24">
             <div class="flex items-start justify-between gap-3 mb-2">
                 <div class="min-w-0 flex-1">
                     <h1 class="text-2xl md:text-3xl font-bold tracking-[0.05em] text-[#333333] leading-relaxed">+1</h1>
@@ -100,7 +103,7 @@
         </div>
 
         <!-- ==================== 頁面 2：二手交易 ==================== -->
-        <div id="page-market" class="hidden flex-1 p-5 pb-24">
+        <div id="page-market" class="app-page hidden flex-1 p-5 pb-24">
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight mb-1">用品交易</h1>
@@ -135,7 +138,7 @@
         </div>
 
         <!-- ==================== 頁面 3：搵教練 ==================== -->
-        <div id="page-coach" class="hidden flex-1 p-5 pb-24">
+        <div id="page-coach" class="app-page hidden flex-1 p-5 pb-24">
             <h1 class="text-3xl font-extrabold tracking-tight mb-2">搵教練</h1>
             <p class="text-xs text-gray-400 mb-6">星級導師專區</p>
 
@@ -160,7 +163,7 @@
         </div>
 
         <!-- ==================== 頁面 4：我的場次 / 個人 ==================== -->
-        <div id="page-profile" class="hidden flex-1 p-5 pb-24">
+        <div id="page-profile" class="app-page hidden flex-1 p-5 pb-24">
             <h1 class="text-3xl font-extrabold tracking-[0.05em] mb-1">我的場次</h1>
             <p class="text-xs text-gray-400 mb-6">最近出席紀錄與場次記錄</p>
 
@@ -277,6 +280,8 @@
                 </div>
             </div>
         </div>
+
+        </div><!-- /page-transition-root -->
 
         <!-- ==================== 底部固定導航欄 (Uber風格) ==================== -->
         <footer class="bg-white/90 backdrop-blur border-t border-gray-100 py-2 flex justify-around text-[9px] font-medium text-gray-400 fixed bottom-0 w-full max-w-md z-50 shadow-lg">

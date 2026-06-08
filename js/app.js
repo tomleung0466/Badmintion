@@ -720,18 +720,112 @@ function initRegionFilter() {
     setRegionFilter('all');
 }
 
-/* ---------- 分頁與啟動畫面 ---------- */
-function switchPage(pageId) {
-    ['match', 'market', 'coach', 'profile'].forEach(p => {
-        document.getElementById(`page-${p}`).classList.add('hidden');
-        document.getElementById(`nav-${p}`).classList.remove('text-black');
+/* ---------- 分頁與啟動畫面（MUJI 毛玻璃路由過渡） ---------- */
+const PAGE_IDS = ['match', 'market', 'coach', 'profile'];
+let currentPageId = 'match';
+let pageTransitionLock = false;
+
+function getAppPageEl(pageId) {
+    return document.getElementById(`page-${pageId}`);
+}
+
+function updatePageNavActive(pageId) {
+    PAGE_IDS.forEach(id => {
+        document.getElementById(`nav-${id}`)?.classList.toggle('text-black', id === pageId);
     });
-    document.getElementById(`page-${pageId}`).classList.remove('hidden');
-    document.getElementById(`nav-${pageId}`).classList.add('text-black');
-    if (pageId === 'profile' && typeof window.renderMyActivities === 'function') {
-        window.renderMyActivities();
+}
+
+function setPageTransitionVeil(visible) {
+    const veil = document.getElementById('page-transition-veil');
+    if (!veil) return;
+    veil.classList.toggle('is-visible', visible);
+    veil.setAttribute('aria-hidden', visible ? 'false' : 'true');
+}
+
+function prefersReducedPageMotion() {
+    return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+}
+
+function waitPageAnimation(el, animationName, timeoutMs) {
+    return new Promise(resolve => {
+        let settled = false;
+        const finish = () => {
+            if (settled) return;
+            settled = true;
+            el.removeEventListener('animationend', onEnd);
+            resolve();
+        };
+        const onEnd = event => {
+            if (event.target !== el) return;
+            if (!animationName || event.animationName === animationName) finish();
+        };
+        el.addEventListener('animationend', onEnd);
+        setTimeout(finish, timeoutMs);
+    });
+}
+
+function resetAppPageState(el) {
+    if (!el) return;
+    el.classList.remove('app-page--leaving', 'app-page--entering', 'app-page--active');
+}
+
+function showAppPageInstant(pageId) {
+    PAGE_IDS.forEach(id => {
+        const el = getAppPageEl(id);
+        if (!el) return;
+        const active = id === pageId;
+        el.classList.toggle('hidden', !active);
+        el.classList.toggle('app-page--active', active);
+        el.classList.remove('app-page--leaving', 'app-page--entering');
+    });
+    currentPageId = pageId;
+}
+
+async function switchPage(pageId, options = {}) {
+    if (!PAGE_IDS.includes(pageId)) return;
+    if (pageTransitionLock || pageId === currentPageId) return;
+
+    const fromEl = getAppPageEl(currentPageId);
+    const toEl = getAppPageEl(pageId);
+    if (!toEl) return;
+
+    const animate = options.animate !== false && !prefersReducedPageMotion();
+    pageTransitionLock = true;
+    updatePageNavActive(pageId);
+
+    try {
+        if (!animate || !fromEl || fromEl.classList.contains('hidden')) {
+            showAppPageInstant(pageId);
+        } else {
+            setPageTransitionVeil(true);
+
+            fromEl.classList.add('app-page--leaving');
+            await waitPageAnimation(fromEl, 'mujiPageLeave', 320);
+
+            fromEl.classList.add('hidden');
+            resetAppPageState(fromEl);
+
+            toEl.classList.remove('hidden');
+            toEl.classList.add('app-page--entering');
+            void toEl.offsetWidth;
+            await waitPageAnimation(toEl, 'mujiPageEnter', 420);
+
+            toEl.classList.remove('app-page--entering');
+            toEl.classList.add('app-page--active');
+            currentPageId = pageId;
+
+            setPageTransitionVeil(false);
+        }
+
+        if (pageId === 'profile' && typeof window.renderMyActivities === 'function') {
+            window.renderMyActivities();
+        }
+    } finally {
+        pageTransitionLock = false;
     }
 }
+
+window.switchPage = switchPage;
 
 const DISCLAIMER_ACK_KEY = 'plus1_disclaimer_ack';
 
