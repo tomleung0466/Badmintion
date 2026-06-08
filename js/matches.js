@@ -1038,7 +1038,16 @@
             document.getElementById('payment-fps-copy-btn')?.addEventListener('click', copyPaymentFpsId);
         }
 
+        function showHostSettingsPanel() {
+            const panel = document.getElementById('host-settings-panel');
+            const profilePanel = document.getElementById('profile-edit-panel');
+            if (profilePanel) profilePanel.classList.add('hidden');
+            if (panel) panel.classList.toggle('hidden');
+        }
+
         function bindHostSettingsUI() {
+            document.getElementById('edit-host-payment-btn')?.addEventListener('click', showHostSettingsPanel);
+
             const stored = getStoredHostSettings();
             const fpsInput = document.getElementById('host-fps-id-input');
             if (fpsInput) fpsInput.value = stored.fpsId;
@@ -1213,102 +1222,6 @@
             }
 
             saveMatches();
-            renderMatches();
-        }
-
-        function renderAdminPanel() {
-            const list = document.getElementById('admin-pending-list');
-            if (!list) return;
-            list.innerHTML = '';
-
-            const pending = matches.filter(m => m.userStatus === 'pending');
-            if (pending.length === 0) {
-                list.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs border border-dashed border-gray-200 rounded-xl">暫無待審核的付款申請</div>';
-                return;
-            }
-
-            pending.forEach(match => {
-                const card = document.createElement('div');
-                card.className = 'bg-white border border-gray-200 rounded-2xl p-4 shadow-sm';
-                const applicant = match.applicantName || getCurrentUserName();
-                card.innerHTML = `
-                    <div class="flex justify-between items-start gap-2 mb-3">
-                        <div>
-                            <p class="text-[10px] text-gray-400 font-medium">波友</p>
-                            <p class="text-sm font-extrabold text-gray-900">${applicant}</p>
-                            <p class="text-xs text-gray-600 mt-1">${match.venue} · ${match.region}</p>
-                        </div>
-                        <p class="text-sm font-extrabold text-gray-900 shrink-0">HK$ ${match.fee}</p>
-                    </div>
-                    <button type="button" onclick="viewPaymentScreenshot(${match.id})" class="w-full mb-3 bg-gray-100 text-gray-700 text-xs font-bold py-2.5 rounded-xl border border-gray-200">
-                        查看截圖
-                    </button>
-                    <div class="flex gap-2">
-                        <button type="button" onclick="adminApprovePayment(${match.id}, true)" class="flex-1 bg-emerald-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-sm">
-                            ✅ 確認入數放位
-                        </button>
-                        <button type="button" onclick="adminApprovePayment(${match.id}, false)" class="flex-1 bg-red-50 text-red-600 border border-red-200 text-xs font-bold py-2.5 rounded-xl">
-                            ❌ 拒絕申請
-                        </button>
-                    </div>
-                `;
-                list.appendChild(card);
-            });
-        }
-
-        function viewPaymentScreenshot(matchId) {
-            const match = matches.find(m => m.id === matchId);
-            const modal = document.getElementById('screenshot-preview-modal');
-            const body = document.getElementById('screenshot-preview-body');
-            if (!match || !modal || !body) return;
-
-            if (match.paymentProofDataUrl) {
-                body.innerHTML = `<img src="${match.paymentProofDataUrl}" alt="付款截圖" class="max-h-64 mx-auto rounded-lg object-contain w-full" />`;
-            } else if (match.paymentProofName) {
-                body.innerHTML = `<p class="text-sm text-gray-700">檔案名稱：<span class="font-bold">${match.paymentProofName}</span></p><p class="text-[10px] text-gray-400 mt-2">（截圖預覽僅於本次提交後可用）</p>`;
-            } else {
-                body.innerHTML = '<p class="text-xs text-gray-500">尚未上傳截圖</p>';
-            }
-            modal.classList.remove('hidden');
-        }
-
-        function closeScreenshotPreview() {
-            const modal = document.getElementById('screenshot-preview-modal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        function adminApprovePayment(matchId, isApprove) {
-            const match = matches.find(m => m.id === matchId);
-            if (!match || match.userStatus !== 'pending') return;
-
-            if (isApprove) {
-                const maxSlots = Number(match.maxSlots ?? 6);
-                match.userStatus = 'verified';
-                match.paymentStatus = 'verified';
-                match.joined = true;
-                match.currentPlayers = Math.min(maxSlots, Number(match.currentPlayers ?? 0) + 1);
-                if (match.applicantUid && typeof awardCreditPointsForUid === 'function') {
-                    awardCreditPointsForUid(match.applicantUid, 5, match.applicantName || '波友');
-                } else {
-                    currentUser.creditPoints = (currentUser.creditPoints ?? 105) + 5;
-                    saveCurrentUser();
-                    if (typeof updateProfileUI === 'function') updateProfileUI();
-                }
-                alert(`放位成功！${match.applicantName || '波友'} 已加入場次，最近3次出席紀錄會於完成場次後更新。`);
-            } else {
-                match.userStatus = 'none';
-                match.paymentStatus = null;
-                match.joined = false;
-                match.paymentProofName = null;
-                match.paymentProofDataUrl = null;
-                match.applicantName = null;
-                match.applicantUid = null;
-                match.applicantEmail = null;
-                alert('已拒絕此申請，名額已釋放給其他波友。');
-            }
-
-            saveMatches();
-            renderAdminPanel();
             renderMatches();
         }
 

@@ -48,8 +48,6 @@ const CURRENT_USER_NAME_STORAGE_KEY = 'uber_badminton_username';
 const USER_PROFILES_STORAGE_KEY = 'uber_badminton_user_profiles';
 
 let currentUser = { name: '波友_阿強', creditPoints: 105 };
-let isAdminMode = false;
-
 function getActiveUserProfileKey(authUser) {
     if (authUser && authUser.uid) return authUser.uid;
     return 'guest';
@@ -165,9 +163,11 @@ function updateProfileUI() {
 
 function showProfileEditPanel() {
     const panel = document.getElementById('profile-edit-panel');
+    const hostPanel = document.getElementById('host-settings-panel');
     const nameInput = document.getElementById('profile-name-input');
     if (nameInput) nameInput.value = getCurrentUserName();
-    if (panel) panel.classList.remove('hidden');
+    if (hostPanel) hostPanel.classList.add('hidden');
+    if (panel) panel.classList.toggle('hidden');
 }
 
 async function saveProfileChanges() {
@@ -222,39 +222,6 @@ async function saveProfileChanges() {
 function bindProfileEditUI() {
     document.getElementById('edit-profile-btn')?.addEventListener('click', showProfileEditPanel);
     document.getElementById('save-profile-btn')?.addEventListener('click', saveProfileChanges);
-}
-
-function setFabVisible(visible) {
-    const fab = document.getElementById('publish-fab-btn');
-    if (fab) fab.classList.toggle('hidden', !visible);
-}
-
-function setFooterVisible(visible) {
-    const footer = document.querySelector('footer');
-    if (footer) footer.classList.toggle('hidden', !visible);
-}
-
-function toggleAdminView(isAdmin) {
-    isAdminMode = !!isAdmin;
-    const adminPage = document.getElementById('page-admin');
-    const pageIds = ['match', 'market', 'coach', 'profile'];
-
-    if (isAdminMode) {
-        pageIds.forEach(p => {
-            const el = document.getElementById(`page-${p}`);
-            if (el) el.classList.add('hidden');
-        });
-        if (adminPage) adminPage.classList.remove('hidden');
-        setFabVisible(false);
-        setFooterVisible(false);
-        if (typeof renderAdminPanel === 'function') renderAdminPanel();
-        return;
-    }
-
-    if (adminPage) adminPage.classList.add('hidden');
-    setFabVisible(true);
-    setFooterVisible(true);
-    switchPage('profile');
 }
 
 /* ---------- 滾筒選擇器底層 ---------- */
@@ -359,11 +326,6 @@ function confirmPickerRegion() {
 
 /* ---------- 分頁與啟動畫面 ---------- */
 function switchPage(pageId) {
-    if (isAdminMode) return;
-
-    const adminPage = document.getElementById('page-admin');
-    if (adminPage) adminPage.classList.add('hidden');
-
     ['match', 'market', 'coach', 'profile'].forEach(p => {
         document.getElementById(`page-${p}`).classList.add('hidden');
         document.getElementById(`nav-${p}`).classList.remove('text-black');

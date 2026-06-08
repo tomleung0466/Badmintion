@@ -145,10 +145,6 @@
 
         <!-- ==================== 頁面 4：我的場次 / 個人 ==================== -->
         <div id="page-profile" class="hidden flex-1 p-5 pb-24">
-            <button type="button" onclick="toggleAdminView(true)" class="w-full mb-5 bg-gray-100 border border-gray-200 text-gray-700 text-xs font-bold py-3 rounded-xl shadow-sm hover:bg-gray-200 transition">
-                🛠️ 按此切換至「場主管理模式」
-            </button>
-
             <h1 class="text-3xl font-extrabold tracking-[0.05em] mb-1">我的場次</h1>
             <p class="text-xs text-gray-400 mb-6">最近出席紀錄與場次記錄</p>
 
@@ -161,13 +157,22 @@
                         <h2 id="profile-display-name" class="text-lg font-extrabold text-gray-900">阿強</h2>
                     </div>
                 </div>
-                <button
-                    type="button"
-                    id="edit-profile-btn"
-                    class="mb-4 w-full rounded-xl border border-gray-200 bg-white py-2.5 text-xs font-medium tracking-[0.05em] text-gray-700 transition hover:bg-gray-100"
-                >
-                    編輯個人資料
-                </button>
+                <div class="profile-action-row mb-4 grid grid-cols-2 gap-2">
+                    <button
+                        type="button"
+                        id="edit-profile-btn"
+                        class="rounded-xl border border-gray-200 bg-white py-2.5 text-xs font-medium tracking-[0.05em] text-gray-700 transition hover:bg-gray-100"
+                    >
+                        編輯個人資料
+                    </button>
+                    <button
+                        type="button"
+                        id="edit-host-payment-btn"
+                        class="rounded-xl border border-gray-200 bg-white py-2.5 text-xs font-medium tracking-[0.05em] text-gray-700 transition hover:bg-gray-100"
+                    >
+                        場主收款設定
+                    </button>
+                </div>
                 <div id="profile-edit-panel" class="hidden mb-4 space-y-3 rounded-xl border border-gray-200 bg-white p-3">
                     <div>
                         <label class="mb-1 block text-[10px] font-medium tracking-[0.08em] text-gray-500">新名字</label>
@@ -182,6 +187,23 @@
                     <button type="button" id="save-profile-btn" class="w-full rounded-xl border border-gray-200 bg-gray-100 py-2.5 text-xs font-medium tracking-[0.08em] text-gray-700 transition hover:bg-gray-200">
                         儲存修改
                     </button>
+                </div>
+                <div id="host-settings-panel" class="host-settings-inline hidden mb-4 space-y-3 rounded-xl border border-gray-200 bg-white p-3">
+                    <p class="host-settings-note">上傳收款碼後，用家報名時會在付款彈窗看到你的 PayMe / 轉數快 QR Code。（稍後連接資料庫）</p>
+                    <div class="host-settings-field">
+                        <label for="host-payme-qr-input" class="host-settings-label">上傳您的 PayMe QR Code 圖片</label>
+                        <div id="host-payme-qr-preview" class="host-qr-preview" aria-hidden="true"></div>
+                        <input type="file" id="host-payme-qr-input" accept="image/*" class="host-settings-file">
+                    </div>
+                    <div class="host-settings-field">
+                        <label for="host-fps-qr-input" class="host-settings-label">上傳您的 轉數快 QR Code 圖片</label>
+                        <div id="host-fps-qr-preview" class="host-qr-preview" aria-hidden="true"></div>
+                        <input type="file" id="host-fps-qr-input" accept="image/*" class="host-settings-file">
+                    </div>
+                    <div class="host-settings-field">
+                        <label for="host-fps-id-input" class="host-settings-label">輸入您的 FPS 電話 / 識別碼</label>
+                        <input type="text" id="host-fps-id-input" placeholder="例如：91234567" class="host-settings-text">
+                    </div>
                 </div>
                 <div class="space-y-2.5 text-sm">
                     <p class="text-gray-800 font-medium">最近3次出席紀錄：<span id="profile-credit-points" class="font-extrabold text-amber-600">3／3</span></p>
@@ -210,46 +232,6 @@
                     </div>
                 </div>
             </div>
-
-            <details class="host-settings-panel mt-6">
-                <summary class="host-settings-summary">場主收款設定</summary>
-                <div class="host-settings-body">
-                    <p class="host-settings-note">上傳收款碼後，用家報名時會在付款彈窗看到你的 PayMe / 轉數快 QR Code。（稍後連接資料庫）</p>
-                    <div class="host-settings-field">
-                        <label for="host-payme-qr-input" class="host-settings-label">上傳您的 PayMe QR Code 圖片</label>
-                        <div id="host-payme-qr-preview" class="host-qr-preview" aria-hidden="true"></div>
-                        <input type="file" id="host-payme-qr-input" accept="image/*" class="host-settings-file">
-                    </div>
-                    <div class="host-settings-field">
-                        <label for="host-fps-qr-input" class="host-settings-label">上傳您的 轉數快 QR Code 圖片</label>
-                        <div id="host-fps-qr-preview" class="host-qr-preview" aria-hidden="true"></div>
-                        <input type="file" id="host-fps-qr-input" accept="image/*" class="host-settings-file">
-                    </div>
-                    <div class="host-settings-field">
-                        <label for="host-fps-id-input" class="host-settings-label">輸入您的 FPS 電話 / 識別碼</label>
-                        <input type="text" id="host-fps-id-input" placeholder="例如：91234567" class="host-settings-text">
-                    </div>
-                </div>
-            </details>
-        </div>
-
-        <!-- ==================== 頁面 5：場主管理後台 ==================== -->
-        <div id="page-admin" class="hidden flex-1 p-5 pb-24">
-            <div class="flex justify-between items-start mb-6">
-                <div>
-                    <h1 class="text-3xl font-extrabold tracking-tight mb-1">🛠️ 場主管理後台</h1>
-                    <p class="text-xs text-gray-400">審核付款截圖與放位</p>
-                </div>
-                <button type="button" onclick="toggleAdminView(false)" class="bg-black text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow shrink-0">
-                    返回用戶模式
-                </button>
-            </div>
-
-            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
-                <p class="text-[11px] text-amber-800 leading-relaxed">待審核的付款申請會顯示在下方。確認入數後用家才會正式佔位，並於完成場次後更新出席紀錄。</p>
-            </div>
-
-            <div id="admin-pending-list" class="space-y-3"></div>
         </div>
 
         <!-- ==================== 底部固定導航欄 (Uber風格) ==================== -->
@@ -482,15 +464,6 @@
             </div>
         </div>
 
-    </div>
-
-    <!-- 查看付款截圖預覽 -->
-    <div id="screenshot-preview-modal" class="hidden fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-5">
-        <div class="bg-white w-full max-w-md rounded-2xl p-5 shadow-2xl relative">
-            <button type="button" onclick="closeScreenshotPreview()" class="absolute top-3 right-3 text-gray-400 text-sm font-bold">✕</button>
-            <h4 class="text-sm font-extrabold mb-3 pr-6">付款截圖預覽</h4>
-            <div id="screenshot-preview-body" class="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center text-xs text-gray-500 min-h-[120px] flex items-center justify-center"></div>
-        </div>
     </div>
 
     <!-- 私人球局分享 -->
