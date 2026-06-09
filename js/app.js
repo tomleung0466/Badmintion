@@ -831,8 +831,10 @@ window.switchPage = switchPage;
 
 /* ---------- 發佈場次全頁（右入 · 左滑返回） ---------- */
 const PUBLISH_TRANSITION_MS = 320;
-const PUBLISH_SWIPE_THRESHOLD = 72;
-const PUBLISH_SWIPE_VELOCITY = 0.45;
+const PUBLISH_DISMISS_RATIO = 0.42;
+const PUBLISH_DISMISS_MIN = 120;
+const PUBLISH_FLICK_VELOCITY = 0.85;
+const PUBLISH_FLICK_MIN_DRAG = 90;
 let publishOpen = false;
 let publishTransitionLock = false;
 
@@ -844,6 +846,35 @@ function isPublishPageOpen() {
     return publishOpen && Boolean(getPublishPageEl() && !getPublishPageEl().classList.contains('hidden'));
 }
 
+function ensurePublishPagePortaled() {
+    const page = getPublishPageEl();
+    if (!page || page.dataset.publishPortaled === '1') return;
+    document.body.appendChild(page);
+    page.dataset.publishPortaled = '1';
+}
+
+function resetPublishPageTransform() {
+    const page = getPublishPageEl();
+    if (!page) return;
+    page.classList.remove('publish-page--dragging');
+    page.style.transform = '';
+}
+
+function syncPublishPageViewport() {
+    const page = getPublishPageEl();
+    if (!page || !window.visualViewport) return;
+
+    if (!isPublishPageOpen()) {
+        page.style.top = '';
+        page.style.height = '';
+        return;
+    }
+
+    const viewport = window.visualViewport;
+    page.style.top = `${viewport.offsetTop}px`;
+    page.style.height = `${viewport.height}px`;
+}
+
 function waitPublishMs(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -852,6 +883,8 @@ async function openPublishPage() {
     if (publishTransitionLock || publishOpen) return;
     const page = getPublishPageEl();
     if (!page) return;
+
+    ensurePublishPagePortaled();
 
     if (typeof window.resetPublishForm === 'function') {
         window.resetPublishForm();
@@ -862,7 +895,9 @@ async function openPublishPage() {
 
     page.classList.remove('hidden', 'publish-page--leaving', 'publish-page--dragging');
     page.setAttribute('aria-hidden', 'false');
+    resetPublishPageTransform();
     page.style.transform = 'translateX(100%)';
+    syncPublishPageViewport();
     void page.offsetWidth;
 
     const reduced = typeof window.prefersReducedMotion === 'function' && window.prefersReducedMotion();
@@ -887,9 +922,13 @@ async function closePublishPage() {
     if (!page) return;
 
     publishTransitionLock = true;
+    if (document.activeElement instanceof HTMLElement && page.contains(document.activeElement)) {
+        document.activeElement.blur();
+    }
+
+    resetPublishPageTransform();
     page.classList.remove('publish-page--active', 'publish-page--dragging');
     page.classList.add('publish-page--leaving');
-    page.style.transform = '';
 
     const reduced = typeof window.prefersReducedMotion === 'function' && window.prefersReducedMotion();
     await waitPublishMs(reduced ? 0 : PUBLISH_TRANSITION_MS);
@@ -897,6 +936,8 @@ async function closePublishPage() {
     page.classList.add('hidden');
     page.classList.remove('publish-page--leaving');
     page.style.transform = '';
+    page.style.top = '';
+    page.style.height = '';
     page.setAttribute('aria-hidden', 'true');
     publishOpen = false;
     document.body.classList.remove('publish-page-open');
@@ -905,28 +946,23 @@ async function closePublishPage() {
 
 function bindPublishSwipeBack() {
     const page = getPublishPageEl();
-    if (!page || page.dataset.publishSwipeBound === '1') return;
+    const edgeZone = page?.querySelector('[data-publish-edge-swipe]');
+    if (!page || !edgeZone || page.dataset.publishSwipeBound === '1') return;
 
-    const edgeZone = page.querySelector('[data-publish-edge-swipe]');
     let startX = 0;
     let startY = 0;
     let lastX = 0;
     let lastTime = 0;
     let dragX = 0;
-    let dragging = false;
     let tracking = false;
-    let fromEdge = false;
 
-    function resetGesture() {
-        startX = 0;
-        startY = 0;
-        dragX = 0;
-        dragging = false;
-        tracking = false;
-        fromEdge = false;
+    function applyRubberBand(rawX) {
+        dragX = Math.max(0, rawX);
+        const offset = dragX * 0.55;
+        page.style.transform = offset > 0 ? `translateX(${offset}px)` : '';
     }
 
-    function onTouchStart(event, edge) {
+    edgeZone.addEventListener('touchstart', event => {
         if (!isPublishPageOpen()) return;
 
         const touch = event.touches[0];
@@ -935,86 +971,106 @@ function bindPublishSwipeBack() {
         lastX = startX;
         lastTime = event.timeStamp;
         dragX = 0;
-        dragging = false;
         tracking = true;
-        fromEdge = edge;
-    }
+        page.classList.add('publish-page--dragging');
+    }, { passive: true });
 
-    function onTouchMove(event) {
+    edgeZone.addEventListener('touchmove', event => {
         if (!tracking || !isPublishPageOpen()) return;
 
         const touch = event.touches[0];
         const deltaX = touch.clientX - startX;
         const deltaY = touch.clientY - startY;
 
-        if (!dragging) {
-            if (fromEdge) {
-                if (deltaX <= 4) return;
-            } else {
-                if (deltaX <= 12 || deltaX <= Math.abs(deltaY)) return;
-            }
-            dragging = true;
-            page.classList.add('publish-page--dragging');
-        }
-
+        if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaX) < 12) return;
         if (deltaX <= 0) {
-            dragX = 0;
-            page.style.transform = 'translateX(0)';
+            applyRubberBand(0);
             return;
         }
 
         event.preventDefault();
-        dragX = deltaX;
-        page.style.transform = `translateX(${dragX}px)`;
+        applyRubberBand(deltaX);
         lastX = touch.clientX;
         lastTime = event.timeStamp;
-    }
+    }, { passive: false });
 
-    async function onTouchEnd(event) {
+    edgeZone.addEventListener('touchend', async event => {
         if (!tracking) return;
 
-        const moved = dragging && dragX > 0;
         tracking = false;
-        dragging = false;
         page.classList.remove('publish-page--dragging');
 
-        if (!moved) {
-            resetGesture();
+        if (dragX <= 0) {
+            resetPublishPageTransform();
+            page.classList.add('publish-page--active');
             return;
         }
 
+        const pageWidth = page.offsetWidth || window.innerWidth;
+        const dismissThreshold = Math.max(PUBLISH_DISMISS_MIN, pageWidth * PUBLISH_DISMISS_RATIO);
         const touch = event.changedTouches?.[0];
         const velocity = touch
             ? Math.max(0, (touch.clientX - lastX) / Math.max(16, event.timeStamp - lastTime))
             : 0;
-        const shouldClose = dragX >= PUBLISH_SWIPE_THRESHOLD || velocity >= PUBLISH_SWIPE_VELOCITY;
+        const shouldClose = dragX >= dismissThreshold
+            || (dragX >= PUBLISH_FLICK_MIN_DRAG && velocity >= PUBLISH_FLICK_VELOCITY);
 
         if (shouldClose) {
-            resetGesture();
+            resetPublishPageTransform();
             await closePublishPage();
             return;
         }
 
-        page.style.transform = '';
-        resetGesture();
-    }
+        resetPublishPageTransform();
+        page.classList.add('publish-page--active');
+        dragX = 0;
+    });
 
-    page.addEventListener('touchstart', event => onTouchStart(event, false), { passive: true });
-    page.addEventListener('touchmove', onTouchMove, { passive: false });
-    page.addEventListener('touchend', onTouchEnd);
-    page.addEventListener('touchcancel', onTouchEnd);
-    edgeZone?.addEventListener('touchstart', event => onTouchStart(event, true), { passive: true });
+    edgeZone.addEventListener('touchcancel', () => {
+        tracking = false;
+        resetPublishPageTransform();
+        page.classList.add('publish-page--active');
+    });
 
     page.dataset.publishSwipeBound = '1';
 }
 
+function bindPublishViewportFix() {
+    const page = getPublishPageEl();
+    const body = page?.querySelector('.publish-page-body');
+    if (!page || page.dataset.publishViewportBound === '1') return;
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', syncPublishPageViewport);
+        window.visualViewport.addEventListener('scroll', syncPublishPageViewport);
+    }
+
+    body?.addEventListener('focusin', event => {
+        if (!event.target.matches('input, textarea, select')) return;
+        resetPublishPageTransform();
+        syncPublishPageViewport();
+        requestAnimationFrame(() => {
+            event.target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        });
+    });
+
+    body?.addEventListener('focusout', () => {
+        window.setTimeout(syncPublishPageViewport, 80);
+    });
+
+    page.dataset.publishViewportBound = '1';
+}
+
 function bindPublishPageUI() {
+    ensurePublishPagePortaled();
     document.getElementById('publish-back-btn')?.addEventListener('click', () => closePublishPage());
+    document.getElementById('publish-close-btn')?.addEventListener('click', () => closePublishPage());
     document.getElementById('publish-fab-btn')?.addEventListener('click', () => {
         if (isPublishPageOpen()) closePublishPage();
         else openPublishPage();
     });
     bindPublishSwipeBack();
+    bindPublishViewportFix();
 }
 
 window.openPublishPage = openPublishPage;

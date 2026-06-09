@@ -2,7 +2,7 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="description" content="一齊打波，拒絕放飛機。+1 讓球友自助約戰、尋找跟你一夾即合的純粹波友。">
     <meta name="theme-color" content="#F9F9F9">
     <meta name="mobile-web-app-capable" content="yes">
@@ -327,9 +327,10 @@
                     <span>返回</span>
                 </button>
                 <h1 class="publish-page-title">發佈羽毛球場次</h1>
+                <button type="button" id="publish-close-btn" class="publish-close-btn" aria-label="關閉">✕</button>
             </header>
             <div class="publish-page-body">
-                <p class="publish-swipe-hint">由左向右滑動可返回</p>
+                <p class="publish-swipe-hint">由屏幕左邊緣向右滑可返回</p>
                 <form id="publish-form" onsubmit="handleFormSubmit(event)" class="publish-form space-y-4 text-xs">
                     <div>
                         <label class="block text-gray-500 mb-1 font-medium">選擇香港具體分區</label>
@@ -407,17 +408,17 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-gray-500 mb-1 font-medium">現時人數 (已有幾人)</label>
-                            <input type="number" id="form-current-players" min="0" step="1" inputmode="numeric" pattern="[0-9]*" value="1" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm" required>
+                            <input type="text" id="form-current-players" min="0" step="1" inputmode="numeric" pattern="[0-9]*" value="1" class="publish-number-input" required>
                         </div>
                         <div>
                             <label class="block text-gray-500 mb-1 font-medium">總名額 (上限人數)</label>
-                            <input type="number" id="form-maxslots" min="1" step="1" inputmode="numeric" pattern="[0-9]*" value="6" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm" required>
+                            <input type="text" id="form-maxslots" min="1" step="1" inputmode="numeric" pattern="[0-9]*" value="6" class="publish-number-input" required>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-gray-500 mb-1 font-medium">每人費用 (HK$)</label>
-                            <input type="number" id="form-fee" min="0" step="1" inputmode="numeric" pattern="[0-9]*" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm" required>
+                            <input type="text" id="form-fee" min="0" step="1" inputmode="numeric" pattern="[0-9]*" class="publish-number-input" required>
                         </div>
                         <div>
                             <label class="block text-gray-500 mb-1 font-medium">聯絡人名字/電話</label>

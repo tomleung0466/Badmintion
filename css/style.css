@@ -326,8 +326,14 @@ body.muji-overlay-open {
 
 /* 發佈場次全頁（右入左出） */
 .publish-page {
-  position: absolute;
-  inset: 0;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
   z-index: 55;
   display: flex;
   flex-direction: column;
@@ -337,6 +343,7 @@ body.muji-overlay-open {
   transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
   will-change: transform;
   touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 .publish-page.hidden {
@@ -360,17 +367,18 @@ body.muji-overlay-open {
   top: 0;
   left: 0;
   bottom: 0;
-  width: 1.25rem;
+  width: 1.375rem;
   z-index: 4;
   touch-action: none;
 }
 
 .publish-page-header {
   flex-shrink: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.875rem 1.25rem;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem 0.875rem 0.75rem;
   border-bottom: 1px solid var(--muji-border);
   background: rgba(255, 255, 255, 0.96);
   -webkit-backdrop-filter: blur(8px);
@@ -397,12 +405,27 @@ body.muji-overlay-open {
 }
 
 .publish-page-title {
-  flex: 1;
   min-width: 0;
   font-size: 1rem;
   font-weight: 500;
   letter-spacing: 0.05em;
   color: var(--muji-text);
+  text-align: center;
+}
+
+.publish-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--muji-muted);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .publish-page-body {
@@ -412,7 +435,7 @@ body.muji-overlay-open {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding: 0.75rem 1.25rem 1.5rem;
+  padding: 0.75rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
 }
 
 .publish-swipe-hint {
