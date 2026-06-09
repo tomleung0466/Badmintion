@@ -241,6 +241,12 @@ function getCurrentUserName() {
 async function handleAuthUserChange(user) {
     loadCurrentUser();
     updateProfileUI();
+    if (typeof window.loadActivitiesFromCloud === 'function') {
+        await window.loadActivitiesFromCloud();
+    }
+    if (typeof window.renderMatches === 'function') {
+        await window.renderMatches();
+    }
     if (typeof window.renderMyActivities === 'function') {
         window.renderMyActivities();
     }

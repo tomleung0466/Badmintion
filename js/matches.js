@@ -892,6 +892,21 @@
             });
         }
 
+        function mergeMatchesByFirestoreId(primary = [], extras = []) {
+            const map = new Map();
+            [...primary, ...extras].forEach(match => {
+                const id = match?.firestoreId || match?.id;
+                if (id) map.set(String(id), match);
+            });
+            return [...map.values()];
+        }
+
+        function canShowMatchInLobby(match) {
+            if (!match?.isPrivate) return true;
+            const uid = window.firebaseAuthUid;
+            return !!(uid && match.hostUid === uid);
+        }
+
         async function loadActivitiesFromCloud() {
             const bridgeReady = await waitForDbBridge();
             if (!bridgeReady) {
@@ -900,7 +915,12 @@
             }
 
             try {
-                matches = await window.dbFetchActivities();
+                const publicMatches = await window.dbFetchActivities();
+                let privateHosted = [];
+                if (window.firebaseAuthUid && typeof window.dbFetchMyHostedPrivateActivities === 'function') {
+                    privateHosted = await window.dbFetchMyHostedPrivateActivities();
+                }
+                matches = mergeMatchesByFirestoreId(publicMatches, privateHosted);
                 migrateMatchDates();
                 migrateMatchSlots();
                 saveMatches();
@@ -1001,16 +1021,22 @@
 
         function renderJoinedActivitySummary(activity) {
             const activityId = activity.firestoreId || activity.id;
+            const bookId = getMatchBookId(activity);
             const joinStatus = getUserJoinStatus(activity);
             const statusBadge = joinStatus === 'pending'
                 ? '<span class="session-status-badge session-status-badge--pending">待場主批准</span>'
                 : '<span class="session-status-badge session-status-badge--approved">已批准</span>';
+            const cancelLabel = joinStatus === 'pending' ? '取消申請' : '取消預約';
+            const cancelBtn = (joinStatus === 'pending' || joinStatus === 'approved')
+                ? `<button type="button" class="session-action-btn session-action-btn--cancel" onclick="cancelReservation('${escapeHtml(String(bookId))}')">${cancelLabel}</button>`
+                : '';
             return `
                 <div class="session-summary-row px-4 py-4">
                     ${renderActivitySummaryContent(activity)}
                     <div class="session-summary-actions">
                         ${statusBadge}
                         <button type="button" class="session-action-btn" onclick="openHostPaymentInfoModal('${escapeHtml(String(activityId))}')">場主付費資料</button>
+                        ${cancelBtn}
                     </div>
                 </div>
             `;
@@ -1321,12 +1347,12 @@
 
         window.renderMyActivities = renderMyActivities;
 
-        // 渲染搵波打列表（私人球局不顯示於大廳，僅專屬連結可見）
+        // 渲染搵波打列表（私人球局僅場主本人與專屬連結訪客可見）
         async function renderMatches() {
             const listContainer = document.getElementById('matches-list');
             listContainer.innerHTML = '';
 
-            let filtered = matches.filter(m => !m.isPrivate);
+            let filtered = matches.filter(m => canShowMatchInLobby(m));
             filtered = filtered.filter(m => isMatchActive(m));
             if (homeSelectedDate) {
                 filtered = filtered.filter(m => m.playDate === homeSelectedDate);
@@ -2152,9 +2178,43 @@
             });
         }
 
+        async function resolveMatchByBookId(bookId) {
+            const id = String(bookId);
+            let match = findMatchByBookId(id)
+                || (inviteMatch && String(getMatchBookId(inviteMatch)) === id ? inviteMatch : null);
+            if (match) return match;
+
+            const bridgeReady = await waitForDbBridge();
+            if (!bridgeReady || typeof window.dbFetchActivityById !== 'function') return null;
+
+            try {
+                const activity = await window.dbFetchActivityById(id);
+                if (!activity) return null;
+                if (!activity.id) activity.id = activity.firestoreId;
+
+                const existingIndex = matches.findIndex(
+                    m => String(m.firestoreId) === id || String(m.id) === id
+                );
+                if (existingIndex >= 0) {
+                    matches[existingIndex] = { ...matches[existingIndex], ...activity };
+                    return matches[existingIndex];
+                }
+
+                matches.push(activity);
+                saveMatches();
+                return activity;
+            } catch (err) {
+                console.error('讀取場次失敗:', err);
+                return null;
+            }
+        }
+
         async function cancelReservation(id) {
-            const match = findMatchByBookId(id) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(id) ? inviteMatch : null);
-            if (!match) return;
+            const match = await resolveMatchByBookId(id);
+            if (!match) {
+                alert('找不到場次資料。');
+                return;
+            }
 
             const joinStatus = getUserJoinStatus(match);
             if (joinStatus === 'none') return;
@@ -2400,4 +2460,7 @@
         window.toggleCalendarExpand = toggleCalendarExpand;
         window.changeCalendarMonth = changeCalendarMonth;
         window.renderMyActivities = renderMyActivities;
+        window.loadActivitiesFromCloud = loadActivitiesFromCloud;
+        window.renderMatches = renderMatches;
+        window.cancelReservation = cancelReservation;
         window.resetPublishForm = resetPublishForm;

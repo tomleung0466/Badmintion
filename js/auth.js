@@ -944,6 +944,36 @@ window.dbRejectParticipant = async function dbRejectParticipant(activityId, part
     }
 };
 
+window.dbFetchMyHostedPrivateActivities = async function dbFetchMyHostedPrivateActivities() {
+    const user = auth.currentUser;
+    if (!user) return [];
+    const todayISO = getTodayISO();
+
+    const mapPrivateHosted = docs => filterActiveActivities(docs
+        .map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }))
+        .filter(activity => activity.isPrivate === true && activity.playDate && activity.playDate >= todayISO));
+
+    try {
+        const snapshot = await getDocs(query(
+            collection(db, "activities"),
+            where("hostUid", "==", user.uid),
+            where("isPrivate", "==", true),
+            where("playDate", ">=", todayISO),
+            orderBy("playDate", "desc")
+        ));
+        return mapPrivateHosted(snapshot.docs);
+    } catch (err) {
+        console.error("讀取我發佈的私人場次失敗，改為前端篩選:", err);
+        const snapshot = await getDocs(query(
+            collection(db, "activities"),
+            where("hostUid", "==", user.uid),
+            where("playDate", ">=", todayISO),
+            orderBy("playDate", "desc")
+        ));
+        return mapPrivateHosted(snapshot.docs);
+    }
+};
+
 window.dbFetchMyHostedActivities = async function dbFetchMyHostedActivities(limit = 3) {
     const user = auth.currentUser;
     if (!user) return [];

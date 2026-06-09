@@ -2054,6 +2054,12 @@ button:hover {
   background: var(--muji-soft);
 }
 
+.session-action-btn--cancel {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fff;
+}
+
 .match-book-btn-pending {
   background: #fff7ed;
   color: #c2410c;
