@@ -516,22 +516,22 @@ function updateDistrictPickerLabel() {
         return;
     }
 
-    label.textContent = '請先選擇大區';
+    label.textContent = '全港十八區';
 }
 
 function updateDistrictPickerButtonState() {
     const btn = document.getElementById('district-picker-btn');
     if (!btn) return;
-    const needsMacro = macroFilter === 'all';
-    btn.disabled = needsMacro;
-    btn.classList.toggle('district-picker-btn--disabled', needsMacro);
-    btn.setAttribute('aria-disabled', needsMacro ? 'true' : 'false');
+    btn.disabled = false;
+    btn.classList.remove('district-picker-btn--disabled');
+    btn.setAttribute('aria-disabled', 'false');
 }
 
 function updateCapsuleActiveState() {
     document.querySelectorAll('.region-filter-btn').forEach(btn => {
-        const active = macroFilter !== 'all' && btn.dataset.filter === macroFilter
-            || macroFilter === 'all' && !districtFilter && btn.dataset.filter === 'all';
+        const active = btn.dataset.filter === 'all'
+            ? macroFilter === 'all'
+            : macroFilter !== 'all' && btn.dataset.filter === macroFilter;
         btn.classList.toggle('is-active', active);
         btn.setAttribute('aria-selected', active ? 'true' : 'false');
     });
@@ -665,10 +665,6 @@ function getPickerScrollTarget() {
 }
 
 async function toggleScrollPicker(show) {
-    if (show && macroFilter === 'all') {
-        return;
-    }
-
     const picker = document.getElementById('scroll-picker');
     if (!picker) return;
 
@@ -703,10 +699,8 @@ function confirmPickerRegion() {
     if (macroFilter === 'all') {
         if (selected === 'all') {
             districtFilter = null;
-            macroFilter = 'all';
         } else {
             districtFilter = selected;
-            syncMacroFromDistrict();
         }
     } else {
         districtFilter = selected;
