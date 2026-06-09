@@ -36,7 +36,8 @@ import {
     deleteDoc,
     increment,
     getCountFromServer,
-    serverTimestamp
+    serverTimestamp,
+    Timestamp
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 import {
     getStorage,
@@ -79,6 +80,40 @@ function getTodayISO() {
 }
 
 window.getTodayISO = getTodayISO;
+
+function filterActiveActivities(activities = []) {
+    if (typeof window.isActivityActive === "function") {
+        return activities.filter(activity => window.isActivityActive(activity));
+    }
+    const todayISO = getTodayISO();
+    return activities.filter(activity => activity.playDate && activity.playDate >= todayISO);
+}
+
+function assertActivityNotEnded(activity) {
+    if (typeof window.isActivityEnded === "function" && window.isActivityEnded(activity)) {
+        const error = new Error("場次已結束");
+        error.code = "activity/ended";
+        throw error;
+    }
+}
+
+function resolveSessionEndsAtTimestamp(activityData = {}) {
+    const raw = activityData.sessionEndsAt;
+    if (raw && typeof raw.toDate === "function") return raw;
+    if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
+        return Timestamp.fromDate(raw);
+    }
+    if (typeof window.buildActivityEndsAtDate === "function") {
+        const endsAt = window.buildActivityEndsAtDate(
+            activityData.playDate,
+            activityData.startTime
+        );
+        if (endsAt && !Number.isNaN(endsAt.getTime())) {
+            return Timestamp.fromDate(endsAt);
+        }
+    }
+    return null;
+}
 
 function byId(id) {
     return document.getElementById(id);
@@ -328,7 +363,8 @@ window.dbPublishActivity = async function dbPublishActivity(activityData) {
             throw error;
         }
 
-        const docRef = await addDoc(collection(db, "activities"), {
+        const sessionEndsAt = resolveSessionEndsAtTimestamp(activityData);
+        const payload = {
             ...activityData,
             hostUid: activityData.hostUid || user.uid,
             hostEmail: activityData.hostEmail || user.email || null,
@@ -337,7 +373,14 @@ window.dbPublishActivity = async function dbPublishActivity(activityData) {
             pendingParticipantUids: Array.isArray(activityData.pendingParticipantUids) ? activityData.pendingParticipantUids : [],
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
-        });
+        };
+        if (sessionEndsAt) {
+            payload.sessionEndsAt = sessionEndsAt;
+        } else {
+            delete payload.sessionEndsAt;
+        }
+
+        const docRef = await addDoc(collection(db, "activities"), payload);
         await updateDoc(doc(db, "users", user.uid), {
             hostSessionCount: increment(1),
             updatedAt: serverTimestamp()
@@ -439,13 +482,13 @@ window.dbFetchActivities = async function dbFetchActivities() {
         );
         const snapshot = await getDocs(activitiesQuery);
 
-        return snapshot.docs
+        return filterActiveActivities(snapshot.docs
             .map(docSnap => ({
                 ...docSnap.data(),
                 firestoreId: docSnap.id
             }))
             .filter(activity => activity.playDate && activity.playDate >= todayISO)
-            .filter(activity => !activity.isPrivate);
+            .filter(activity => !activity.isPrivate));
     } catch (err) {
         console.error("讀取 Firestore 場次失敗:", err);
         throw err;
@@ -477,6 +520,8 @@ window.dbReserveActivity = async function dbReserveActivity(activityData) {
             }
 
             const activity = activitySnap.data();
+            assertActivityNotEnded(activity);
+
             const participantUids = Array.isArray(activity.participantUids) ? activity.participantUids : [];
             const pendingUids = Array.isArray(activity.pendingParticipantUids) ? activity.pendingParticipantUids : [];
             if (participantUids.includes(user.uid) || pendingUids.includes(user.uid)) {
@@ -590,6 +635,8 @@ window.dbJoinWaitlist = async function dbJoinWaitlist(activityData) {
             }
 
             const activity = activitySnap.data();
+            assertActivityNotEnded(activity);
+
             const participantUids = Array.isArray(activity.participantUids) ? activity.participantUids : [];
             const pendingUids = Array.isArray(activity.pendingParticipantUids) ? activity.pendingParticipantUids : [];
             if (participantUids.includes(user.uid) || pendingUids.includes(user.uid)) {
@@ -826,16 +873,16 @@ window.dbFetchMyHostedActivities = async function dbFetchMyHostedActivities(limi
             orderBy("playDate", "desc"),
             limit(limit)
         ));
-        return snapshot.docs.map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }));
+        return filterActiveActivities(snapshot.docs.map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id })));
     } catch (err) {
         console.error("讀取我發佈的場次失敗，改為前端篩選:", err);
         const snapshot = await getDocs(query(
             collection(db, "activities"),
             where("hostUid", "==", user.uid)
         ));
-        return snapshot.docs
+        return filterActiveActivities(snapshot.docs
             .map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }))
-            .filter(activity => activity.playDate && activity.playDate >= todayISO)
+            .filter(activity => activity.playDate && activity.playDate >= todayISO))
             .sort((a, b) => (b.playDate || "").localeCompare(a.playDate || ""))
             .slice(0, limit);
     }
@@ -851,8 +898,8 @@ window.dbFetchMyJoinedActivities = async function dbFetchMyJoinedActivities(limi
         docs.forEach(docSnap => {
             map.set(docSnap.id, { ...docSnap.data(), firestoreId: docSnap.id });
         });
-        return [...map.values()]
-            .filter(activity => activity.playDate && activity.playDate >= todayISO)
+        return filterActiveActivities([...map.values()]
+            .filter(activity => activity.playDate && activity.playDate >= todayISO))
             .sort((a, b) => (b.playDate || "").localeCompare(a.playDate || ""))
             .slice(0, limit);
     };
@@ -878,13 +925,13 @@ window.dbFetchMyJoinedActivities = async function dbFetchMyJoinedActivities(limi
     } catch (err) {
         console.error("讀取我參加的場次失敗，改為前端篩選:", err);
         const snapshot = await getDocs(collection(db, "activities"));
-        return snapshot.docs
+        return filterActiveActivities(snapshot.docs
             .map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }))
             .filter(activity => {
                 const reserved = Array.isArray(activity.participantUids) && activity.participantUids.includes(user.uid);
                 const pending = Array.isArray(activity.pendingParticipantUids) && activity.pendingParticipantUids.includes(user.uid);
                 return (reserved || pending) && activity.playDate && activity.playDate >= todayISO;
-            })
+            }))
             .sort((a, b) => (b.playDate || "").localeCompare(a.playDate || ""))
             .slice(0, limit);
     }

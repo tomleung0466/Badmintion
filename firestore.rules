@@ -44,7 +44,12 @@ service cloud.firestore {
         && request.resource.data.playTime == resource.data.playTime
         && request.resource.data.fee == resource.data.fee
         && request.resource.data.isPrivate == resource.data.isPrivate
-        && request.resource.data.createdAt == resource.data.createdAt;
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.sessionEndsAt == resource.data.sessionEndsAt;
+    }
+
+    function activityNotEnded() {
+      return resource.data.get('sessionEndsAt', timestamp.date(2099, 12, 31)) > request.time;
     }
 
     function participantListsEqual() {
@@ -75,6 +80,7 @@ service cloud.firestore {
         || (uid in oldWait && newWait.size() == oldWait.size() - 1);
 
       return activityHostFieldsUnchanged()
+        && activityNotEnded()
         && !(uid in oldUids)
         && !(uid in oldPending)
         && uid in newPending
@@ -92,6 +98,7 @@ service cloud.firestore {
       let newWait = request.resource.data.get('waitlist', []);
 
       return activityHostFieldsUnchanged()
+        && activityNotEnded()
         && resource.data.currentPlayers >= resource.data.maxSlots
         && !(uid in resource.data.get('participantUids', []))
         && !(uid in resource.data.get('pendingParticipantUids', []))
@@ -140,6 +147,7 @@ service cloud.firestore {
       let newUids = request.resource.data.get('participantUids', []);
 
       return isHost()
+        && activityNotEnded()
         && request.resource.data.hostUid == resource.data.hostUid
         && request.resource.data.maxSlots == resource.data.maxSlots
         && request.resource.data.currentPlayers == resource.data.currentPlayers + 1
@@ -172,7 +180,9 @@ service cloud.firestore {
         && request.resource.data.currentPlayers <= request.resource.data.maxSlots
         && request.resource.data.playDate is string
         && request.resource.data.region is string
-        && request.resource.data.venue is string;
+        && request.resource.data.venue is string
+        && request.resource.data.sessionEndsAt is timestamp
+        && request.resource.data.sessionEndsAt > request.time;
     }
 
     // ── users：個人資料 + 收款 QR (paymeQR / fpsQR) ─────────

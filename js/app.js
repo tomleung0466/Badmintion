@@ -31,6 +31,82 @@ function addDays(date, days) {
 const todayISO = formatDateISO(new Date());
 const tomorrowISO = formatDateISO(addDays(new Date(), 1));
 
+function parseActivityTimeValue(timeValue) {
+    const raw = String(timeValue || '').trim();
+    if (!raw) return null;
+    if (raw.includes(':')) {
+        const [hours, minutes] = raw.split(':').map(Number);
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+        return { hours, minutes };
+    }
+    if (/^\d{3,4}$/.test(raw)) {
+        const padded = raw.padStart(4, '0');
+        return {
+            hours: parseInt(padded.slice(0, 2), 10),
+            minutes: parseInt(padded.slice(2, 4), 10)
+        };
+    }
+    return null;
+}
+
+const ACTIVITY_JOIN_CUTOFF_MINUTES = 30;
+
+function extractStartTimeFromPlayTime(playTime) {
+    const match = String(playTime || '').match(/^(\d{3,4})/);
+    return match ? match[1] : '';
+}
+
+function getActivityStartTimeValue(activity) {
+    return activity?.startTime || extractStartTimeFromPlayTime(activity?.playTime || activity?.displayTimeSlot);
+}
+
+function buildActivityEndsAtDate(playDate, startTimeValue) {
+    if (!playDate) return null;
+    const parsed = parseActivityTimeValue(startTimeValue);
+    if (!parsed) return null;
+    const [y, m, d] = playDate.split('-').map(Number);
+    const startAt = new Date(y, m - 1, d, parsed.hours, parsed.minutes, 0, 0);
+    return new Date(startAt.getTime() + ACTIVITY_JOIN_CUTOFF_MINUTES * 60 * 1000);
+}
+
+function getActivityEndsAtDate(activity) {
+    if (!activity) return null;
+    const fromStart = buildActivityEndsAtDate(activity.playDate, getActivityStartTimeValue(activity));
+    if (fromStart && !Number.isNaN(fromStart.getTime())) return fromStart;
+    if (activity.sessionEndsAt) {
+        if (typeof activity.sessionEndsAt.toDate === 'function') {
+            return activity.sessionEndsAt.toDate();
+        }
+        const fromStored = new Date(activity.sessionEndsAt);
+        if (!Number.isNaN(fromStored.getTime())) return fromStored;
+    }
+    if (activity.playDate) {
+        const [y, m, d] = activity.playDate.split('-').map(Number);
+        return new Date(y, m - 1, d, 23, 59, 59, 999);
+    }
+    return null;
+}
+
+function isActivityEnded(activity, now = new Date()) {
+    if (!activity) return true;
+    const endsAt = getActivityEndsAtDate(activity);
+    if (!endsAt || Number.isNaN(endsAt.getTime())) {
+        const playDate = activity.playDate;
+        return playDate ? playDate < formatDateISO(now) : false;
+    }
+    return endsAt.getTime() <= now.getTime();
+}
+
+function isActivityActive(activity, now = new Date()) {
+    return !isActivityEnded(activity, now);
+}
+
+window.parseActivityTimeValue = parseActivityTimeValue;
+window.buildActivityEndsAtDate = buildActivityEndsAtDate;
+window.getActivityEndsAtDate = getActivityEndsAtDate;
+window.isActivityEnded = isActivityEnded;
+window.isActivityActive = isActivityActive;
+
 /* ---------- 地區 / 篩選狀態 ---------- */
 const HONG_KONG_18_DISTRICTS = [
     '中西區', '東區', '南區', '灣仔區',

@@ -404,11 +404,28 @@
         }
 
         function getMatchDatesSet() {
-            return new Set(matches.map(m => m.playDate).filter(Boolean));
+            return new Set(
+                matches
+                    .filter(m => isMatchActive(m))
+                    .map(m => m.playDate)
+                    .filter(Boolean)
+            );
         }
 
         function isPastDate(iso) {
             return iso < todayISO;
+        }
+
+        function isMatchActive(match) {
+            return typeof window.isActivityActive === 'function'
+                ? window.isActivityActive(match)
+                : (!match?.playDate || !isPastDate(match.playDate));
+        }
+
+        function isMatchEnded(match) {
+            return typeof window.isActivityEnded === 'function'
+                ? window.isActivityEnded(match)
+                : (match?.playDate ? isPastDate(match.playDate) : false);
         }
 
         function changeCalendarMonth(mode, delta) {
@@ -1119,7 +1136,7 @@
                 return;
             }
 
-            if (inviteMatch.playDate && isPastDate(inviteMatch.playDate)) {
+            if (isMatchEnded(inviteMatch)) {
                 section.classList.remove('hidden');
                 section.innerHTML = `
                     <div class="invite-match-wrap">
@@ -1286,7 +1303,7 @@
             listContainer.innerHTML = '';
 
             let filtered = matches.filter(m => !m.isPrivate);
-            filtered = filtered.filter(m => !m.playDate || !isPastDate(m.playDate));
+            filtered = filtered.filter(m => isMatchActive(m));
             if (homeSelectedDate) {
                 filtered = filtered.filter(m => m.playDate === homeSelectedDate);
             }
@@ -1336,6 +1353,13 @@
         async function bookMatch(id, btn) {
             const match = findMatchByBookId(id) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(id) ? inviteMatch : null);
             if (!match) return;
+
+            if (isMatchEnded(match)) {
+                alert('此場次已結束，無法報名。');
+                await renderMatches();
+                renderInviteMatchSection();
+                return;
+            }
 
             if (!window.firebaseAuthUid) {
                 alert('請先登入 +1，然後再報名。');
@@ -1400,6 +1424,12 @@
                     : '已加入後補名單！有名額釋放時場主會優先通知你。');
             } catch (err) {
                 console.error('加入後補失敗:', err);
+                if (err?.code === 'activity/ended') {
+                    alert('此場次已結束，無法加入後補。');
+                    await renderMatches();
+                    renderInviteMatchSection();
+                    return;
+                }
                 const code = err?.code ? `（${err.code}）` : '';
                 alert(`加入後補失敗${code}，請稍後再試。`);
             } finally {
@@ -1437,6 +1467,11 @@
         async function openPaymentPanel(matchId) {
             const match = findMatchByBookId(matchId) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(matchId) ? inviteMatch : null);
             if (!match) return;
+
+            if (isMatchEnded(match)) {
+                alert('此場次已結束，無法報名。');
+                return;
+            }
 
             const joinStatus = getUserJoinStatus(match);
             if (joinStatus === 'approved') {
@@ -1669,6 +1704,11 @@
                 togglePaymentSheet(false);
                 return;
             }
+            if (isMatchEnded(match)) {
+                togglePaymentSheet(false);
+                alert('此場次已結束，無法報名。');
+                return;
+            }
             if (!window.firebaseAuthUid) {
                 alert('請先登入 +1，然後再報名。');
                 return;
@@ -1712,6 +1752,13 @@
                     : '報名申請已提交，待場主批准後才會確認名額。');
             } catch (err) {
                 console.error('提交報名失敗:', err);
+                if (err?.code === 'activity/ended') {
+                    togglePaymentSheet(false);
+                    alert('此場次已結束，無法報名。');
+                    await renderMatches();
+                    renderInviteMatchSection();
+                    return;
+                }
                 const code = err?.code ? `（${err.code}）` : '';
                 alert(`提交報名失敗${code}，請稍後再試或聯絡場主。`);
             }
@@ -2167,6 +2214,15 @@
             const visibility = document.querySelector('input[name="form-visibility"]:checked')?.value || 'public';
             const isPrivate = visibility === 'private';
 
+            const sessionEndsAt = typeof window.buildActivityEndsAtDate === 'function'
+                ? window.buildActivityEndsAtDate(playDate, timeSlot.startTimeValue)
+                : null;
+            if (sessionEndsAt && typeof window.isActivityEnded === 'function'
+                && window.isActivityEnded({ playDate, startTime: timeSlot.startTime, sessionEndsAt })) {
+                alert('開場已逾半小時，請選擇較晚的時段。');
+                return;
+            }
+
             const newMatch = {
                 id: Date.now(),
                 isPrivate,
@@ -2177,6 +2233,7 @@
                 playTime: timeSlot.displayTimeSlot,
                 startTime: timeSlot.startTime,
                 endTime: timeSlot.endTime,
+                sessionEndsAt,
                 duration: timeSlot.duration,
                 courtCount: timeSlot.courtCount,
                 displayTimeSlot: timeSlot.displayTimeSlot,
