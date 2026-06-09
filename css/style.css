@@ -2231,18 +2231,33 @@ button:hover {
   margin-top: 1.25rem;
   padding-top: 1rem;
   border-top: 1px solid var(--muji-border);
+  text-align: center;
+}
+
+.host-manage-delete-hint {
+  margin: 0 0 0.625rem;
+  font-size: 10px;
+  line-height: 1.55;
+  letter-spacing: 0.03em;
+  color: #b0b0b0;
 }
 
 .host-manage-delete-btn {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #fecaca;
-  border-radius: 0.75rem;
-  background: #fff;
+  padding: 0;
+  border: none;
+  background: transparent;
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.05em;
-  color: #b91c1c;
+  letter-spacing: 0.06em;
+  color: var(--muji-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.host-manage-delete-btn:hover {
+  color: var(--muji-text);
 }
 
 .host-info-section {

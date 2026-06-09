@@ -641,6 +641,10 @@ function setRegionFilter(filter) {
 }
 
 function shouldShowMatchCard(card) {
+    if (card.getAttribute('data-host-own') === 'true') {
+        return true;
+    }
+
     const macroRegion = card.getAttribute('data-macro-region') || '';
     const district = card.getAttribute('data-district') || '';
 

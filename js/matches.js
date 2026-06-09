@@ -901,10 +901,36 @@
             return [...map.values()];
         }
 
-        function canShowMatchInLobby(match) {
-            if (!match?.isPrivate) return true;
+        function isPrivateMatch(match) {
+            return match?.isPrivate === true || match?.isPrivate === 'private';
+        }
+
+        function isOwnHostedMatch(match) {
             const uid = window.firebaseAuthUid;
-            return !!(uid && match.hostUid === uid);
+            return !!(uid && match?.hostUid === uid);
+        }
+
+        function canShowMatchInLobby(match) {
+            if (!isPrivateMatch(match)) return true;
+            return isOwnHostedMatch(match);
+        }
+
+        function waitForFirebaseAuth(timeoutMs = 10000) {
+            if (window.firebaseAuthReady) {
+                return Promise.resolve(window.firebaseAuthUid || null);
+            }
+            return new Promise(resolve => {
+                let settled = false;
+                const finish = uid => {
+                    if (settled) return;
+                    settled = true;
+                    window.removeEventListener('firebase-auth-ready', onReady);
+                    resolve(uid);
+                };
+                const onReady = () => finish(window.firebaseAuthUid || null);
+                window.addEventListener('firebase-auth-ready', onReady, { once: true });
+                setTimeout(() => finish(window.firebaseAuthUid || null), timeoutMs);
+            });
         }
 
         async function loadActivitiesFromCloud() {
@@ -921,6 +947,9 @@
                     privateHosted = await window.dbFetchMyHostedPrivateActivities();
                 }
                 matches = mergeMatchesByFirestoreId(publicMatches, privateHosted);
+                if (privateHosted.length > 0) {
+                    console.info(`[+1] 已載入 ${privateHosted.length} 筆場主私人場次至首頁。`);
+                }
                 migrateMatchDates();
                 migrateMatchSlots();
                 saveMatches();
@@ -1135,9 +1164,10 @@
 
             const district = match.region || '';
             const macroRegion = typeof getMatchMacroRegion === 'function' ? getMatchMacroRegion(match) : '';
+            const hostOwnAttr = isPrivateMatch(match) && isOwnHostedMatch(match) ? ' data-host-own="true"' : '';
 
             return `
-                <div data-macro-region="${escapeHtml(macroRegion)}" data-district="${escapeHtml(district)}" class="match-card bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]">
+                <div data-macro-region="${escapeHtml(macroRegion)}" data-district="${escapeHtml(district)}"${hostOwnAttr} class="match-card bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]">
                     <div class="flex justify-between items-start gap-4 mb-5">
                         <div>
                             <p class="text-[10px] tracking-[0.18em] text-[#777777]">日期時間 ${privateBadge}</p>
@@ -2441,6 +2471,7 @@
             bindPrivateShareUI();
             bindSessionModals();
             inviteActivityId = getInviteIdFromUrl();
+            await waitForFirebaseAuth();
             await loadActivitiesFromCloud();
             await loadInviteActivity();
             saveMatches();

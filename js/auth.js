@@ -365,6 +365,8 @@ function initAuth() {
             setAuthError(mapAuthError(err?.code));
         });
 
+    let authStateInitialSettled = false;
+
     onAuthStateChanged(auth, async user => {
         window.firebaseAuthUid = user ? user.uid : null;
         window.firebaseAuthUser = user
@@ -380,8 +382,13 @@ function initAuth() {
             email: window.firebaseAuthUser?.email || null
         });
         updateAuthHeader(user);
+        if (!authStateInitialSettled) {
+            authStateInitialSettled = true;
+            window.firebaseAuthReady = true;
+            window.dispatchEvent(new CustomEvent("firebase-auth-ready"));
+        }
         if (typeof window.handleAuthUserChange === "function") {
-            window.handleAuthUserChange(user);
+            await window.handleAuthUserChange(user);
         }
         if (user) {
             try {
@@ -951,7 +958,8 @@ window.dbFetchMyHostedPrivateActivities = async function dbFetchMyHostedPrivateA
 
     const mapPrivateHosted = docs => filterActiveActivities(docs
         .map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }))
-        .filter(activity => activity.isPrivate === true && activity.playDate && activity.playDate >= todayISO));
+        .filter(activity => (activity.isPrivate === true || activity.isPrivate === 'private')
+            && activity.playDate && activity.playDate >= todayISO));
 
     try {
         const snapshot = await getDocs(query(
