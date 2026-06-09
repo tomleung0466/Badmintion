@@ -481,14 +481,20 @@ window.dbFetchActivities = async function dbFetchActivities() {
             orderBy("playDate", "desc")
         );
         const snapshot = await getDocs(activitiesQuery);
-
-        return filterActiveActivities(snapshot.docs
+        const mapped = snapshot.docs
             .map(docSnap => ({
                 ...docSnap.data(),
                 firestoreId: docSnap.id
             }))
             .filter(activity => activity.playDate && activity.playDate >= todayISO)
-            .filter(activity => !activity.isPrivate));
+            .filter(activity => !activity.isPrivate);
+        const active = filterActiveActivities(mapped);
+        if (mapped.length > 0 && active.length === 0) {
+            console.info(
+                `[+1] Firestore 讀到 ${mapped.length} 筆場次，但開場逾 30 分鐘的已隱藏。`
+            );
+        }
+        return active;
     } catch (err) {
         console.error("讀取 Firestore 場次失敗:", err);
         throw err;

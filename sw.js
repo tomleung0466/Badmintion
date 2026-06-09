@@ -1,4 +1,4 @@
-const CACHE_NAME = 'plus1-pwa-v12';
+const CACHE_NAME = 'plus1-pwa-v13';
 const PRECACHE_ASSETS = [
     './',
     './index.html',
@@ -54,6 +54,23 @@ self.addEventListener('fetch', event => {
                     return response;
                 })
                 .catch(() => caches.match('./index.html'))
+        );
+        return;
+    }
+
+    // JS 用 network-first，避免快取舊版 auth.js 導致 Firebase 連線失效
+    const isScript = url.pathname.endsWith('.js') || url.pathname.includes('/js/');
+    if (isScript) {
+        event.respondWith(
+            fetch(request)
+                .then(response => {
+                    if (response && response.status === 200 && response.type === 'basic') {
+                        const copy = response.clone();
+                        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+                    }
+                    return response;
+                })
+                .catch(() => caches.match(request))
         );
         return;
     }
