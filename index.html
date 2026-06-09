@@ -556,6 +556,16 @@
         </div>
     </div>
 
+    <!-- 刪除場次確認 -->
+    <div id="delete-activity-confirm-modal" class="hidden fixed inset-0 z-[92] flex items-end justify-center bg-black/45 p-4 sm:items-center">
+        <div class="confirm-dialog-panel w-full max-w-sm rounded-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl">
+            <h4 class="confirm-dialog-title">刪除場次</h4>
+            <p class="confirm-dialog-text">確定要刪除此場次嗎？已報名或已批准的球友將無法再查看，此操作無法復原。</p>
+            <button type="button" id="delete-activity-confirm-btn" class="confirm-dialog-primary-btn">確定刪除</button>
+            <button type="button" id="delete-activity-cancel-btn" class="confirm-dialog-cancel-btn">保留場次</button>
+        </div>
+    </div>
+
     <!-- 場主管理場次 -->
     <div id="host-manage-modal" class="hidden fixed inset-0 z-[88] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-5">
         <div class="session-modal-panel w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl sm:rounded-2xl">

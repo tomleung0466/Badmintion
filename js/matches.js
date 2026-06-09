@@ -2104,6 +2104,31 @@
             saveMatches();
         }
 
+        async function openDeleteActivityConfirmModal() {
+            const modal = document.getElementById('delete-activity-confirm-modal');
+            if (!modal) return;
+            const confirmBtn = document.getElementById('delete-activity-confirm-btn');
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = '確定刪除';
+            }
+            if (typeof window.openMujiOverlay === 'function') {
+                await window.openMujiOverlay(modal);
+            } else {
+                modal.classList.remove('hidden');
+            }
+        }
+
+        async function closeDeleteActivityConfirmModal() {
+            const modal = document.getElementById('delete-activity-confirm-modal');
+            if (!modal) return;
+            if (typeof window.closeMujiOverlay === 'function') {
+                await window.closeMujiOverlay(modal);
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
         async function handleDeleteHostedActivity() {
             const activityId = currentHostManageActivityId;
             if (!activityId) return;
@@ -2111,13 +2136,21 @@
                 alert('請先登入 +1。');
                 return;
             }
+            await openDeleteActivityConfirmModal();
+        }
 
-            const confirmed = confirm(
-                '確定要刪除此場次嗎？\n已報名或已批准的球友將無法再看到此場次，此操作無法復原。'
-            );
-            if (!confirmed) return;
+        async function confirmDeleteHostedActivity() {
+            const activityId = currentHostManageActivityId;
+            if (!activityId) return;
 
+            const confirmBtn = document.getElementById('delete-activity-confirm-btn');
+            const originalText = confirmBtn ? confirmBtn.textContent : '';
             try {
+                if (confirmBtn) {
+                    confirmBtn.disabled = true;
+                    confirmBtn.textContent = '刪除中...';
+                }
+
                 const bridgeReady = await waitForDbBridge();
                 if (!bridgeReady || typeof window.dbDeleteActivity !== 'function') {
                     throw new Error('雲端資料庫暫時未連線');
@@ -2125,20 +2158,26 @@
 
                 await window.dbDeleteActivity(activityId);
                 removeMatchFromLocalState(activityId);
+                await closeDeleteActivityConfirmModal();
                 await closeHostManageModal();
                 await loadActivitiesFromCloud();
                 await renderMyActivities();
                 await renderMatches();
                 renderInviteMatchSection();
-                alert('場次已刪除。');
             } catch (err) {
                 console.error('刪除場次失敗:', err);
+                await closeDeleteActivityConfirmModal();
                 if (err?.code === 'permission-denied') {
                     alert('刪除被拒絕：請確認你是此場次的場主，並已登入。');
                     return;
                 }
                 const code = err?.code ? `（${err.code}）` : '';
                 alert(`刪除場次失敗${code}，請稍後再試。`);
+            } finally {
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = originalText || '確定刪除';
+                }
             }
         }
 
@@ -2196,6 +2235,13 @@
                 copyShareUrlToClipboard(document.getElementById('host-manage-share-url'));
             });
             document.getElementById('host-manage-delete-btn')?.addEventListener('click', handleDeleteHostedActivity);
+            document.getElementById('delete-activity-confirm-btn')?.addEventListener('click', confirmDeleteHostedActivity);
+            document.getElementById('delete-activity-cancel-btn')?.addEventListener('click', closeDeleteActivityConfirmModal);
+            document.getElementById('delete-activity-confirm-modal')?.addEventListener('click', event => {
+                if (event.target.id === 'delete-activity-confirm-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
+                    closeDeleteActivityConfirmModal();
+                }
+            });
             document.getElementById('host-payment-info-modal')?.addEventListener('click', event => {
                 if (event.target.id === 'host-payment-info-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
                     closeHostPaymentInfoModal();
