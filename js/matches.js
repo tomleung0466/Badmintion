@@ -734,6 +734,8 @@
             document.getElementById('form-venue-text').textContent = '請先選擇分區';
             document.getElementById('form-skill-level-text').textContent = getSkillLevelShortLabel(DEFAULT_SKILL_LEVEL);
             document.getElementById('form-venue-note').value = '';
+            const hostNoteInput = document.getElementById('form-host-note');
+            if (hostNoteInput) hostNoteInput.value = '';
             const shuttleInfoInput = document.getElementById('form-shuttle-info');
             if (shuttleInfoInput) shuttleInfoInput.value = '';
             const startTimeInput = document.getElementById('form-start-time');
@@ -928,6 +930,16 @@
             return `https://wa.me/852${phone}`;
         }
 
+        function renderHostNoteRow(match) {
+            const note = (match.hostNote || '').trim();
+            if (!note) return '';
+            return `
+                        <div class="flex justify-between gap-4">
+                            <span class="text-[#777777] shrink-0">備註</span>
+                            <span class="text-right font-medium text-[#333333]">${escapeHtml(note)}</span>
+                        </div>`;
+        }
+
         function renderActivitySummaryContent(activity) {
             const maxSlots = Number(activity.maxSlots ?? 6);
             const currentPlayers = Number(activity.currentPlayers ?? 0);
@@ -935,10 +947,15 @@
             const privateBadge = activity.isPrivate
                 ? '<span class="session-private-badge">私人</span>'
                 : '';
+            const hostNote = (activity.hostNote || '').trim();
+            const hostNoteLine = hostNote
+                ? `<p class="mt-1 text-xs text-gray-500">${escapeHtml(hostNote)}</p>`
+                : '';
             return `
                 <div class="session-summary-main">
                     <p class="text-[10px] tracking-[0.12em] text-gray-400">${getActivityDateTimeLabel(activity)} ${privateBadge}</p>
                     <p class="mt-1 text-sm font-medium text-gray-900">${activity.region || ''} · ${activity.venue || ''}</p>
+                    ${hostNoteLine}
                     <p class="mt-2 text-xs text-gray-500">HK$ ${activity.fee || 0} / 人 · 剩餘 ${remainingSlots} 位</p>
                 </div>
             `;
@@ -1075,6 +1092,7 @@
                             <span class="text-[#777777]">地點</span>
                             <span class="text-right font-medium text-[#333333]">${match.region} · ${match.venue}</span>
                         </div>
+                        ${renderHostNoteRow(match)}
                         <div class="flex justify-between gap-4">
                             <span class="text-[#777777]">費用</span>
                             <span class="font-medium text-[#333333]">HK$ ${match.fee} / 人</span>
@@ -1447,7 +1465,10 @@
             const payment = getHostPaymentInfo(match, remoteHostSettings);
             pendingPaymeLink = payment.paymeLink;
 
-            document.getElementById('payment-venue-label').textContent = `${match.venue} · ${match.region}`;
+            document.getElementById('payment-venue-label').textContent = [
+                `${match.venue} · ${match.region}`,
+                (match.hostNote || '').trim()
+            ].filter(Boolean).join(' · ');
             document.getElementById('payment-fee').textContent = `HK$ ${match.fee}`;
 
             renderPaymentQrSlot('payment-payme-qr', payment.paymeQrUrl, 'PayMe QR Code');
@@ -2096,6 +2117,7 @@
             const region = document.getElementById('form-region').value;
             const venueValue = document.getElementById('form-venue').value;
             const venueNoteInput = document.getElementById('form-venue-note');
+            const hostNote = (document.getElementById('form-host-note')?.value || '').trim();
             const shuttleInfo = (document.getElementById('form-shuttle-info')?.value || '').trim();
             const maxSlots = parseInt(document.getElementById('form-maxslots').value) || 6;
             const currentPlayersRaw = parseInt(document.getElementById('form-current-players').value, 10);
@@ -2148,6 +2170,7 @@
                 isPrivate,
                 region,
                 venue: finalVenue,
+                hostNote,
                 playDate,
                 playTime: timeSlot.displayTimeSlot,
                 startTime: timeSlot.startTime,
