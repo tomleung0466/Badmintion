@@ -186,6 +186,31 @@ service cloud.firestore {
         && request.resource.data.sessionEndsAt > request.time;
     }
 
+    function hostPublicPaymentAllowedKeys() {
+      return [
+        'hostUid',
+        'paymeQR',
+        'fpsQR',
+        'hostPaymeQrUrl',
+        'hostFpsQrUrl',
+        'hostFpsId',
+        'fpsId',
+        'updatedAt'
+      ];
+    }
+
+    // 場主收款 QR / FPS：已登入球友可讀（報名付款頁顯示用）
+    match /hostPublicPayment/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId)
+        && request.resource.data.hostUid == userId
+        && request.resource.data.keys().hasOnly(hostPublicPaymentAllowedKeys());
+      allow update: if isOwner(userId)
+        && request.resource.data.hostUid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(hostPublicPaymentAllowedKeys());
+      allow delete: if isOwner(userId);
+    }
+
     // ── users：個人資料 + 收款 QR (paymeQR / fpsQR) ─────────
     match /users/{userId} {
       allow read: if isOwner(userId);

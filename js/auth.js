@@ -1028,15 +1028,43 @@ function mapHostPaymentSettings(data = {}) {
     };
 }
 
+async function syncHostPublicPayment(uid, settings = {}) {
+    if (!uid) return;
+    await setDoc(doc(db, "hostPublicPayment", uid), {
+        hostUid: uid,
+        paymeQR: settings.paymeQrUrl || "",
+        fpsQR: settings.fpsQrUrl || "",
+        hostPaymeQrUrl: settings.paymeQrUrl || "",
+        hostFpsQrUrl: settings.fpsQrUrl || "",
+        hostFpsId: settings.fpsId || "",
+        fpsId: settings.fpsId || "",
+        updatedAt: serverTimestamp()
+    }, { merge: true });
+}
+
 window.dbFetchHostPaymentSettings = async function dbFetchHostPaymentSettings(uid) {
     try {
         if (!uid) return mapHostPaymentSettings();
-        const userSnap = await getDoc(doc(db, "users", uid));
-        if (!userSnap.exists()) return mapHostPaymentSettings();
-        return mapHostPaymentSettings(userSnap.data());
+
+        const currentUid = auth.currentUser?.uid;
+        if (currentUid && currentUid === uid) {
+            const userSnap = await getDoc(doc(db, "users", uid));
+            if (!userSnap.exists()) return mapHostPaymentSettings();
+            const mapped = mapHostPaymentSettings(userSnap.data());
+            try {
+                await syncHostPublicPayment(uid, mapped);
+            } catch (syncErr) {
+                console.warn("同步公開收款設定失敗:", syncErr);
+            }
+            return mapped;
+        }
+
+        const publicSnap = await getDoc(doc(db, "hostPublicPayment", uid));
+        if (!publicSnap.exists()) return mapHostPaymentSettings();
+        return mapHostPaymentSettings(publicSnap.data());
     } catch (err) {
         console.error("讀取場主收款設定失敗:", err);
-        throw err;
+        return mapHostPaymentSettings();
     }
 };
 
@@ -1071,6 +1099,15 @@ window.dbUploadHostPaymentQr = async function dbUploadHostPaymentQr(type, imageF
             hostPaymentUpdatedAt: serverTimestamp()
         });
 
+        const userSnap = await getDoc(doc(db, "users", user.uid));
+        const mapped = mapHostPaymentSettings(userSnap.exists() ? userSnap.data() : {});
+        if (type === "payme") {
+            mapped.paymeQrUrl = downloadUrl;
+        } else {
+            mapped.fpsQrUrl = downloadUrl;
+        }
+        await syncHostPublicPayment(user.uid, mapped);
+
         return downloadUrl;
     } catch (err) {
         console.error("上傳場主收款碼失敗:", err);
@@ -1087,10 +1124,17 @@ window.dbSaveHostFpsId = async function dbSaveHostFpsId(fpsId) {
             throw error;
         }
 
+        const trimmedFpsId = (fpsId || "").trim();
         await updateDoc(doc(db, "users", user.uid), {
-            hostFpsId: (fpsId || "").trim(),
+            hostFpsId: trimmedFpsId,
+            fpsId: trimmedFpsId,
             hostPaymentUpdatedAt: serverTimestamp()
         });
+
+        const userSnap = await getDoc(doc(db, "users", user.uid));
+        const mapped = mapHostPaymentSettings(userSnap.exists() ? userSnap.data() : {});
+        mapped.fpsId = trimmedFpsId;
+        await syncHostPublicPayment(user.uid, mapped);
 
         return true;
     } catch (err) {
@@ -1133,6 +1177,11 @@ async function deleteUserFirestoreData(uid) {
         await deleteDoc(doc(db, "users", uid, "attendance", "recent"));
     } catch (err) {
         console.warn("刪除出席紀錄失敗（可能不存在）:", err);
+    }
+    try {
+        await deleteDoc(doc(db, "hostPublicPayment", uid));
+    } catch (err) {
+        console.warn("刪除公開收款設定失敗（可能不存在）:", err);
     }
     await deleteDoc(doc(db, "users", uid));
 }
