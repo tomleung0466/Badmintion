@@ -319,14 +319,17 @@
         </footer>
 
         <!-- ==================== 彈出層 A：底部滑出發佈面板 (Bottom Sheet) ==================== -->
-        <div id="bottom-sheet" class="hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="bottom-sheet-title">
-            <div class="bottom-sheet-panel bg-white w-full max-w-md rounded-t-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
-                <button type="button" id="bottom-sheet-grab" class="bottom-sheet-grab" aria-label="關閉發佈面板">
-                    <span class="bottom-sheet-grab-bar" aria-hidden="true"></span>
-                </button>
-                <div class="bottom-sheet-header">
-                    <h3 id="bottom-sheet-title" class="bottom-sheet-title">發佈羽毛球場次</h3>
-                    <button type="button" id="bottom-sheet-close" class="bottom-sheet-close">關閉</button>
+        <div id="bottom-sheet" class="hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="bottom-sheet-title" data-muji-swipe-dismiss>
+            <div class="bottom-sheet-panel bg-white w-full max-w-md rounded-t-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto overscroll-contain">
+                <div class="bottom-sheet-drag-zone">
+                    <div class="bottom-sheet-grab" aria-hidden="true">
+                        <span class="bottom-sheet-grab-bar"></span>
+                    </div>
+                    <p class="bottom-sheet-drag-hint">下拉關閉</p>
+                    <div class="bottom-sheet-header">
+                        <h3 id="bottom-sheet-title" class="bottom-sheet-title">發佈羽毛球場次</h3>
+                        <button type="button" id="bottom-sheet-close" class="bottom-sheet-close">關閉</button>
+                    </div>
                 </div>
                 
                 <form onsubmit="handleFormSubmit(event)" class="space-y-4 text-xs">

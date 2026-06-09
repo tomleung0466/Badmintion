@@ -93,6 +93,156 @@
         return () => fn(match[2] === 'false' ? false : undefined);
     }
 
+    const SWIPE_DISMISS_THRESHOLD = 72;
+    const SWIPE_DISMISS_VELOCITY = 0.45;
+
+    function resetPanelDragStyles(el) {
+        const panel = findOverlayPanel(el);
+        const backdrop = el?.querySelector(':scope > .muji-overlay__backdrop');
+        if (panel) {
+            panel.classList.remove('muji-overlay__panel--dragging', 'muji-overlay__panel--snapping');
+            panel.style.transform = '';
+            panel.style.transition = '';
+            panel.style.opacity = '';
+        }
+        if (backdrop) {
+            backdrop.style.opacity = '';
+            backdrop.style.transition = '';
+        }
+    }
+
+    function bindSheetSwipeDismiss(el) {
+        if (!el?.dataset.mujiSwipeDismiss || el.dataset.mujiSwipeBound === '1') return;
+
+        const panel = findOverlayPanel(el);
+        if (!panel) return;
+
+        let startY = 0;
+        let startX = 0;
+        let lastY = 0;
+        let lastTime = 0;
+        let dragY = 0;
+        let dragging = false;
+        let dragMode = null;
+
+        function canPullFromContent() {
+            return panel.scrollTop <= 0;
+        }
+
+        function touchInDragZone(target) {
+            return Boolean(target.closest('.bottom-sheet-drag-zone'));
+        }
+
+        function onTouchStart(event) {
+            if (!el.classList.contains('is-open')) return;
+
+            const touch = event.touches[0];
+            startY = touch.clientY;
+            startX = touch.clientX;
+            lastY = startY;
+            lastTime = event.timeStamp;
+            dragY = 0;
+            dragging = false;
+            dragMode = null;
+
+            if (touchInDragZone(event.target)) {
+                if (event.target.closest('button, input, textarea, select, a, label')) return;
+                dragMode = 'handle';
+                dragging = true;
+                panel.classList.add('muji-overlay__panel--dragging');
+                return;
+            }
+
+            if (canPullFromContent()) {
+                dragMode = 'content';
+            }
+        }
+
+        function onTouchMove(event) {
+            if (!dragMode) return;
+
+            const touch = event.touches[0];
+            const deltaY = touch.clientY - startY;
+            const deltaX = touch.clientX - startX;
+
+            if (!dragging) {
+                if (dragMode === 'content') {
+                    if (!canPullFromContent() || deltaY <= 0) return;
+                    if (Math.abs(deltaY) < 8) return;
+                    if (Math.abs(deltaX) > Math.abs(deltaY)) return;
+                    dragging = true;
+                    panel.classList.add('muji-overlay__panel--dragging');
+                } else {
+                    if (Math.abs(deltaY) < 4) return;
+                    dragging = true;
+                }
+            }
+
+            if (deltaY <= 0) {
+                dragY = 0;
+                panel.style.transform = 'translateY(0) translateZ(0)';
+                return;
+            }
+
+            event.preventDefault();
+            dragY = deltaY;
+            panel.style.transform = `translateY(${dragY}px) translateZ(0)`;
+
+            const backdrop = el.querySelector(':scope > .muji-overlay__backdrop');
+            if (backdrop) {
+                backdrop.style.transition = 'none';
+                backdrop.style.opacity = String(Math.max(0, 1 - dragY / 220));
+            }
+
+            lastY = touch.clientY;
+            lastTime = event.timeStamp;
+        }
+
+        function finishDrag(event) {
+            if (!dragMode) return;
+
+            const wasDragging = dragging;
+            dragging = false;
+            dragMode = null;
+            panel.classList.remove('muji-overlay__panel--dragging');
+
+            if (!wasDragging || dragY <= 0) {
+                resetPanelDragStyles(el);
+                return;
+            }
+
+            const touch = event.changedTouches?.[0];
+            const velocity = touch
+                ? Math.max(0, (touch.clientY - lastY) / Math.max(16, event.timeStamp - lastTime))
+                : 0;
+            const shouldDismiss = dragY >= SWIPE_DISMISS_THRESHOLD || velocity >= SWIPE_DISMISS_VELOCITY;
+
+            if (shouldDismiss) {
+                dismissOverlay(el);
+                return;
+            }
+
+            panel.classList.add('muji-overlay__panel--snapping');
+            panel.style.transform = 'translateY(0) translateZ(0)';
+            const backdrop = el.querySelector(':scope > .muji-overlay__backdrop');
+            if (backdrop) {
+                backdrop.style.transition = '';
+                backdrop.style.opacity = '';
+            }
+            window.setTimeout(() => {
+                panel.classList.remove('muji-overlay__panel--snapping');
+            }, 220);
+            dragY = 0;
+        }
+
+        panel.addEventListener('touchstart', onTouchStart, { passive: true });
+        panel.addEventListener('touchmove', onTouchMove, { passive: false });
+        panel.addEventListener('touchend', finishDrag);
+        panel.addEventListener('touchcancel', finishDrag);
+
+        el.dataset.mujiSwipeBound = '1';
+    }
+
     function dismissOverlay(el) {
         const handler = OVERLAY_CLOSE_HANDLERS[el.id];
         if (handler) {
@@ -163,6 +313,7 @@
         }
 
         bindOverlayDismiss(el);
+        bindSheetSwipeDismiss(el);
         el.dataset.mujiOverlayReady = '1';
     }
 
@@ -205,6 +356,7 @@
         if (token !== state.token) return;
 
         el.classList.add('is-open');
+        resetPanelDragStyles(el);
         syncBodyOverlayLock();
     }
 
@@ -219,6 +371,7 @@
         if (!el.classList.contains('is-open') && el.classList.contains('hidden')) return;
 
         el.classList.remove('is-open');
+        resetPanelDragStyles(el);
         const delay = prefersReducedMotion() ? 0 : (options.duration || OVERLAY_MS);
         await waitMs(delay);
         el.classList.add('hidden');

@@ -330,16 +330,21 @@ body.muji-overlay-open {
   -webkit-overflow-scrolling: touch;
 }
 
+.bottom-sheet-drag-zone {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: -1.5rem -1.5rem 1rem;
+  padding: 0.75rem 1.5rem 0;
+  background: linear-gradient(to bottom, #fff 85%, rgba(255, 255, 255, 0));
+  touch-action: none;
+}
+
 .bottom-sheet-grab {
   display: flex;
   justify-content: center;
   width: 100%;
-  padding: 0.25rem 0 0.75rem;
-  margin: -0.25rem 0 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  padding: 0.125rem 0 0.375rem;
 }
 
 .bottom-sheet-grab-bar {
@@ -350,12 +355,28 @@ body.muji-overlay-open {
   background: #e5e5e5;
 }
 
+.bottom-sheet-drag-hint {
+  margin: 0 0 0.625rem;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: #b0b0b0;
+}
+
 .bottom-sheet-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 1rem;
+  padding-bottom: 0.25rem;
+}
+
+.muji-overlay__panel.muji-overlay__panel--dragging {
+  transition: none !important;
+}
+
+.muji-overlay__panel.muji-overlay__panel--snapping {
+  transition: transform 220ms ease-out, opacity 220ms ease-out !important;
 }
 
 .bottom-sheet-title {

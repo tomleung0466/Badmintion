@@ -2226,13 +2226,11 @@
         function bindBottomSheetUI() {
             const fab = document.getElementById('publish-fab-btn');
             const closeBtn = document.getElementById('bottom-sheet-close');
-            const grabBtn = document.getElementById('bottom-sheet-grab');
 
             fab?.addEventListener('click', () => {
                 toggleBottomSheet(isBottomSheetOpen() ? false : true);
             });
             closeBtn?.addEventListener('click', () => toggleBottomSheet(false));
-            grabBtn?.addEventListener('click', () => toggleBottomSheet(false));
         }
 
         async function toggleBottomSheet(show) {
