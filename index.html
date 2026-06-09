@@ -353,10 +353,6 @@
                         <input type="text" id="form-venue-note" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm">
                     </div>
                     <div>
-                        <label for="form-host-note" class="block text-gray-500 mb-1 font-medium">備註 <span class="text-gray-400 font-normal">（選填）</span></label>
-                        <textarea id="form-host-note" rows="2" maxlength="120" placeholder="例如：3–4 號場、請準時到達、自備球拍" class="publish-note-input"></textarea>
-                    </div>
-                    <div>
                         <label class="block text-gray-500 mb-1 font-medium">開場日期</label>
                         <button type="button" onclick="toggleCalendarExpand('form')" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center">
                             <span id="form-calendar-collapsed-text"></span>
@@ -559,8 +555,17 @@
                 <button type="button" id="host-manage-close" class="session-modal-close" aria-label="關閉">✕</button>
             </div>
             <p class="session-manage-meta" id="host-manage-slots"></p>
+            <div id="host-manage-share-wrap" class="host-manage-share hidden">
+                <p class="host-manage-share-kicker">🔒 私人球局專屬連結</p>
+                <p class="host-manage-share-hint">此球局不會顯示在大廳，複製連結分享給想邀請的朋友。</p>
+                <input type="text" id="host-manage-share-url" readonly class="private-share-url-input">
+                <button type="button" id="host-manage-share-copy-btn" class="private-share-copy-btn">複製專屬連結</button>
+            </div>
             <div id="host-manage-participants" class="session-manage-list"></div>
             <p id="host-manage-empty" class="session-manage-empty hidden">暫無報名申請</p>
+            <div class="host-manage-footer">
+                <button type="button" id="host-manage-delete-btn" class="host-manage-delete-btn">刪除此場次</button>
+            </div>
         </div>
     </div>
 

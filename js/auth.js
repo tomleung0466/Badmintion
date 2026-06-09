@@ -137,7 +137,6 @@ function buildActivityPublishPayload(activityData = {}, user) {
         isPrivate: activityData.isPrivate === true,
         region: String(activityData.region || ""),
         venue: String(activityData.venue || ""),
-        hostNote: String(activityData.hostNote || ""),
         playDate: String(activityData.playDate || ""),
         playTime: String(activityData.playTime || ""),
         startTime: String(activityData.startTime || ""),
@@ -424,6 +423,50 @@ window.dbPublishActivity = async function dbPublishActivity(activityData) {
         return docRef.id;
     } catch (err) {
         console.error("發佈場次到 Firestore 失敗:", err);
+        throw err;
+    }
+};
+
+window.dbDeleteActivity = async function dbDeleteActivity(activityId) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入後再刪除場次");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+        if (!activityId) {
+            const error = new Error("缺少場次 ID");
+            error.code = "activity/missing-id";
+            throw error;
+        }
+
+        const activityRef = doc(db, "activities", activityId);
+        const activitySnap = await getDoc(activityRef);
+        if (!activitySnap.exists()) {
+            const error = new Error("場次不存在");
+            error.code = "activity/not-found";
+            throw error;
+        }
+        if (activitySnap.data().hostUid !== user.uid) {
+            const error = new Error("只有場主可以刪除此場次");
+            error.code = "activity/not-host";
+            throw error;
+        }
+
+        await deleteDoc(activityRef);
+        try {
+            await updateDoc(doc(db, "users", user.uid), {
+                hostSessionCount: increment(-1),
+                updatedAt: serverTimestamp()
+            });
+        } catch (userErr) {
+            console.warn("場次已刪除，但更新場主開局次數失敗:", userErr);
+        }
+
+        return { deleted: true };
+    } catch (err) {
+        console.error("刪除 Firestore 場次失敗:", err);
         throw err;
     }
 };

@@ -751,8 +751,6 @@
             document.getElementById('form-venue-text').textContent = '請先選擇分區';
             document.getElementById('form-skill-level-text').textContent = getSkillLevelShortLabel(DEFAULT_SKILL_LEVEL);
             document.getElementById('form-venue-note').value = '';
-            const hostNoteInput = document.getElementById('form-host-note');
-            if (hostNoteInput) hostNoteInput.value = '';
             const shuttleInfoInput = document.getElementById('form-shuttle-info');
             if (shuttleInfoInput) shuttleInfoInput.value = '';
             const startTimeInput = document.getElementById('form-start-time');
@@ -1236,9 +1234,8 @@
             }
         }
 
-        async function copyPrivateShareLink() {
-            const urlInput = document.getElementById('private-share-url');
-            const link = urlInput ? urlInput.value.trim() : '';
+        async function copyShareUrlToClipboard(urlInput) {
+            const link = urlInput?.value?.trim() || '';
             if (!link) return;
             try {
                 await navigator.clipboard.writeText(link);
@@ -1248,6 +1245,10 @@
                 document.execCommand?.('copy');
                 alert('已複製專屬連結，可貼到 WhatsApp / Signal 群組分享。');
             }
+        }
+
+        async function copyPrivateShareLink() {
+            await copyShareUrlToClipboard(document.getElementById('private-share-url'));
         }
 
         function bindPrivateShareUI() {
@@ -1967,6 +1968,8 @@
             const modal = document.getElementById('host-manage-modal');
             const subtitle = document.getElementById('host-manage-subtitle');
             const slotsEl = document.getElementById('host-manage-slots');
+            const shareWrap = document.getElementById('host-manage-share-wrap');
+            const shareUrlInput = document.getElementById('host-manage-share-url');
             const listEl = document.getElementById('host-manage-participants');
             const emptyEl = document.getElementById('host-manage-empty');
             if (!modal || !listEl) return;
@@ -2006,6 +2009,12 @@
                 slotsEl.textContent = `已批准 ${currentPlayers} / ${maxSlots} 位 · ${pendingList.length} 人待批准`;
             }
 
+            if (shareWrap && shareUrlInput) {
+                const isPrivate = activity.isPrivate === true;
+                shareWrap.classList.toggle('hidden', !isPrivate);
+                shareUrlInput.value = isPrivate ? buildPrivateShareUrl(activityId) : '';
+            }
+
             const approvedHtml = approvedList.length
                 ? `<p class="session-manage-group-label">已批准</p>${approvedList.map(p => renderHostManageParticipantRow(p, { pending: false, activityId })).join('')}`
                 : '';
@@ -2028,6 +2037,57 @@
         }
 
         window.openHostManageModal = openHostManageModal;
+
+        function removeMatchFromLocalState(activityId) {
+            const id = String(activityId);
+            matches = matches.filter(
+                m => String(m.firestoreId) !== id && String(m.id) !== id
+            );
+            if (inviteMatch && (String(inviteMatch.firestoreId) === id || String(inviteMatch.id) === id)) {
+                inviteMatch = null;
+            }
+            saveMatches();
+        }
+
+        async function handleDeleteHostedActivity() {
+            const activityId = currentHostManageActivityId;
+            if (!activityId) return;
+            if (!window.firebaseAuthUid) {
+                alert('請先登入 +1。');
+                return;
+            }
+
+            const confirmed = confirm(
+                '確定要刪除此場次嗎？\n已報名或已批准的球友將無法再看到此場次，此操作無法復原。'
+            );
+            if (!confirmed) return;
+
+            try {
+                const bridgeReady = await waitForDbBridge();
+                if (!bridgeReady || typeof window.dbDeleteActivity !== 'function') {
+                    throw new Error('雲端資料庫暫時未連線');
+                }
+
+                await window.dbDeleteActivity(activityId);
+                removeMatchFromLocalState(activityId);
+                await closeHostManageModal();
+                await loadActivitiesFromCloud();
+                await renderMyActivities();
+                await renderMatches();
+                renderInviteMatchSection();
+                alert('場次已刪除。');
+            } catch (err) {
+                console.error('刪除場次失敗:', err);
+                if (err?.code === 'permission-denied') {
+                    alert('刪除被拒絕：請確認你是此場次的場主，並已登入。');
+                    return;
+                }
+                const code = err?.code ? `（${err.code}）` : '';
+                alert(`刪除場次失敗${code}，請稍後再試。`);
+            }
+        }
+
+        window.handleDeleteHostedActivity = handleDeleteHostedActivity;
 
         async function handleApproveParticipant(activityId, participantUid) {
             if (!activityId || !participantUid) return;
@@ -2077,6 +2137,10 @@
         function bindSessionModals() {
             document.getElementById('host-payment-info-close')?.addEventListener('click', closeHostPaymentInfoModal);
             document.getElementById('host-manage-close')?.addEventListener('click', closeHostManageModal);
+            document.getElementById('host-manage-share-copy-btn')?.addEventListener('click', () => {
+                copyShareUrlToClipboard(document.getElementById('host-manage-share-url'));
+            });
+            document.getElementById('host-manage-delete-btn')?.addEventListener('click', handleDeleteHostedActivity);
             document.getElementById('host-payment-info-modal')?.addEventListener('click', event => {
                 if (event.target.id === 'host-payment-info-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
                     closeHostPaymentInfoModal();
@@ -2166,7 +2230,6 @@
             const region = document.getElementById('form-region').value;
             const venueValue = document.getElementById('form-venue').value;
             const venueNoteInput = document.getElementById('form-venue-note');
-            const hostNote = (document.getElementById('form-host-note')?.value || '').trim();
             const shuttleInfo = (document.getElementById('form-shuttle-info')?.value || '').trim();
             const maxSlots = parseInt(document.getElementById('form-maxslots').value) || 6;
             const currentPlayersRaw = parseInt(document.getElementById('form-current-players').value, 10);
@@ -2228,7 +2291,6 @@
                 isPrivate,
                 region,
                 venue: finalVenue,
-                hostNote,
                 playDate,
                 playTime: timeSlot.displayTimeSlot,
                 startTime: timeSlot.startTime,

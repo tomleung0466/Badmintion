@@ -2056,6 +2056,33 @@ button:hover {
   padding: 0.25rem;
 }
 
+.host-manage-share {
+  margin-bottom: 1rem;
+  padding: 0.875rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.875rem;
+  background: var(--muji-soft);
+}
+
+.host-manage-share-kicker {
+  margin: 0 0 0.375rem;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--muji-text);
+}
+
+.host-manage-share-hint {
+  margin: 0 0 0.625rem;
+  font-size: 10px;
+  line-height: 1.55;
+  color: var(--muji-muted);
+}
+
+.host-manage-share .private-share-url-input {
+  margin-bottom: 0.625rem;
+}
+
 .session-manage-meta {
   margin-bottom: 0.75rem;
   font-size: 11px;
@@ -2163,6 +2190,24 @@ button:hover {
   text-align: center;
   font-size: 11px;
   color: var(--muji-muted);
+}
+
+.host-manage-footer {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--muji-border);
+}
+
+.host-manage-delete-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #fecaca;
+  border-radius: 0.75rem;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: #b91c1c;
 }
 
 .host-info-section {
