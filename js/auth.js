@@ -106,13 +106,59 @@ function resolveSessionEndsAtTimestamp(activityData = {}) {
     if (typeof window.buildActivityEndsAtDate === "function") {
         const endsAt = window.buildActivityEndsAtDate(
             activityData.playDate,
-            activityData.startTime
+            activityData.startTime || activityData.startTimeValue
         );
         if (endsAt && !Number.isNaN(endsAt.getTime())) {
             return Timestamp.fromDate(endsAt);
         }
     }
     return null;
+}
+
+function buildActivityPublishPayload(activityData = {}, user) {
+    const sessionEndsAt = resolveSessionEndsAtTimestamp(activityData);
+    if (!sessionEndsAt) {
+        const error = new Error("無法計算場次截止時間，請重新選擇開場日期與時間");
+        error.code = "activity/missing-session-ends-at";
+        throw error;
+    }
+
+    const maxSlots = Math.trunc(Number(activityData.maxSlots) || 6);
+    const currentPlayers = Math.trunc(Number(activityData.currentPlayers) || 0);
+    if (currentPlayers > maxSlots) {
+        const error = new Error("現時人數不能超過總名額");
+        error.code = "activity/invalid-current-players";
+        throw error;
+    }
+
+    return {
+        hostUid: user.uid,
+        hostEmail: activityData.hostEmail || user.email || null,
+        isPrivate: activityData.isPrivate === true,
+        region: String(activityData.region || ""),
+        venue: String(activityData.venue || ""),
+        hostNote: String(activityData.hostNote || ""),
+        playDate: String(activityData.playDate || ""),
+        playTime: String(activityData.playTime || ""),
+        startTime: String(activityData.startTime || ""),
+        endTime: String(activityData.endTime || ""),
+        sessionEndsAt,
+        duration: Number(activityData.duration) || 0,
+        courtCount: Math.trunc(Number(activityData.courtCount) || 1),
+        displayTimeSlot: String(activityData.displayTimeSlot || activityData.playTime || ""),
+        fee: Math.trunc(Number(activityData.fee) || 50),
+        shuttleInfo: String(activityData.shuttleInfo || ""),
+        skillLevel: String(activityData.skillLevel || ""),
+        contact: String(activityData.contact || ""),
+        maxSlots,
+        currentPlayers,
+        participants: {},
+        participantUids: [],
+        pendingParticipantUids: [],
+        waitlist: [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+    };
 }
 
 function byId(id) {
@@ -363,28 +409,16 @@ window.dbPublishActivity = async function dbPublishActivity(activityData) {
             throw error;
         }
 
-        const sessionEndsAt = resolveSessionEndsAtTimestamp(activityData);
-        const payload = {
-            ...activityData,
-            hostUid: activityData.hostUid || user.uid,
-            hostEmail: activityData.hostEmail || user.email || null,
-            participants: activityData.participants || {},
-            participantUids: Array.isArray(activityData.participantUids) ? activityData.participantUids : [],
-            pendingParticipantUids: Array.isArray(activityData.pendingParticipantUids) ? activityData.pendingParticipantUids : [],
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-        };
-        if (sessionEndsAt) {
-            payload.sessionEndsAt = sessionEndsAt;
-        } else {
-            delete payload.sessionEndsAt;
-        }
-
+        const payload = buildActivityPublishPayload(activityData, user);
         const docRef = await addDoc(collection(db, "activities"), payload);
-        await updateDoc(doc(db, "users", user.uid), {
-            hostSessionCount: increment(1),
-            updatedAt: serverTimestamp()
-        });
+        try {
+            await updateDoc(doc(db, "users", user.uid), {
+                hostSessionCount: increment(1),
+                updatedAt: serverTimestamp()
+            });
+        } catch (userErr) {
+            console.warn("場次已發佈，但更新場主開局次數失敗:", userErr);
+        }
 
         console.info("場次已寫入 Firestore activities:", docRef.id);
         return docRef.id;

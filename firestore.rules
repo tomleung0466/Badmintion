@@ -172,15 +172,16 @@ service cloud.firestore {
 
     function isValidActivityCreate() {
       return request.resource.data.hostUid == request.auth.uid
-        && request.resource.data.maxSlots is int
+        && request.resource.data.maxSlots is number
         && request.resource.data.maxSlots >= 1
         && request.resource.data.maxSlots <= 50
-        && request.resource.data.currentPlayers is int
+        && request.resource.data.currentPlayers is number
         && request.resource.data.currentPlayers >= 0
         && request.resource.data.currentPlayers <= request.resource.data.maxSlots
         && request.resource.data.playDate is string
         && request.resource.data.region is string
         && request.resource.data.venue is string
+        && request.resource.data.keys().hasAll(['sessionEndsAt'])
         && request.resource.data.sessionEndsAt is timestamp
         && request.resource.data.sessionEndsAt > request.time;
     }

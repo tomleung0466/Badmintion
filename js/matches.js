@@ -2283,8 +2283,16 @@
                 await loadActivitiesFromCloud();
             } catch (err) {
                 console.error('發佈場次失敗:', err);
+                if (err?.code === 'activity/missing-session-ends-at') {
+                    alert('請重新選擇開場日期與時間後再發佈。');
+                    return;
+                }
+                if (err?.code === 'permission-denied') {
+                    alert('發佈被拒絕：請確認已登入，並在 Firebase Console 發佈最新的 firestore.rules。');
+                    return;
+                }
                 const code = err?.code ? `（${err.code}）` : '';
-                alert(`發佈失敗${code}，請檢查網絡或 Firebase Firestore 權限設定。`);
+                alert(`發佈失敗${code}，請稍後再試。`);
                 return;
             }
 
