@@ -344,9 +344,18 @@
             const participants = match?.participants && typeof match.participants === 'object'
                 ? match.participants
                 : {};
-            const uids = Array.isArray(match?.participantUids) && match.participantUids.length
-                ? match.participantUids
-                : Object.keys(participants);
+            const pendingUids = new Set(getMatchPendingUids(match));
+            let uids = Array.isArray(match?.participantUids) ? [...match.participantUids] : [];
+
+            if (!uids.length) {
+                uids = Object.keys(participants).filter(uid => {
+                    if (pendingUids.has(uid)) return false;
+                    const status = participants[uid]?.status;
+                    return status !== 'pending';
+                });
+            } else {
+                uids = uids.filter(uid => !pendingUids.has(uid));
+            }
 
             return uids.map(uid => {
                 const profile = participants[uid] || {};
@@ -940,9 +949,23 @@
             return phone ? phone[0] : '';
         }
 
-        function buildWhatsAppUrl(phone) {
-            if (!phone) return '';
-            return `https://wa.me/852${phone}`;
+        function normalizeWhatsAppNumber(raw) {
+            const digits = String(raw || '').replace(/\D/g, '');
+            if (!digits) return '';
+            if (digits.startsWith('852') && digits.length >= 11) return digits;
+            if (digits.length === 8) return `852${digits}`;
+            return digits;
+        }
+
+        function buildWhatsAppUrl(rawNumber) {
+            const normalized = normalizeWhatsAppNumber(rawNumber);
+            if (!normalized) return '';
+            return `https://wa.me/${normalized}`;
+        }
+
+        function getHostWhatsAppNumber(match, remoteSettings = null) {
+            const payment = getHostPaymentInfo(match, remoteSettings);
+            return (payment.fpsId || '').trim() || extractPhoneFromContact(match?.contact);
         }
 
         function renderHostNoteRow(match) {
@@ -1510,9 +1533,16 @@
             renderPaymentQrSlot('payment-payme-qr', payment.paymeQrUrl, 'PayMe QR Code');
             renderPaymentQrSlot('payment-fps-qr', payment.fpsQrUrl, 'FPS QR Code');
 
-            const fpsLabel = document.getElementById('payment-fps-id-label');
-            if (fpsLabel) {
-                fpsLabel.textContent = payment.fpsId ? `FPS：${payment.fpsId}` : '';
+            const whatsappNumber = getHostWhatsAppNumber(match, remoteHostSettings);
+            const whatsappLabel = document.getElementById('payment-whatsapp-label');
+            const whatsappBtn = document.getElementById('payment-whatsapp-btn');
+            if (whatsappLabel) {
+                whatsappLabel.textContent = whatsappNumber
+                    ? `WhatsApp：${whatsappNumber}`
+                    : '場主尚未設定 WhatsApp 號碼';
+            }
+            if (whatsappBtn) {
+                whatsappBtn.disabled = !buildWhatsAppUrl(whatsappNumber);
             }
 
             const newHostTip = document.getElementById('payment-new-host-tip');
@@ -1538,32 +1568,22 @@
             window.open(url, '_blank', 'noopener,noreferrer');
         }
 
-        async function copyPaymentFpsId() {
+        function jumpToHostWhatsApp() {
             const match = pendingPaymentMatchId
                 ? findMatchByBookId(pendingPaymentMatchId) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(pendingPaymentMatchId) ? inviteMatch : null)
                 : null;
-            const fpsId = getHostPaymentInfo(match).fpsId;
-            if (!fpsId) {
-                alert('場主尚未設定 FPS 識別碼。');
+            const whatsappNumber = getHostWhatsAppNumber(match);
+            const url = buildWhatsAppUrl(whatsappNumber);
+            if (!url) {
+                alert('場主尚未設定 WhatsApp 號碼。');
                 return;
             }
-            const copyBtn = document.getElementById('payment-fps-copy-btn');
-            try {
-                await navigator.clipboard.writeText(fpsId);
-                if (typeof window.runCopyButtonFeedback === 'function' && copyBtn) {
-                    await window.runCopyButtonFeedback(copyBtn, {
-                        originalText: '複製 FPS',
-                        successText: '✓ 已複製'
-                    });
-                }
-            } catch (_err) {
-                prompt('請手動複製 FPS 識別碼：', fpsId);
-            }
+            window.open(url, '_blank', 'noopener,noreferrer');
         }
 
         function bindPaymentActions() {
             document.getElementById('payment-payme-jump-btn')?.addEventListener('click', jumpToPayMe);
-            document.getElementById('payment-fps-copy-btn')?.addEventListener('click', copyPaymentFpsId);
+            document.getElementById('payment-whatsapp-btn')?.addEventListener('click', jumpToHostWhatsApp);
         }
 
         let hostSettingsBound = false;
@@ -1666,8 +1686,8 @@
                 }
 
                 applyHostSettingsToUI(cachedOwnHostSettings || getEmptyHostSettings());
-                setHostPaymentStatus('FPS 識別碼已儲存');
-                alert('FPS 識別碼已儲存');
+                setHostPaymentStatus('WhatsApp 號碼已儲存');
+                alert('WhatsApp 號碼已儲存');
             } catch (err) {
                 console.error('儲存收款設定失敗:', err);
                 const code = err?.code ? `（${err.code}）` : '';
@@ -1829,7 +1849,8 @@
 
             const payment = getHostPaymentInfo(activity, remoteHostSettings);
             const phone = extractPhoneFromContact(activity.contact);
-            const whatsappUrl = buildWhatsAppUrl(phone);
+            const whatsappNumber = getHostWhatsAppNumber(activity, remoteHostSettings);
+            const whatsappUrl = buildWhatsAppUrl(whatsappNumber);
 
             if (subtitle) {
                 subtitle.textContent = `${activity.venue || ''} · ${activity.region || ''}`;
@@ -1838,12 +1859,9 @@
             const phoneRow = phone
                 ? `<a href="tel:${escapeHtml(phone)}" class="host-info-link">📞 ${escapeHtml(phone)}</a>`
                 : '<p class="host-info-empty">場主尚未提供電話</p>';
-            const fpsRow = payment.fpsId
-                ? `<button type="button" class="host-info-action copy-feedback-btn" onclick="copyHostInfoFps('${escapeHtml(payment.fpsId)}', this)"><span class="copy-feedback-text" data-original-text="FPS：${escapeHtml(payment.fpsId)}">FPS：${escapeHtml(payment.fpsId)}</span></button>`
-                : '<p class="host-info-empty">場主尚未設定 FPS</p>';
             const whatsappRow = whatsappUrl
-                ? `<a href="${escapeHtml(whatsappUrl)}" target="_blank" rel="noopener noreferrer" class="host-info-action host-info-action--whatsapp">WhatsApp 聯絡場主</a>`
-                : '<p class="host-info-empty">無法建立 WhatsApp 連結</p>';
+                ? `<a href="${escapeHtml(whatsappUrl)}" target="_blank" rel="noopener noreferrer" class="host-info-action host-info-action--whatsapp">WhatsApp 聯絡場主${whatsappNumber ? `（${escapeHtml(whatsappNumber)}）` : ''}</a>`
+                : '<p class="host-info-empty">場主尚未設定 WhatsApp 號碼</p>';
 
             const paymeQrHtml = payment.paymeQrUrl
                 ? `<img src="${escapeHtml(payment.paymeQrUrl)}" alt="PayMe QR Code" class="host-info-qr-image" loading="lazy">`
@@ -1858,11 +1876,7 @@
                     ${phoneRow}
                 </div>
                 <div class="host-info-section">
-                    <p class="host-info-label">轉數快 (FPS)</p>
-                    ${fpsRow}
-                </div>
-                <div class="host-info-section">
-                    <p class="host-info-label">WhatsApp</p>
+                    <p class="host-info-label">WhatsApp 號碼</p>
                     ${whatsappRow}
                 </div>
                 <div class="host-info-qr-grid">
@@ -1886,24 +1900,6 @@
         }
 
         window.openHostPaymentInfoModal = openHostPaymentInfoModal;
-
-        window.copyHostInfoFps = async function copyHostInfoFps(fpsId, button) {
-            if (!fpsId) return;
-            const originalText = button?.querySelector('.copy-feedback-text')?.dataset.originalText
-                || button?.querySelector('.copy-feedback-text')?.textContent?.trim()
-                || `FPS：${fpsId}`;
-            try {
-                await navigator.clipboard.writeText(fpsId);
-                if (typeof window.runCopyButtonFeedback === 'function' && button) {
-                    await window.runCopyButtonFeedback(button, {
-                        originalText,
-                        successText: '✓ 已複製'
-                    });
-                }
-            } catch (_err) {
-                prompt('請手動複製 FPS 識別碼：', fpsId);
-            }
-        };
 
         window.openHostInfoPayme = function openHostInfoPayme(link) {
             if (!link) {
@@ -1942,7 +1938,10 @@
         }
 
         function getPendingParticipants(activity) {
-            const pendingUids = getMatchPendingUids(activity);
+            const approvedUids = new Set(
+                Array.isArray(activity?.participantUids) ? activity.participantUids : []
+            );
+            const pendingUids = getMatchPendingUids(activity).filter(uid => !approvedUids.has(uid));
             const participants = activity?.participants && typeof activity.participants === 'object'
                 ? activity.participants
                 : {};

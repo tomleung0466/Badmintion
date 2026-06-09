@@ -229,7 +229,7 @@
                 </div>
                 <div id="host-settings-panel" class="profile-subpanel hidden">
                     <p class="profile-subpanel-title">場主收款設定</p>
-                    <p class="profile-field-hint">上傳截圖後請裁切 QR 核心區域再儲存；修改 FPS 識別碼後按「儲存設定」。</p>
+                    <p class="profile-field-hint">上傳截圖後請裁切 QR 核心區域再儲存；修改 WhatsApp 號碼後按「儲存設定」。</p>
                     <p id="host-payment-status" class="profile-field-hint hidden"></p>
                     <div class="profile-field">
                         <label class="profile-field-label">PayMe QR Code</label>
@@ -250,8 +250,8 @@
                         </label>
                     </div>
                     <div class="profile-field">
-                        <label for="host-fps-id-input" class="profile-field-label">FPS 電話 / 識別碼</label>
-                        <input type="text" id="host-fps-id-input" class="profile-field-input" autocomplete="off" inputmode="text">
+                        <label for="host-fps-id-input" class="profile-field-label">WhatsApp 號碼</label>
+                        <input type="text" id="host-fps-id-input" class="profile-field-input" autocomplete="off" inputmode="tel" placeholder="例如：91234567">
                     </div>
                     <button type="button" id="save-host-payment-btn" class="profile-subpanel-btn">
                         儲存設定
@@ -514,9 +514,12 @@
                                 <span class="payment-qr-placeholder-text">FPS QR Code</span>
                             </div>
                         </div>
-                        <button type="button" id="payment-fps-copy-btn" class="payment-qr-action copy-feedback-btn"><span class="copy-feedback-text">複製 FPS</span></button>
-                        <p id="payment-fps-id-label" class="payment-fps-id"></p>
                     </section>
+                </div>
+
+                <div class="payment-whatsapp-block">
+                    <p id="payment-whatsapp-label" class="payment-whatsapp-label"></p>
+                    <button type="button" id="payment-whatsapp-btn" class="payment-qr-action payment-qr-action--whatsapp payment-whatsapp-btn">WhatsApp 聯絡場主</button>
                 </div>
 
                 <button type="button" onclick="confirmBooking()" class="payment-submit-btn">

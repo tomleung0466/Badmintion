@@ -1119,7 +1119,7 @@ window.dbSaveHostFpsId = async function dbSaveHostFpsId(fpsId) {
     try {
         const user = auth.currentUser;
         if (!user) {
-            const error = new Error("請先登入後再儲存 FPS 識別碼");
+            const error = new Error("請先登入後再儲存 WhatsApp 號碼");
             error.code = "auth/not-signed-in";
             throw error;
         }
@@ -1138,7 +1138,7 @@ window.dbSaveHostFpsId = async function dbSaveHostFpsId(fpsId) {
 
         return true;
     } catch (err) {
-        console.error("儲存 FPS 識別碼失敗:", err);
+        console.error("儲存 WhatsApp 號碼失敗:", err);
         throw err;
     }
 };

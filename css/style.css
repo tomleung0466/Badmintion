@@ -1378,6 +1378,35 @@ button:hover {
   background: var(--muji-hover);
 }
 
+.payment-whatsapp-block {
+  margin-top: 0.875rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--muji-border);
+  text-align: center;
+}
+
+.payment-whatsapp-label {
+  margin: 0 0 0.625rem;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: var(--muji-muted);
+}
+
+.payment-whatsapp-btn {
+  width: 100%;
+}
+
+.payment-qr-action--whatsapp {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.payment-qr-action--whatsapp:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .payment-fps-id {
   min-height: 0.875rem;
   font-size: 9px;
