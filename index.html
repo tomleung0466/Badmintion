@@ -172,12 +172,44 @@
             </div>
         </div>
 
-        <!-- ==================== 頁面 4：我的場次 / 個人 ==================== -->
+        <!-- ==================== 頁面 4：我的場次 ==================== -->
         <div id="page-profile" class="app-page hidden flex-1 p-5 pb-24">
             <h1 class="text-3xl font-extrabold tracking-[0.05em] mb-1">我的場次</h1>
             <p class="text-xs text-gray-400 mb-6">最近出席紀錄與場次記錄</p>
 
-            <!-- 登入用家資料 -->
+            <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200 shadow-sm mb-6">
+                <p class="text-gray-800 font-medium text-sm">最近3次出席紀錄：<span id="profile-credit-points" class="font-extrabold text-amber-600">3／3</span></p>
+                <p class="text-gray-500 text-xs mt-1">以最近3次已確認場次計算</p>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                        <h3 class="text-sm font-extrabold text-gray-900">我發佈的場次</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5">最近 3 筆由你建立的羽毛球場次</p>
+                    </div>
+                    <div id="my-hosted-activities" class="divide-y divide-gray-100">
+                        <div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你發佈的場次</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                        <h3 class="text-sm font-extrabold text-gray-900">我參加的場次</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5">最近 3 筆你已成功留位的場次</p>
+                    </div>
+                    <div id="my-joined-activities" class="divide-y divide-gray-100">
+                        <div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你參加的場次</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 頁面 5：設定 ==================== -->
+        <div id="page-settings" class="app-page hidden flex-1 p-5 pb-24">
+            <h1 class="text-3xl font-extrabold tracking-[0.05em] mb-1">設定</h1>
+            <p class="text-xs text-gray-400 mb-6">帳戶與收款設定</p>
+
             <div class="bg-gray-50 rounded-2xl p-5 border border-gray-200 shadow-sm mb-6">
                 <div class="flex items-center gap-4 mb-4">
                     <div class="profile-avatar-wrap shrink-0">
@@ -262,32 +294,6 @@
                         登出
                     </button>
                 </div>
-                <div class="space-y-2.5 text-sm">
-                    <p class="text-gray-800 font-medium">最近3次出席紀錄：<span id="profile-credit-points" class="font-extrabold text-amber-600">3／3</span></p>
-                    <p class="text-gray-500 text-xs">以最近3次已確認場次計算</p>
-                </div>
-            </div>
-
-            <div class="space-y-4">
-                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                        <h3 class="text-sm font-extrabold text-gray-900">我發佈的場次</h3>
-                        <p class="text-[10px] text-gray-400 mt-0.5">最近 3 筆由你建立的羽毛球場次</p>
-                    </div>
-                    <div id="my-hosted-activities" class="divide-y divide-gray-100">
-                        <div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你發佈的場次</div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                        <h3 class="text-sm font-extrabold text-gray-900">我參加的場次</h3>
-                        <p class="text-[10px] text-gray-400 mt-0.5">最近 3 筆你已成功留位的場次</p>
-                    </div>
-                    <div id="my-joined-activities" class="divide-y divide-gray-100">
-                        <div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你參加的場次</div>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -315,6 +321,9 @@
             </button>
             <button id="nav-profile" onclick="switchPage('profile')" class="flex flex-col items-center gap-0.5 min-w-0 flex-1 px-0.5">
                 <span class="text-base">📊</span><span class="leading-tight text-center">我的場次</span>
+            </button>
+            <button id="nav-settings" onclick="switchPage('settings')" class="flex flex-col items-center gap-0.5 min-w-0 flex-1 px-0.5">
+                <span class="text-base">⚙️</span><span>設定</span>
             </button>
         </footer>
 

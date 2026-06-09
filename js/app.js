@@ -808,7 +808,7 @@ function initRegionFilter() {
 }
 
 /* ---------- 分頁與啟動畫面（MUJI 毛玻璃路由過渡） ---------- */
-const PAGE_IDS = ['match', 'market', 'coach', 'profile'];
+const PAGE_IDS = ['match', 'market', 'coach', 'profile', 'settings'];
 let currentPageId = 'match';
 let pageTransitionLock = false;
 
@@ -903,6 +903,9 @@ async function switchPage(pageId, options = {}) {
 
         if (pageId === 'profile' && typeof window.renderMyActivities === 'function') {
             window.renderMyActivities();
+        }
+        if (pageId === 'settings' && typeof window.refreshHostPaymentSettings === 'function') {
+            window.refreshHostPaymentSettings();
         }
     } finally {
         pageTransitionLock = false;
