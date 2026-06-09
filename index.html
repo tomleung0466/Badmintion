@@ -320,19 +320,20 @@
 
         <!-- ==================== 彈出層 A：底部滑出發佈面板 (Bottom Sheet) ==================== -->
         <div id="bottom-sheet" class="hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="bottom-sheet-title" data-muji-swipe-dismiss>
-            <div class="bottom-sheet-panel bg-white w-full max-w-md rounded-t-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto overscroll-contain">
-                <div class="bottom-sheet-drag-zone">
+            <div class="bottom-sheet-panel bg-white w-full max-w-md rounded-t-2xl shadow-2xl max-h-[85vh] flex flex-col">
+                <div class="bottom-sheet-drag-zone" data-sheet-drag-handle>
                     <div class="bottom-sheet-grab" aria-hidden="true">
                         <span class="bottom-sheet-grab-bar"></span>
                     </div>
-                    <p class="bottom-sheet-drag-hint">下拉關閉</p>
+                    <p class="bottom-sheet-drag-hint">按住此處下拉關閉</p>
                     <div class="bottom-sheet-header">
                         <h3 id="bottom-sheet-title" class="bottom-sheet-title">發佈羽毛球場次</h3>
-                        <button type="button" id="bottom-sheet-close" class="bottom-sheet-close">關閉</button>
+                        <button type="button" id="bottom-sheet-close" class="bottom-sheet-close" data-sheet-no-drag>關閉</button>
                     </div>
                 </div>
-                
-                <form onsubmit="handleFormSubmit(event)" class="space-y-4 text-xs">
+
+                <div class="bottom-sheet-body">
+                <form onsubmit="handleFormSubmit(event)" class="bottom-sheet-form space-y-4 text-xs">
                     <div>
                         <label class="block text-gray-500 mb-1 font-medium">選擇香港具體分區</label>
                         <button type="button" onclick="openFormPicker('region')" class="publish-picker-btn">
@@ -441,6 +442,7 @@
                         確認發佈
                     </button>
                 </form>
+                </div>
             </div>
         </div>
 

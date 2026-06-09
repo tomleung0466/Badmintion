@@ -115,98 +115,62 @@
         if (!el?.dataset.mujiSwipeDismiss || el.dataset.mujiSwipeBound === '1') return;
 
         const panel = findOverlayPanel(el);
-        if (!panel) return;
+        const dragHandle = panel?.querySelector('[data-sheet-drag-handle]');
+        const scrollBody = panel?.querySelector('.bottom-sheet-body');
+        if (!panel || !dragHandle) return;
 
         let startY = 0;
-        let startX = 0;
         let lastY = 0;
         let lastTime = 0;
         let dragY = 0;
         let dragging = false;
-        let dragMode = null;
+        let activeSource = null;
 
-        function canPullFromContent() {
-            return panel.scrollTop <= 0;
+        function isInteractiveTarget(target) {
+            return Boolean(target.closest('[data-sheet-no-drag], button, input, textarea, select, a, label'));
         }
 
-        function touchInDragZone(target) {
-            return Boolean(target.closest('.bottom-sheet-drag-zone'));
-        }
-
-        function onTouchStart(event) {
-            if (!el.classList.contains('is-open')) return;
-
-            const touch = event.touches[0];
-            startY = touch.clientY;
-            startX = touch.clientX;
-            lastY = startY;
-            lastTime = event.timeStamp;
-            dragY = 0;
-            dragging = false;
-            dragMode = null;
-
-            if (touchInDragZone(event.target)) {
-                if (event.target.closest('button, input, textarea, select, a, label')) return;
-                dragMode = 'handle';
-                dragging = true;
-                panel.classList.add('muji-overlay__panel--dragging');
-                return;
-            }
-
-            if (canPullFromContent()) {
-                dragMode = 'content';
-            }
-        }
-
-        function onTouchMove(event) {
-            if (!dragMode) return;
-
-            const touch = event.touches[0];
-            const deltaY = touch.clientY - startY;
-            const deltaX = touch.clientX - startX;
-
-            if (!dragging) {
-                if (dragMode === 'content') {
-                    if (!canPullFromContent() || deltaY <= 0) return;
-                    if (Math.abs(deltaY) < 8) return;
-                    if (Math.abs(deltaX) > Math.abs(deltaY)) return;
-                    dragging = true;
-                    panel.classList.add('muji-overlay__panel--dragging');
-                } else {
-                    if (Math.abs(deltaY) < 4) return;
-                    dragging = true;
-                }
-            }
-
-            if (deltaY <= 0) {
-                dragY = 0;
-                panel.style.transform = 'translateY(0) translateZ(0)';
-                return;
-            }
-
-            event.preventDefault();
-            dragY = deltaY;
-            panel.style.transform = `translateY(${dragY}px) translateZ(0)`;
+        function applyDrag(offsetY) {
+            dragY = Math.max(0, offsetY);
+            panel.classList.add('muji-overlay__panel--dragging');
+            panel.style.transform = `translate3d(0, ${dragY}px, 0)`;
 
             const backdrop = el.querySelector(':scope > .muji-overlay__backdrop');
             if (backdrop) {
                 backdrop.style.transition = 'none';
                 backdrop.style.opacity = String(Math.max(0, 1 - dragY / 220));
             }
+        }
 
-            lastY = touch.clientY;
-            lastTime = event.timeStamp;
+        function snapBack() {
+            panel.classList.remove('muji-overlay__panel--dragging');
+            panel.classList.add('muji-overlay__panel--snapping');
+            dragHandle.classList.remove('is-sheet-dragging');
+            panel.style.transform = 'translate3d(0, 0, 0)';
+
+            const backdrop = el.querySelector(':scope > .muji-overlay__backdrop');
+            if (backdrop) {
+                backdrop.style.transition = '';
+                backdrop.style.opacity = '';
+            }
+
+            dragY = 0;
+            window.setTimeout(() => {
+                panel.classList.remove('muji-overlay__panel--snapping');
+                panel.style.transform = '';
+                panel.style.transition = '';
+            }, 220);
         }
 
         function finishDrag(event) {
-            if (!dragMode) return;
+            if (!activeSource) return;
 
-            const wasDragging = dragging;
+            const moved = dragging && dragY > 0;
+            activeSource = null;
             dragging = false;
-            dragMode = null;
-            panel.classList.remove('muji-overlay__panel--dragging');
+            dragHandle.classList.remove('is-sheet-dragging');
 
-            if (!wasDragging || dragY <= 0) {
+            if (!moved) {
                 resetPanelDragStyles(el);
                 return;
             }
@@ -222,23 +186,61 @@
                 return;
             }
 
-            panel.classList.add('muji-overlay__panel--snapping');
-            panel.style.transform = 'translateY(0) translateZ(0)';
-            const backdrop = el.querySelector(':scope > .muji-overlay__backdrop');
-            if (backdrop) {
-                backdrop.style.transition = '';
-                backdrop.style.opacity = '';
-            }
-            window.setTimeout(() => {
-                panel.classList.remove('muji-overlay__panel--snapping');
-            }, 220);
-            dragY = 0;
+            snapBack();
         }
 
-        panel.addEventListener('touchstart', onTouchStart, { passive: true });
-        panel.addEventListener('touchmove', onTouchMove, { passive: false });
-        panel.addEventListener('touchend', finishDrag);
-        panel.addEventListener('touchcancel', finishDrag);
+        function onDragStart(event, source) {
+            if (!el.classList.contains('is-open')) return;
+            if (isInteractiveTarget(event.target)) return;
+
+            const touch = event.touches[0];
+            startY = touch.clientY;
+            lastY = startY;
+            lastTime = event.timeStamp;
+            dragY = 0;
+            dragging = false;
+            activeSource = source;
+        }
+
+        function onDragMove(event) {
+            if (!activeSource) return;
+
+            const touch = event.touches[0];
+            const deltaY = touch.clientY - startY;
+
+            if (activeSource === 'body') {
+                if ((scrollBody?.scrollTop || 0) > 0) {
+                    activeSource = null;
+                    return;
+                }
+                if (deltaY <= 0) return;
+                if (!dragging && deltaY < 10) return;
+            } else if (!dragging && Math.abs(deltaY) < 4) {
+                return;
+            }
+
+            dragging = true;
+            dragHandle.classList.add('is-sheet-dragging');
+            event.preventDefault();
+            applyDrag(deltaY);
+            lastY = touch.clientY;
+            lastTime = event.timeStamp;
+        }
+
+        dragHandle.addEventListener('touchstart', event => onDragStart(event, 'handle'), { passive: true });
+        dragHandle.addEventListener('touchmove', onDragMove, { passive: false });
+        dragHandle.addEventListener('touchend', finishDrag);
+        dragHandle.addEventListener('touchcancel', finishDrag);
+
+        if (scrollBody) {
+            scrollBody.addEventListener('touchstart', event => {
+                if ((scrollBody.scrollTop || 0) > 0) return;
+                onDragStart(event, 'body');
+            }, { passive: true });
+            scrollBody.addEventListener('touchmove', onDragMove, { passive: false });
+            scrollBody.addEventListener('touchend', finishDrag);
+            scrollBody.addEventListener('touchcancel', finishDrag);
+        }
 
         el.dataset.mujiSwipeBound = '1';
     }
