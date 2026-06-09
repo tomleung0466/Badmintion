@@ -9,7 +9,6 @@
 
     const OVERLAY_VARIANTS = {
         'disclaimer-modal': 'modal',
-        'bottom-sheet': 'sheet',
         'form-picker': 'sheet',
         'scroll-picker': 'sheet',
         'payment-sheet': 'sheet',
@@ -23,7 +22,6 @@
 
     /** 點背景時應呼叫的關閉函數（含業務清理） */
     const OVERLAY_CLOSE_HANDLERS = {
-        'bottom-sheet': () => global.toggleBottomSheet?.(false),
         'form-picker': () => global.toggleFormPicker?.(false),
         'scroll-picker': () => global.toggleScrollPicker?.(false),
         'payment-sheet': () => global.togglePaymentSheet?.(false)

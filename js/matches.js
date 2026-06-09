@@ -2206,7 +2206,9 @@
                 return;
             }
 
-            toggleBottomSheet(false);
+            if (typeof window.closePublishPage === 'function') {
+                await window.closePublishPage();
+            }
             event.target.reset();
             resetPublishForm();
             renderCalendar('home');
@@ -2215,46 +2217,6 @@
 
             if (isPrivate && publishedFirestoreId) {
                 openPrivateShareModal(publishedFirestoreId);
-            }
-        }
-
-        function isBottomSheetOpen() {
-            const sheet = document.getElementById('bottom-sheet');
-            return Boolean(sheet && sheet.classList.contains('is-open') && !sheet.classList.contains('hidden'));
-        }
-
-        function bindBottomSheetUI() {
-            const fab = document.getElementById('publish-fab-btn');
-            const closeBtn = document.getElementById('bottom-sheet-close');
-
-            fab?.addEventListener('click', () => {
-                toggleBottomSheet(isBottomSheetOpen() ? false : true);
-            });
-            closeBtn?.addEventListener('click', () => toggleBottomSheet(false));
-        }
-
-        async function toggleBottomSheet(show) {
-            const sheet = document.getElementById('bottom-sheet');
-            if (!sheet) return;
-
-            const shouldOpen = show === undefined ? !isBottomSheetOpen() : Boolean(show);
-
-            if (shouldOpen) {
-                resetPublishForm();
-                if (typeof window.openMujiOverlay === 'function') {
-                    await window.openMujiOverlay(sheet);
-                } else {
-                    sheet.classList.remove('hidden');
-                    sheet.classList.add('is-open');
-                }
-                return;
-            }
-
-            if (typeof window.closeMujiOverlay === 'function') {
-                await window.closeMujiOverlay(sheet);
-            } else {
-                sheet.classList.remove('is-open');
-                sheet.classList.add('hidden');
             }
         }
 
@@ -2267,7 +2229,6 @@
             refreshHostPaymentSettings();
             bindPrivateShareUI();
             bindSessionModals();
-            bindBottomSheetUI();
             inviteActivityId = getInviteIdFromUrl();
             await loadActivitiesFromCloud();
             await loadInviteActivity();
@@ -2278,7 +2239,6 @@
             if (typeof updateProfileUI === 'function') updateProfileUI();
         }
 
-        window.toggleBottomSheet = toggleBottomSheet;
         window.toggleFormPicker = toggleFormPicker;
         window.togglePaymentSheet = togglePaymentSheet;
         window.openFormPicker = openFormPicker;
@@ -2289,3 +2249,4 @@
         window.toggleCalendarExpand = toggleCalendarExpand;
         window.changeCalendarMonth = changeCalendarMonth;
         window.renderMyActivities = renderMyActivities;
+        window.resetPublishForm = resetPublishForm;

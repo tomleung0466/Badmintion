@@ -293,11 +293,6 @@ body.muji-overlay-open {
   overflow: hidden;
 }
 
-#bottom-sheet.muji-overlay,
-#scroll-picker.muji-overlay {
-  z-index: 90;
-}
-
 #form-picker.muji-overlay {
   z-index: 100;
 }
@@ -325,100 +320,121 @@ body.muji-overlay-open {
   z-index: 150;
 }
 
-/* 發佈場次底部面板 */
-.bottom-sheet-panel {
+#scroll-picker.muji-overlay {
+  z-index: 90;
+}
+
+/* 發佈場次全頁（右入左出） */
+.publish-page {
+  position: absolute;
+  inset: 0;
+  z-index: 55;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  background: var(--muji-card, #fff);
+  box-shadow: -6px 0 28px rgba(0, 0, 0, 0.08);
+  transform: translateX(100%);
+  transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+  touch-action: pan-y;
 }
 
-.bottom-sheet-drag-zone {
-  flex-shrink: 0;
-  padding: 0.75rem 1.5rem 0.5rem;
+.publish-page.hidden {
+  display: none !important;
+}
+
+.publish-page.publish-page--active {
+  transform: translateX(0);
+}
+
+.publish-page.publish-page--leaving {
+  transform: translateX(100%);
+}
+
+.publish-page.publish-page--dragging {
+  transition: none !important;
+}
+
+.publish-edge-swipe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 1.25rem;
+  z-index: 4;
   touch-action: none;
-  -webkit-user-select: none;
-  user-select: none;
-  cursor: grab;
 }
 
-.bottom-sheet-drag-zone.is-sheet-dragging {
-  cursor: grabbing;
-}
-
-.bottom-sheet-grab {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  min-height: 1.75rem;
-  align-items: center;
-  padding: 0.125rem 0;
-}
-
-.bottom-sheet-grab-bar {
-  display: block;
-  width: 2.75rem;
-  height: 0.3rem;
-  border-radius: 999px;
-  background: #d4d4d4;
-}
-
-.bottom-sheet-drag-hint {
-  margin: 0.125rem 0 0.5rem;
-  text-align: center;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  color: #b0b0b0;
-}
-
-.bottom-sheet-header {
+.publish-page-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.75rem;
-  padding-bottom: 0.375rem;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--muji-border);
+  background: rgba(255, 255, 255, 0.96);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
-.bottom-sheet-body {
+.publish-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.375rem 0.625rem 0.375rem 0.25rem;
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--muji-text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.publish-back-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.publish-page-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--muji-text);
+}
+
+.publish-page-body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding: 0 1.5rem 1.5rem;
-  touch-action: pan-y;
+  padding: 0.75rem 1.25rem 1.5rem;
 }
 
-.bottom-sheet-form {
-  padding-top: 0.25rem;
+.publish-swipe-hint {
+  margin: 0 0 0.875rem;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #b0b0b0;
 }
 
-.muji-overlay__panel.muji-overlay__panel--dragging {
-  transition: none !important;
+.publish-form {
+  padding-bottom: 0.5rem;
 }
 
-.muji-overlay__panel.muji-overlay__panel--snapping {
-  transition: transform 220ms ease-out, opacity 220ms ease-out !important;
+body.publish-page-open {
+  overflow: hidden;
 }
 
-.bottom-sheet-title {
-  font-size: 1.25rem;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  color: var(--muji-text);
-}
-
-.bottom-sheet-close {
-  flex-shrink: 0;
-  padding: 0.375rem 0.75rem;
-  border: 1px solid var(--muji-border);
-  border-radius: 999px;
-  background: #fff;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--muji-muted);
-  -webkit-tap-highlight-color: transparent;
+@media (prefers-reduced-motion: reduce) {
+  .publish-page {
+    transition: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

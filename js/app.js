@@ -835,6 +835,198 @@ async function switchPage(pageId, options = {}) {
 
 window.switchPage = switchPage;
 
+/* ---------- 發佈場次全頁（右入 · 左滑返回） ---------- */
+const PUBLISH_TRANSITION_MS = 320;
+const PUBLISH_SWIPE_THRESHOLD = 72;
+const PUBLISH_SWIPE_VELOCITY = 0.45;
+let publishOpen = false;
+let publishTransitionLock = false;
+
+function getPublishPageEl() {
+    return document.getElementById('page-publish');
+}
+
+function isPublishPageOpen() {
+    return publishOpen && Boolean(getPublishPageEl() && !getPublishPageEl().classList.contains('hidden'));
+}
+
+function waitPublishMs(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function openPublishPage() {
+    if (publishTransitionLock || publishOpen) return;
+    const page = getPublishPageEl();
+    if (!page) return;
+
+    if (typeof window.resetPublishForm === 'function') {
+        window.resetPublishForm();
+    }
+
+    publishTransitionLock = true;
+    publishOpen = true;
+
+    page.classList.remove('hidden', 'publish-page--leaving', 'publish-page--dragging');
+    page.setAttribute('aria-hidden', 'false');
+    page.style.transform = 'translateX(100%)';
+    void page.offsetWidth;
+
+    const reduced = typeof window.prefersReducedMotion === 'function' && window.prefersReducedMotion();
+    if (reduced) {
+        page.classList.add('publish-page--active');
+        page.style.transform = '';
+    } else {
+        requestAnimationFrame(() => {
+            page.classList.add('publish-page--active');
+            page.style.transform = '';
+        });
+        await waitPublishMs(PUBLISH_TRANSITION_MS);
+    }
+
+    document.body.classList.add('publish-page-open');
+    publishTransitionLock = false;
+}
+
+async function closePublishPage() {
+    if (publishTransitionLock || !publishOpen) return;
+    const page = getPublishPageEl();
+    if (!page) return;
+
+    publishTransitionLock = true;
+    page.classList.remove('publish-page--active', 'publish-page--dragging');
+    page.classList.add('publish-page--leaving');
+    page.style.transform = '';
+
+    const reduced = typeof window.prefersReducedMotion === 'function' && window.prefersReducedMotion();
+    await waitPublishMs(reduced ? 0 : PUBLISH_TRANSITION_MS);
+
+    page.classList.add('hidden');
+    page.classList.remove('publish-page--leaving');
+    page.style.transform = '';
+    page.setAttribute('aria-hidden', 'true');
+    publishOpen = false;
+    document.body.classList.remove('publish-page-open');
+    publishTransitionLock = false;
+}
+
+function bindPublishSwipeBack() {
+    const page = getPublishPageEl();
+    if (!page || page.dataset.publishSwipeBound === '1') return;
+
+    const edgeZone = page.querySelector('[data-publish-edge-swipe]');
+    let startX = 0;
+    let startY = 0;
+    let lastX = 0;
+    let lastTime = 0;
+    let dragX = 0;
+    let dragging = false;
+    let tracking = false;
+    let fromEdge = false;
+
+    function resetGesture() {
+        startX = 0;
+        startY = 0;
+        dragX = 0;
+        dragging = false;
+        tracking = false;
+        fromEdge = false;
+    }
+
+    function onTouchStart(event, edge) {
+        if (!isPublishPageOpen()) return;
+
+        const touch = event.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        lastX = startX;
+        lastTime = event.timeStamp;
+        dragX = 0;
+        dragging = false;
+        tracking = true;
+        fromEdge = edge;
+    }
+
+    function onTouchMove(event) {
+        if (!tracking || !isPublishPageOpen()) return;
+
+        const touch = event.touches[0];
+        const deltaX = touch.clientX - startX;
+        const deltaY = touch.clientY - startY;
+
+        if (!dragging) {
+            if (fromEdge) {
+                if (deltaX <= 4) return;
+            } else {
+                if (deltaX <= 12 || deltaX <= Math.abs(deltaY)) return;
+            }
+            dragging = true;
+            page.classList.add('publish-page--dragging');
+        }
+
+        if (deltaX <= 0) {
+            dragX = 0;
+            page.style.transform = 'translateX(0)';
+            return;
+        }
+
+        event.preventDefault();
+        dragX = deltaX;
+        page.style.transform = `translateX(${dragX}px)`;
+        lastX = touch.clientX;
+        lastTime = event.timeStamp;
+    }
+
+    async function onTouchEnd(event) {
+        if (!tracking) return;
+
+        const moved = dragging && dragX > 0;
+        tracking = false;
+        dragging = false;
+        page.classList.remove('publish-page--dragging');
+
+        if (!moved) {
+            resetGesture();
+            return;
+        }
+
+        const touch = event.changedTouches?.[0];
+        const velocity = touch
+            ? Math.max(0, (touch.clientX - lastX) / Math.max(16, event.timeStamp - lastTime))
+            : 0;
+        const shouldClose = dragX >= PUBLISH_SWIPE_THRESHOLD || velocity >= PUBLISH_SWIPE_VELOCITY;
+
+        if (shouldClose) {
+            resetGesture();
+            await closePublishPage();
+            return;
+        }
+
+        page.style.transform = '';
+        resetGesture();
+    }
+
+    page.addEventListener('touchstart', event => onTouchStart(event, false), { passive: true });
+    page.addEventListener('touchmove', onTouchMove, { passive: false });
+    page.addEventListener('touchend', onTouchEnd);
+    page.addEventListener('touchcancel', onTouchEnd);
+    edgeZone?.addEventListener('touchstart', event => onTouchStart(event, true), { passive: true });
+
+    page.dataset.publishSwipeBound = '1';
+}
+
+function bindPublishPageUI() {
+    document.getElementById('publish-back-btn')?.addEventListener('click', () => closePublishPage());
+    document.getElementById('publish-fab-btn')?.addEventListener('click', () => {
+        if (isPublishPageOpen()) closePublishPage();
+        else openPublishPage();
+    });
+    bindPublishSwipeBack();
+}
+
+window.openPublishPage = openPublishPage;
+window.closePublishPage = closePublishPage;
+window.isPublishPageOpen = isPublishPageOpen;
+
 const DISCLAIMER_ACK_KEY = 'plus1_disclaimer_ack';
 
 function initDisclaimerModal() {
@@ -895,6 +1087,7 @@ function initApp() {
     initDisclaimerModal();
     initSplashScreen();
     initRegionFilter();
+    bindPublishPageUI();
     if (typeof initMatchesApp === 'function') {
         initMatchesApp();
     }
