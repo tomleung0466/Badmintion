@@ -256,10 +256,14 @@ button {
   max-width: 28rem;
   justify-self: center;
   opacity: 0;
-  pointer-events: auto;
+  pointer-events: none;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+.muji-overlay.is-open .muji-overlay__panel {
+  pointer-events: auto;
 }
 
 .muji-overlay--sheet .muji-overlay__panel {
@@ -319,6 +323,59 @@ body.muji-overlay-open {
 
 #disclaimer-modal.muji-overlay {
   z-index: 150;
+}
+
+/* 發佈場次底部面板 */
+.bottom-sheet-panel {
+  -webkit-overflow-scrolling: touch;
+}
+
+.bottom-sheet-grab {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 0.25rem 0 0.75rem;
+  margin: -0.25rem 0 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-sheet-grab-bar {
+  display: block;
+  width: 3rem;
+  height: 0.25rem;
+  border-radius: 999px;
+  background: #e5e5e5;
+}
+
+.bottom-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.bottom-sheet-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--muji-text);
+}
+
+.bottom-sheet-close {
+  flex-shrink: 0;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--muji-muted);
+  -webkit-tap-highlight-color: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {

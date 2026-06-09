@@ -2218,16 +2218,36 @@
             }
         }
 
+        function isBottomSheetOpen() {
+            const sheet = document.getElementById('bottom-sheet');
+            return Boolean(sheet && sheet.classList.contains('is-open') && !sheet.classList.contains('hidden'));
+        }
+
+        function bindBottomSheetUI() {
+            const fab = document.getElementById('publish-fab-btn');
+            const closeBtn = document.getElementById('bottom-sheet-close');
+            const grabBtn = document.getElementById('bottom-sheet-grab');
+
+            fab?.addEventListener('click', () => {
+                toggleBottomSheet(isBottomSheetOpen() ? false : true);
+            });
+            closeBtn?.addEventListener('click', () => toggleBottomSheet(false));
+            grabBtn?.addEventListener('click', () => toggleBottomSheet(false));
+        }
+
         async function toggleBottomSheet(show) {
             const sheet = document.getElementById('bottom-sheet');
             if (!sheet) return;
 
-            if (show) {
+            const shouldOpen = show === undefined ? !isBottomSheetOpen() : Boolean(show);
+
+            if (shouldOpen) {
                 resetPublishForm();
                 if (typeof window.openMujiOverlay === 'function') {
                     await window.openMujiOverlay(sheet);
                 } else {
                     sheet.classList.remove('hidden');
+                    sheet.classList.add('is-open');
                 }
                 return;
             }
@@ -2235,6 +2255,7 @@
             if (typeof window.closeMujiOverlay === 'function') {
                 await window.closeMujiOverlay(sheet);
             } else {
+                sheet.classList.remove('is-open');
                 sheet.classList.add('hidden');
             }
         }
@@ -2248,6 +2269,7 @@
             refreshHostPaymentSettings();
             bindPrivateShareUI();
             bindSessionModals();
+            bindBottomSheetUI();
             inviteActivityId = getInviteIdFromUrl();
             await loadActivitiesFromCloud();
             await loadInviteActivity();

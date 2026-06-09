@@ -107,7 +107,7 @@
             </div>
 
             <!-- 懸浮發佈按鈕 (+) -->
-            <button id="publish-fab-btn" onclick="toggleBottomSheet(true)" class="fixed bottom-24 right-6 bg-white text-[#333333] border border-[#E5E5E5] w-14 h-14 rounded-full flex items-center justify-center text-2xl font-light transition-colors z-40">
+            <button id="publish-fab-btn" type="button" class="fixed bottom-24 right-6 bg-white text-[#333333] border border-[#E5E5E5] w-14 h-14 rounded-full flex items-center justify-center text-2xl font-light transition-colors z-40" aria-label="發佈場次">
                 ＋
             </button>
         </div>
@@ -319,13 +319,15 @@
         </footer>
 
         <!-- ==================== 彈出層 A：底部滑出發佈面板 (Bottom Sheet) ==================== -->
-        <div id="bottom-sheet" class="hidden fixed inset-0 bg-black/40 z-50 flex items-end justify-center transition-opacity">
-            <!-- 點擊背景關閉 -->
-            <div class="absolute inset-0" onclick="toggleBottomSheet(false)"></div>
-            <!-- 面板主體 -->
-            <div class="bg-white w-full max-w-md rounded-t-2xl p-6 shadow-2xl relative z-10 max-h-[85vh] overflow-y-auto">
-                <div class="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-5"></div>
-                <h3 class="text-xl font-medium tracking-[0.05em] mb-4">發佈羽毛球場次</h3>
+        <div id="bottom-sheet" class="hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="bottom-sheet-title">
+            <div class="bottom-sheet-panel bg-white w-full max-w-md rounded-t-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
+                <button type="button" id="bottom-sheet-grab" class="bottom-sheet-grab" aria-label="關閉發佈面板">
+                    <span class="bottom-sheet-grab-bar" aria-hidden="true"></span>
+                </button>
+                <div class="bottom-sheet-header">
+                    <h3 id="bottom-sheet-title" class="bottom-sheet-title">發佈羽毛球場次</h3>
+                    <button type="button" id="bottom-sheet-close" class="bottom-sheet-close">關閉</button>
+                </div>
                 
                 <form onsubmit="handleFormSubmit(event)" class="space-y-4 text-xs">
                     <div>

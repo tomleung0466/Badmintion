@@ -93,30 +93,42 @@
         return () => fn(match[2] === 'false' ? false : undefined);
     }
 
-    function bindBackdropDismiss(el, backdrop) {
-        if (!backdrop || backdrop.dataset.mujiDismissBound === '1') return;
+    function dismissOverlay(el) {
+        const handler = OVERLAY_CLOSE_HANDLERS[el.id];
+        if (handler) {
+            handler();
+            return;
+        }
+        closeMujiOverlay(el);
+    }
 
-        const legacyHandler = parseLegacyDismissFn(backdrop.getAttribute('onclick'));
-        if (legacyHandler) {
+    function bindOverlayDismiss(el) {
+        if (!el || el.dataset.mujiDismissBound === '1') return;
+
+        const backdrop = el.querySelector(':scope > .muji-overlay__backdrop');
+        const legacyHandler = backdrop
+            ? parseLegacyDismissFn(backdrop.getAttribute('onclick'))
+            : null;
+
+        if (backdrop) {
+            backdrop.classList.remove('absolute', 'inset-0', 'fixed');
             backdrop.removeAttribute('onclick');
         }
 
-        const dismiss = () => {
-            const handler = OVERLAY_CLOSE_HANDLERS[el.id] || legacyHandler;
-            if (handler) {
-                handler();
-                return;
+        const tryDismiss = event => {
+            const target = event.target;
+            if (target.closest('.muji-overlay__panel')) return;
+            if (target === el || target.classList.contains('muji-overlay__backdrop')) {
+                event.preventDefault();
+                event.stopPropagation();
+                (OVERLAY_CLOSE_HANDLERS[el.id] || legacyHandler || (() => closeMujiOverlay(el)))();
             }
-            closeMujiOverlay(el);
         };
 
-        backdrop.addEventListener('click', event => {
-            event.preventDefault();
-            event.stopPropagation();
-            dismiss();
-        });
+        el.addEventListener('click', tryDismiss);
+        el.addEventListener('touchend', tryDismiss, { passive: false });
 
-        backdrop.dataset.mujiDismissBound = '1';
+        el.dataset.mujiDismissBound = '1';
     }
 
     function syncBodyOverlayLock() {
@@ -150,8 +162,16 @@
             panel.classList.add('muji-overlay__panel');
         }
 
-        bindBackdropDismiss(el, backdrop);
+        bindOverlayDismiss(el);
         el.dataset.mujiOverlayReady = '1';
+    }
+
+    function onEscapeKey(event) {
+        if (event.key !== 'Escape') return;
+        const openOverlay = document.querySelector('.muji-overlay.is-open');
+        if (!openOverlay) return;
+        event.preventDefault();
+        dismissOverlay(openOverlay);
     }
 
     function initOverlayRegistry() {
@@ -161,6 +181,7 @@
         document.querySelectorAll('[data-muji-overlay]').forEach(el => {
             ensureOverlayStructure(el, el.dataset.mujiOverlay || 'modal');
         });
+        document.addEventListener('keydown', onEscapeKey);
     }
 
     async function openMujiOverlay(target, options = {}) {
