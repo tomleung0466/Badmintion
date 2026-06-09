@@ -1539,9 +1539,11 @@
             const profileBtn = document.getElementById('edit-profile-btn');
             if (profilePanel) profilePanel.classList.add('hidden');
             if (profileBtn) profileBtn.classList.remove('is-active-profile-action');
-            if (panel) panel.classList.remove('hidden');
-            if (hostBtn) hostBtn.classList.add('is-active-profile-action');
-            await refreshHostPaymentSettings();
+
+            const opening = panel?.classList.contains('hidden');
+            if (panel) panel.classList.toggle('hidden');
+            if (hostBtn) hostBtn.classList.toggle('is-active-profile-action');
+            if (opening) await refreshHostPaymentSettings();
         }
 
         async function uploadCroppedHostQr(type, croppedFile) {
