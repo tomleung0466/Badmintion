@@ -1183,8 +1183,9 @@
         }
 
         function getActivityTimeLabel(activity) {
-            return activity.playTime && String(activity.playTime).trim()
-                ? String(activity.playTime).trim()
+            const raw = activity.displayTimeSlot || activity.playTime;
+            return raw && String(raw).trim()
+                ? String(raw).trim()
                 : i18n('date.timePending');
         }
 
@@ -1209,12 +1210,15 @@
 
         function renderMatchDateTimeCapsules(match, options = {}) {
             const cardBadges = getMatchCardBadges(match, options);
+            const badgesHtml = cardBadges
+                ? `<div class="match-card-badges">${cardBadges}</div>`
+                : '';
             return `
-                <p class="match-card-kicker">${i18n('match.dateTimeLabel')} ${cardBadges}</p>
                 <div class="match-card-capsules">
-                    <span class="match-card-capsule match-card-capsule--date">${escapeHtml(getActivityDateLabel(match))}</span>
+                    <span class="match-card-capsule">${escapeHtml(getActivityDateLabel(match))}</span>
                     <span class="match-card-capsule match-card-capsule--time">${escapeHtml(getActivityTimeLabel(match))}</span>
                 </div>
+                ${badgesHtml}
             `;
         }
 

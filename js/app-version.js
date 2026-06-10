@@ -2,9 +2,16 @@
  * app-version.js — 版本號與更新內容（每次發佈請同步更新此檔與 sw.js CACHE_NAME）
  */
 window.APP_VERSION = {
-    version: '1.25.1',
-    build: 26,
+    version: '1.25.2',
+    build: 27,
     changelog: [
+        {
+            version: '1.25.2',
+            date: '2026-06-11',
+            items: [
+                '場次卡片改為日期、時間分開膠囊顯示，場主資訊獨立一行'
+            ]
+        },
         {
             version: '1.25.1',
             date: '2026-06-04',
