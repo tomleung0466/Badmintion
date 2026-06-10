@@ -227,6 +227,32 @@ service cloud.firestore {
       }
     }
 
+    function feedbackAllowedKeys() {
+      return [
+        'uid',
+        'email',
+        'displayName',
+        'message',
+        'appVersion',
+        'appBuild',
+        'page',
+        'userAgent',
+        'createdAt'
+      ];
+    }
+
+    // ── feedback：用戶意見（僅建立；後台於 Firebase Console 查看） ──
+    match /feedback/{feedbackId} {
+      allow read: if false;
+      allow update, delete: if false;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.message is string
+        && request.resource.data.message.size() >= 5
+        && request.resource.data.message.size() <= 1000
+        && request.resource.data.keys().hasOnly(feedbackAllowedKeys());
+    }
+
     // ── activities：發佈 / 報名 / 後補 / 取消 ────────────────
     match /activities/{activityId} {
       allow read: if true;

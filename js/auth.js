@@ -1342,5 +1342,40 @@ window.dbUpdateUserProfile = async function dbUpdateUserProfile(newName, imageFi
     }
 };
 
+window.dbSubmitFeedback = async function dbSubmitFeedback(payload = {}) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入後再提交意見");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+
+        const message = String(payload.message || "").trim();
+        if (message.length < 5 || message.length > 1000) {
+            const error = new Error("意見內容須為 5 至 1000 字");
+            error.code = "feedback/invalid-message";
+            throw error;
+        }
+
+        await addDoc(collection(db, "feedback"), {
+            uid: user.uid,
+            email: user.email || null,
+            displayName: user.displayName || null,
+            message,
+            appVersion: String(payload.appVersion || ""),
+            appBuild: payload.appBuild ?? null,
+            page: String(payload.page || "settings"),
+            userAgent: typeof navigator !== "undefined" ? String(navigator.userAgent || "") : "",
+            createdAt: serverTimestamp()
+        });
+
+        return { submitted: true };
+    } catch (err) {
+        console.error("提交意見失敗:", err);
+        throw err;
+    }
+};
+
 window.firebaseDbBridgeReady = true;
 window.dispatchEvent(new CustomEvent("firebase-db-bridge-ready"));

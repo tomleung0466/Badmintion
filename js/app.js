@@ -510,6 +510,203 @@ function bindProfileEditUI() {
     }
 }
 
+function getAppVersionInfo() {
+    return window.APP_VERSION && typeof window.APP_VERSION === 'object'
+        ? window.APP_VERSION
+        : { version: '—', build: '', changelog: [] };
+}
+
+function updateSettingsVersionLabel() {
+    const label = document.getElementById('settings-version-label');
+    if (!label) return;
+    const info = getAppVersionInfo();
+    label.textContent = info.version ? `v${info.version}` : '—';
+}
+
+function renderVersionChangelog() {
+    const list = document.getElementById('version-changelog-list');
+    const current = document.getElementById('version-modal-current');
+    if (!list) return;
+
+    const info = getAppVersionInfo();
+    if (current) {
+        const buildLabel = info.build ? `（Build ${info.build}）` : '';
+        current.textContent = `目前版本 v${info.version || '—'}${buildLabel}`;
+    }
+
+    const entries = Array.isArray(info.changelog) ? info.changelog : [];
+    if (!entries.length) {
+        list.innerHTML = '<p class="version-changelog-date">暫無更新紀錄</p>';
+        return;
+    }
+
+    list.innerHTML = entries.map(entry => {
+        const items = Array.isArray(entry.items) ? entry.items : [];
+        const isCurrent = entry.version === info.version;
+        return `
+            <section class="version-changelog-entry${isCurrent ? ' is-current' : ''}">
+                <div class="version-changelog-head">
+                    <span class="version-changelog-version">v${escapeHtml(entry.version || '—')}${isCurrent ? ' · 目前' : ''}</span>
+                    <span class="version-changelog-date">${escapeHtml(entry.date || '')}</span>
+                </div>
+                <ul class="version-changelog-items">
+                    ${items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+                </ul>
+            </section>
+        `;
+    }).join('');
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+async function openVersionModal() {
+    renderVersionChangelog();
+    const modal = document.getElementById('version-modal');
+    if (!modal) return;
+    if (typeof window.openMujiOverlay === 'function') {
+        await window.openMujiOverlay(modal);
+    } else {
+        modal.classList.remove('hidden');
+    }
+}
+
+async function closeVersionModal() {
+    const modal = document.getElementById('version-modal');
+    if (!modal) return;
+    if (typeof window.closeMujiOverlay === 'function') {
+        await window.closeMujiOverlay(modal);
+    } else {
+        modal.classList.add('hidden');
+    }
+}
+
+function setFeedbackStatus(message, tone = '') {
+    const statusEl = document.getElementById('feedback-status');
+    if (!statusEl) return;
+    statusEl.textContent = message || '';
+    statusEl.classList.remove('hidden', 'is-success', 'is-error');
+    if (!message) {
+        statusEl.classList.add('hidden');
+        return;
+    }
+    if (tone) statusEl.classList.add(tone === 'success' ? 'is-success' : 'is-error');
+}
+
+async function openFeedbackModal() {
+    if (!window.firebaseAuthUid) {
+        alert('請先登入 +1，然後再提交意見。');
+        return;
+    }
+
+    const input = document.getElementById('feedback-message-input');
+    const submitBtn = document.getElementById('feedback-submit-btn');
+    if (input) input.value = '';
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '送出意見';
+    }
+    setFeedbackStatus('');
+
+    const modal = document.getElementById('feedback-modal');
+    if (!modal) return;
+    if (typeof window.openMujiOverlay === 'function') {
+        await window.openMujiOverlay(modal);
+    } else {
+        modal.classList.remove('hidden');
+    }
+}
+
+async function closeFeedbackModal() {
+    const modal = document.getElementById('feedback-modal');
+    if (!modal) return;
+    if (typeof window.closeMujiOverlay === 'function') {
+        await window.closeMujiOverlay(modal);
+    } else {
+        modal.classList.add('hidden');
+    }
+}
+
+async function submitFeedback() {
+    const input = document.getElementById('feedback-message-input');
+    const submitBtn = document.getElementById('feedback-submit-btn');
+    const message = input ? input.value.trim() : '';
+
+    if (!window.firebaseAuthUid) {
+        alert('請先登入 +1，然後再提交意見。');
+        return;
+    }
+    if (message.length < 5) {
+        setFeedbackStatus('請至少輸入 5 個字。', 'error');
+        input?.focus();
+        return;
+    }
+    if (typeof window.dbSubmitFeedback !== 'function') {
+        setFeedbackStatus('意見服務暫時未連線，請稍後再試。', 'error');
+        return;
+    }
+
+    const originalText = submitBtn ? submitBtn.textContent : '';
+    try {
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = '送出中...';
+        }
+        setFeedbackStatus('');
+
+        const info = getAppVersionInfo();
+        await window.dbSubmitFeedback({
+            message,
+            appVersion: info.version || '',
+            appBuild: info.build || null,
+            page: 'settings'
+        });
+
+        setFeedbackStatus('多謝你的意見，我們會盡快跟進。', 'success');
+        if (input) input.value = '';
+        window.setTimeout(async () => {
+            await closeFeedbackModal();
+        }, 900);
+    } catch (err) {
+        console.error('提交意見失敗:', err);
+        if (err?.code === 'permission-denied') {
+            setFeedbackStatus('提交被拒絕：請確認已登入，並在 Firebase 發佈最新規則。', 'error');
+            return;
+        }
+        setFeedbackStatus('送出失敗，請稍後再試。', 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText || '送出意見';
+        }
+    }
+}
+
+function bindSettingsPageUI() {
+    updateSettingsVersionLabel();
+    document.getElementById('settings-version-btn')?.addEventListener('click', openVersionModal);
+    document.getElementById('settings-feedback-btn')?.addEventListener('click', openFeedbackModal);
+    document.getElementById('version-modal-close')?.addEventListener('click', closeVersionModal);
+    document.getElementById('feedback-submit-btn')?.addEventListener('click', submitFeedback);
+    document.getElementById('feedback-cancel-btn')?.addEventListener('click', closeFeedbackModal);
+    document.getElementById('version-modal')?.addEventListener('click', event => {
+        if (event.target.id === 'version-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
+            closeVersionModal();
+        }
+    });
+    document.getElementById('feedback-modal')?.addEventListener('click', event => {
+        if (event.target.id === 'feedback-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
+            closeFeedbackModal();
+        }
+    });
+}
+
 /* ---------- 滾筒選擇器底層 ---------- */
 function updateWheelHighlight(scrollerId, itemClass) {
     const scroller = document.getElementById(scrollerId);
@@ -1248,6 +1445,7 @@ function initApp() {
     loadCurrentUser();
     updateProfileUI();
     bindProfileEditUI();
+    bindSettingsPageUI();
     initDisclaimerModal();
     initSplashScreen();
     initRegionFilter();

@@ -16,6 +16,8 @@
         'host-manage-modal': 'modal',
         'delete-activity-confirm-modal': 'modal',
         'publish-duplicate-modal': 'modal',
+        'version-modal': 'modal',
+        'feedback-modal': 'modal',
         'private-share-modal': 'modal',
         'host-qr-crop-modal': 'modal',
         'avatar-crop-modal': 'modal',
