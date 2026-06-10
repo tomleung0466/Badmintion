@@ -1897,6 +1897,7 @@ button:hover {
   color: var(--muji-muted);
 }
 
+.match-host-owned-badge,
 .session-private-badge {
   display: inline-block;
   margin-left: 0.25rem;
@@ -1905,8 +1906,16 @@ button:hover {
   border-radius: 9999px;
   font-size: 9px;
   letter-spacing: 0.08em;
-  color: var(--muji-muted);
   vertical-align: middle;
+}
+
+.match-host-owned-badge {
+  color: var(--muji-text);
+  background: var(--muji-soft);
+}
+
+.session-private-badge {
+  color: var(--muji-muted);
 }
 
 .invite-match-wrap {

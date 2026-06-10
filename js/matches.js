@@ -120,7 +120,7 @@
             localStorage.setItem('uber_badminton_matches', JSON.stringify(matches));
         }
 
-        let homeSelectedDate = todayISO;
+        let homeSelectedDate = null;
         let homeCalendarExpanded = false;
         let formCalendarExpanded = false;
         const now = new Date();
@@ -523,6 +523,16 @@
             renderCalendar('home');
             collapseCalendar('home');
             renderMatches();
+        }
+
+        function syncHomeLobbyAfterPublish(playDate) {
+            if (!playDate) return;
+            homeSelectedDate = playDate;
+            const d = parseDateISO(playDate);
+            homeCalendarYear = d.getFullYear();
+            homeCalendarMonth = d.getMonth();
+            updateCalendarCollapsedText('home');
+            renderCalendar('home');
         }
 
         function renderCalendar(mode) {
@@ -1012,8 +1022,8 @@
         }
 
         function canShowMatchInLobby(match) {
-            if (!isPrivateMatch(match)) return true;
-            return isOwnHostedMatch(match);
+            if (isOwnHostedMatch(match)) return true;
+            return !isPrivateMatch(match);
         }
 
         function waitForFirebaseAuth(timeoutMs = 10000) {
@@ -1223,9 +1233,16 @@
             const isOnWaitlist = isUserOnWaitlist(match);
             const joinStatus = getUserJoinStatus(match);
             const bookId = getMatchBookId(match);
-            const privateBadge = showPrivateBadge || match.isPrivate
-                ? '<span class="session-private-badge">私人邀請</span>'
-                : '';
+            const isOwnHosted = isOwnHostedMatch(match);
+            let cardBadges = '';
+            if (isOwnHosted) {
+                cardBadges += '<span class="match-host-owned-badge">你發佈的</span>';
+                if (isPrivateMatch(match)) {
+                    cardBadges += '<span class="session-private-badge">私人</span>';
+                }
+            } else if (showPrivateBadge || isPrivateMatch(match)) {
+                cardBadges += '<span class="session-private-badge">私人邀請</span>';
+            }
 
             let actionHtml = '';
             if (joinStatus === 'approved') {
@@ -1265,13 +1282,13 @@
 
             const district = match.region || '';
             const macroRegion = typeof getMatchMacroRegion === 'function' ? getMatchMacroRegion(match) : '';
-            const hostOwnAttr = isPrivateMatch(match) && isOwnHostedMatch(match) ? ' data-host-own="true"' : '';
+            const hostOwnAttr = isOwnHosted ? ' data-host-own="true"' : '';
 
             return `
                 <div data-macro-region="${escapeHtml(macroRegion)}" data-district="${escapeHtml(district)}"${hostOwnAttr} class="match-card bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]">
                     <div class="flex justify-between items-start gap-4 mb-5">
                         <div>
-                            <p class="text-[10px] tracking-[0.18em] text-[#777777]">日期時間 ${privateBadge}</p>
+                            <p class="text-[10px] tracking-[0.18em] text-[#777777]">日期時間 ${cardBadges}</p>
                             <h4 class="text-base font-medium leading-relaxed tracking-[0.05em] text-[#333333] mt-1">
                                 ${getActivityDateTimeLabel(match)}
                             </h4>
@@ -1486,7 +1503,7 @@
             let filtered = matches.filter(m => canShowMatchInLobby(m));
             filtered = filtered.filter(m => isMatchActive(m));
             if (homeSelectedDate) {
-                filtered = filtered.filter(m => m.playDate === homeSelectedDate);
+                filtered = filtered.filter(m => m.playDate === homeSelectedDate || isOwnHostedMatch(m));
             }
 
             if (filtered.length === 0) {
@@ -2578,7 +2595,12 @@
             let publishedFirestoreId = null;
             try {
                 publishedFirestoreId = await window.dbPublishActivity(newMatch);
-                await loadActivitiesFromCloud();
+                newMatch.firestoreId = publishedFirestoreId;
+                const loaded = await loadActivitiesFromCloud();
+                if (!loaded) {
+                    matches = mergeMatchesByFirestoreId(matches, [newMatch]);
+                    saveMatches();
+                }
             } catch (err) {
                 console.error('發佈場次失敗:', err);
                 if (err?.code === 'activity/missing-session-ends-at') {
@@ -2597,10 +2619,16 @@
             if (typeof window.closePublishPage === 'function') {
                 await window.closePublishPage();
             }
+            if (typeof window.alignLobbyRegionFilter === 'function') {
+                window.alignLobbyRegionFilter(region);
+            }
+            syncHomeLobbyAfterPublish(playDate);
             event.target.reset();
             resetPublishForm();
-            renderCalendar('home');
-            renderMatches();
+            if (typeof window.switchPage === 'function') {
+                await window.switchPage('match');
+            }
+            await renderMatches();
             await renderMyActivities();
 
             if (isPrivate && publishedFirestoreId) {

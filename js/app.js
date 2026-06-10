@@ -640,6 +640,31 @@ function setRegionFilter(filter) {
     applyRegionFilter();
 }
 
+function alignLobbyRegionFilter(region) {
+    const district = String(region || '').trim();
+    if (!district) {
+        setRegionFilter('all');
+        return;
+    }
+
+    const macro = DISTRICT_TO_MACRO[district] || '';
+    if (districtFilter && districtFilter !== district) {
+        districtFilter = null;
+    }
+
+    if (!macro || macroFilter === 'all' || macroFilter === macro) {
+        updateCapsuleActiveState();
+        updateDistrictPickerLabel();
+        updateDistrictPickerButtonState();
+        applyRegionFilter();
+        return;
+    }
+
+    setRegionFilter(macro);
+}
+
+window.alignLobbyRegionFilter = alignLobbyRegionFilter;
+
 function shouldShowMatchCard(card) {
     if (card.getAttribute('data-host-own') === 'true') {
         return true;
