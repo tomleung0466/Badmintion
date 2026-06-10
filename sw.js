@@ -1,9 +1,10 @@
-const CACHE_NAME = 'plus1-pwa-v27';
+const CACHE_NAME = 'plus1-pwa-v28';
 const PRECACHE_ASSETS = [
     './',
     './index.html',
     './css/style.css',
     './js/app-version.js',
+    './js/display-name.js',
     './js/overlay-transition.js',
     './js/pwa.js',
     './js/app.js',

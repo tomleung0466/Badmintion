@@ -237,7 +237,8 @@
                     <p class="profile-subpanel-title">編輯個人資料</p>
                     <div class="profile-field">
                         <label for="profile-name-input" class="profile-field-label">新名字</label>
-                        <input type="text" id="profile-name-input" class="profile-field-input">
+                        <input type="text" id="profile-name-input" class="profile-field-input" maxlength="15" autocomplete="nickname">
+                        <p class="profile-field-hint">可含中文、英文、數字；中間最多一個空格。純中文最多 6 字；純英文／數字最多 15 字；中英混合最多 8 字。不可使用 emoji 或純符號。</p>
                     </div>
                     <div class="profile-field">
                         <label class="profile-field-label">大頭照</label>
@@ -730,6 +731,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
     <script src="js/app-version.js"></script>
+    <script src="js/display-name.js"></script>
     <script src="js/overlay-transition.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/image-preview.js"></script>

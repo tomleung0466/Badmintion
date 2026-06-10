@@ -2,9 +2,16 @@
  * app-version.js — 版本號與更新內容（每次發佈請同步更新此檔與 sw.js CACHE_NAME）
  */
 window.APP_VERSION = {
-    version: '1.23.0',
-    build: 23,
+    version: '1.24.0',
+    build: 24,
     changelog: [
+        {
+            version: '1.24.0',
+            date: '2026-06-04',
+            items: [
+                '編輯名字新增字數與格式限制（純中文 6 字、純英文 15 字、混合 8 字）'
+            ]
+        },
         {
             version: '1.23.0',
             date: '2026-06-04',

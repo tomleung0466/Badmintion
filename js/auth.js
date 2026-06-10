@@ -1381,7 +1381,24 @@ window.dbUpdateUserProfile = async function dbUpdateUserProfile(newName, imageFi
         const userSnap = await getDoc(userRef);
         const existingData = userSnap.exists() ? userSnap.data() : {};
 
-        const displayName = (newName || "").trim() || user.displayName || user.email?.split("@")[0] || "波友";
+        let displayName;
+        const trimmedName = (newName || "").trim();
+        if (trimmedName) {
+            if (typeof window.validateDisplayName !== "function") {
+                const error = new Error("名字驗證服務暫時未連線，請稍後再試。");
+                error.code = "profile/invalid-display-name";
+                throw error;
+            }
+            const nameCheck = window.validateDisplayName(trimmedName);
+            if (!nameCheck.ok) {
+                const error = new Error(nameCheck.message);
+                error.code = "profile/invalid-display-name";
+                throw error;
+            }
+            displayName = nameCheck.value;
+        } else {
+            displayName = user.displayName || user.email?.split("@")[0] || "波友";
+        }
         let photoURL = user.photoURL || existingData.photoURL || null;
 
         if (imageFile) {

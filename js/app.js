@@ -382,7 +382,7 @@ async function saveProfileChanges() {
     const saveBtn = document.getElementById('save-profile-btn');
     const nameInput = document.getElementById('profile-name-input');
     const avatarInput = document.getElementById('profile-avatar-input');
-    const newName = nameInput ? nameInput.value.trim() : '';
+    const rawName = nameInput ? nameInput.value : '';
     const imageFile =
         (typeof window.getPendingProfileAvatarFile === 'function' && window.getPendingProfileAvatarFile()) ||
         (avatarInput && avatarInput.files ? avatarInput.files[0] : null);
@@ -391,9 +391,23 @@ async function saveProfileChanges() {
         alert('請先登入 VibeUp 波友。');
         return;
     }
-    if (!newName && !imageFile) {
+    if (!rawName.trim() && !imageFile) {
         alert('請輸入新名字或選擇新頭像。');
         return;
+    }
+
+    let newName = '';
+    if (rawName.trim()) {
+        if (typeof window.validateDisplayName !== 'function') {
+            alert('名字驗證服務暫時未連線，請稍後再試。');
+            return;
+        }
+        const nameCheck = window.validateDisplayName(rawName);
+        if (!nameCheck.ok) {
+            alert(nameCheck.message);
+            return;
+        }
+        newName = nameCheck.value;
     }
     if (typeof window.dbUpdateUserProfile !== 'function') {
         alert('個人資料服務暫時未連線，請稍後再試。');
@@ -432,6 +446,10 @@ async function saveProfileChanges() {
         if (err?.code === 'profile/avatar-cooldown') {
             alert(err.message || '頭像每 3 日只可更換一次。');
             updateAvatarCooldownHint();
+            return;
+        }
+        if (err?.code === 'profile/invalid-display-name') {
+            alert(err.message || '名字格式不符合要求。');
             return;
         }
         const code = err?.code ? `（${err.code}）` : '';
