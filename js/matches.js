@@ -409,7 +409,7 @@
                 : `<span class="host-publisher-avatar-initial">${escapeHtml(initial)}</span>`;
 
             return `
-                <div class="match-card-host-row">
+                <div class="host-publisher-row">
                     <div class="host-publisher-avatar" aria-hidden="true">${avatarHtml}</div>
                     <p class="host-publisher-line">${i18n('match.hostPublishedBy', { name: escapeHtml(displayName) })}</p>
                 </div>
@@ -1225,9 +1225,9 @@
             const note = (match.hostNote || '').trim();
             if (!note) return '';
             return `
-                        <div class="match-card-row">
-                            <span class="match-card-label">${i18n('match.note')}</span>
-                            <span class="match-card-value">${escapeHtml(note)}</span>
+                        <div class="flex justify-between gap-4">
+                            <span class="text-[#777777] shrink-0">${i18n('match.note')}</span>
+                            <span class="text-right font-medium text-[#333333]">${escapeHtml(note)}</span>
                         </div>`;
         }
 
@@ -1377,42 +1377,39 @@
             const macroRegion = typeof getMatchMacroRegion === 'function' ? getMatchMacroRegion(match) : '';
             const hostOwnAttr = isOwnHosted ? ' data-host-own="true"' : '';
 
-            const badgesHtml = cardBadges
-                ? `<div class="match-card-badges">${cardBadges}</div>`
-                : '';
-
             return `
-                <div data-macro-region="${escapeHtml(macroRegion)}" data-district="${escapeHtml(district)}"${hostOwnAttr} class="match-card">
-                    <div class="match-card-header">
-                        <div class="match-card-head-main">
-                            <p class="match-card-kicker">${i18n('match.dateTimeLabel')}</p>
-                            ${badgesHtml}
-                            <h4 class="match-card-title">${getActivityDateTimeLabel(match)}</h4>
+                <div data-macro-region="${escapeHtml(macroRegion)}" data-district="${escapeHtml(district)}"${hostOwnAttr} class="match-card bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]">
+                    <div class="flex justify-between items-start gap-4 mb-5">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-[10px] tracking-[0.18em] text-[#777777]">${i18n('match.dateTimeLabel')} ${cardBadges}</p>
+                            <h4 class="text-base font-medium leading-relaxed tracking-[0.05em] text-[#333333] mt-1">
+                                ${getActivityDateTimeLabel(match)}
+                            </h4>
+                            ${renderHostPublisherBlock(match)}
                         </div>
-                        <span class="match-card-pill">
+                        <span class="shrink-0 rounded-full border border-[#E5E5E5] px-3 py-1 text-[10px] tracking-[0.08em] text-[#777777]">
                             ${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}
                         </span>
                     </div>
 
-                    <div class="match-card-body">
-                        ${renderHostPublisherBlock(match)}
-                        <div class="match-card-row">
-                            <span class="match-card-label">${i18n('match.location')}</span>
-                            <span class="match-card-value">${txPlace(match.region)} · ${txPlace(match.venue)}</span>
+                    <div class="border-y border-[#E5E5E5] py-4 space-y-3 text-sm tracking-[0.05em] leading-relaxed">
+                        <div class="flex justify-between gap-4">
+                            <span class="text-[#777777]">${i18n('match.location')}</span>
+                            <span class="text-right font-medium text-[#333333]">${txPlace(match.region)} · ${txPlace(match.venue)}</span>
                         </div>
                         ${renderHostNoteRow(match)}
-                        <div class="match-card-row">
-                            <span class="match-card-label">${i18n('match.fee')}</span>
-                            <span class="match-card-value">${i18n('match.feePerPerson', { fee: match.fee })}</span>
+                        <div class="flex justify-between gap-4">
+                            <span class="text-[#777777]">${i18n('match.fee')}</span>
+                            <span class="font-medium text-[#333333]">${i18n('match.feePerPerson', { fee: match.fee })}</span>
                         </div>
-                        <div class="match-card-row">
-                            <span class="match-card-label">${i18n('match.slotsLabel')}</span>
-                            <span class="match-card-value">${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}</span>
+                        <div class="flex justify-between gap-4">
+                            <span class="text-[#777777]">${i18n('match.slotsLabel')}</span>
+                            <span class="font-medium text-[#333333]">${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}</span>
                         </div>
                         ${renderParticipantsBlock(match)}
                     </div>
 
-                    <div class="match-card-footer">${actionHtml}</div>
+                    <div class="pt-5">${actionHtml}</div>
                 </div>
             `;
         }
