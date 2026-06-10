@@ -8,7 +8,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: '+1',
-  description: '一齊打波，拒絕放飛機。尋找跟你一夾即合的純粹波友。',
+  description: '一齊打波',
   generator: 'v0.app',
   icons: {
     icon: [

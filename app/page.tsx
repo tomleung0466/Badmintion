@@ -103,7 +103,7 @@ export default function Home() {
           +1
         </h1>
         <p className="mt-3 max-w-sm text-sm leading-relaxed tracking-[0.03em] text-muted-foreground text-pretty">
-          一齊打波，拒絕放飛機。尋找跟你一夾即合的純粹波友。
+          一齊打波
         </p>
       </header>
 
