@@ -286,6 +286,23 @@ async function closeAuthModal() {
     }
 }
 
+async function openAuthModal() {
+    const modal = byId("auth-modal");
+    if (!modal) return;
+    const errorEl = byId("auth-error");
+    if (errorEl) {
+        errorEl.classList.add("hidden");
+        errorEl.textContent = "";
+    }
+    if (typeof window.openMujiOverlay === "function") {
+        await window.openMujiOverlay(modal);
+    } else {
+        modal.classList.remove("hidden");
+    }
+}
+
+window.openAuthModal = openAuthModal;
+
 function showWelcomeMessage(user) {
     if (!user) return;
     const name = user.displayName || user.email?.split("@")[0] || "VibeUp 波友";

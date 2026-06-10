@@ -189,7 +189,7 @@ const CURRENT_USER_STORAGE_KEY = 'uber_badminton_user';
 const CURRENT_USER_NAME_STORAGE_KEY = 'uber_badminton_username';
 const USER_PROFILES_STORAGE_KEY = 'uber_badminton_user_profiles';
 
-let currentUser = { name: '波友_阿強', creditPoints: 105 };
+let currentUser = { name: '', creditPoints: 105, photoURL: null };
 function getActiveUserProfileKey(authUser) {
     if (authUser && authUser.uid) return authUser.uid;
     return 'guest';
@@ -209,11 +209,16 @@ function writeUserProfiles(profiles) {
 
 function loadCurrentUser() {
     const authUser = window.firebaseAuthUser || null;
+    if (!authUser) {
+        currentUser = { name: '', creditPoints: 105, photoURL: null };
+        return;
+    }
+
     const profileKey = getActiveUserProfileKey(authUser);
     const profiles = readUserProfiles();
     const savedProfile = profiles[profileKey];
 
-    currentUser = { name: '波友_阿強', creditPoints: 105 };
+    currentUser = { name: '', creditPoints: 105, photoURL: null };
     if (savedProfile && typeof savedProfile === 'object') {
         currentUser = { ...currentUser, ...savedProfile };
     } else {
@@ -232,7 +237,7 @@ function loadCurrentUser() {
     if (legacyName && legacyName.trim() && legacyName.trim() !== '我') {
         currentUser.name = legacyName.trim();
     }
-    if (authUser && authUser.email) {
+    if (authUser.email) {
         const fallbackPrefix = authUser.email.split('@')[0] || '波友';
         currentUser.name = authUser.displayName || `波友_${fallbackPrefix}`;
         currentUser.photoURL = authUser.photoURL || null;
@@ -242,6 +247,7 @@ function loadCurrentUser() {
 
 function saveCurrentUser() {
     const authUser = window.firebaseAuthUser || null;
+    if (!authUser) return;
     const profileKey = getActiveUserProfileKey(authUser);
     const profiles = readUserProfiles();
     profiles[profileKey] = { ...currentUser };
@@ -251,7 +257,17 @@ function saveCurrentUser() {
 }
 
 function getCurrentUserName() {
-    return currentUser.name || '波友_阿強';
+    if (!window.firebaseAuthUser) return '';
+    const name = String(currentUser.name || window.firebaseAuthUser.displayName || '').trim();
+    return name;
+}
+
+function getSettingsDisplayName() {
+    if (!window.firebaseAuthUser) {
+        return window.t ? window.t('settings.guestName') : '尚未登入';
+    }
+    const raw = getCurrentUserName().replace(/^波友_/, '').trim();
+    return raw || (window.t ? window.t('settings.guestName') : '尚未登入');
 }
 
 async function handleAuthUserChange(user) {
@@ -307,6 +323,7 @@ function applyProfileAvatarDisplay(src, { isLocal = false } = {}) {
     if (src) {
         avatarEl.textContent = '';
         avatarEl.style.backgroundImage = `url("${src}")`;
+        avatarEl.classList.remove('is-guest');
         avatarEl.dataset.previewSource = isLocal ? 'local' : 'remote';
 
         if (editPreview && typeof window.renderPreviewContainer === 'function') {
@@ -316,9 +333,13 @@ function applyProfileAvatarDisplay(src, { isLocal = false } = {}) {
             editPreview.setAttribute('aria-hidden', 'false');
         }
     } else {
-        const ch = (getCurrentUserName().replace(/^波友_/, '').charAt(0) || '友');
+        const isLoggedIn = !!window.firebaseAuthUser;
+        const ch = isLoggedIn
+            ? (getSettingsDisplayName().charAt(0) || '友')
+            : '+';
         avatarEl.textContent = ch;
         avatarEl.style.backgroundImage = '';
+        avatarEl.classList.toggle('is-guest', !isLoggedIn);
         delete avatarEl.dataset.previewSource;
 
         if (editPreview) {
@@ -344,16 +365,26 @@ window.clearProfileAvatarLocalPreview = function clearProfileAvatarLocalPreview(
 };
 
 function updateProfileUI() {
+    const isLoggedIn = !!window.firebaseAuthUser;
     const nameEl = document.getElementById('profile-display-name');
     const creditEl = document.getElementById('profile-credit-points');
-    if (nameEl) nameEl.textContent = getCurrentUserName();
+    const kickerEl = document.querySelector('.settings-card--account .settings-member-kicker');
+    const accountCard = document.querySelector('.settings-card--account');
+
+    if (nameEl) nameEl.textContent = getSettingsDisplayName();
     if (creditEl) creditEl.textContent = '3／3';
+    if (kickerEl) {
+        kickerEl.textContent = isLoggedIn
+            ? (window.t ? window.t('settings.memberKicker') : '羽毛球場次會員')
+            : (window.t ? window.t('settings.guestKicker') : '訪客');
+    }
+    accountCard?.classList.toggle('is-guest', !isLoggedIn);
 
     const avatarEl = document.getElementById('profile-avatar');
     if (avatarEl?.dataset.previewSource === 'local') return;
 
     setProfileAvatarUploading(false);
-    applyProfileAvatarDisplay(currentUser.photoURL || null);
+    applyProfileAvatarDisplay(isLoggedIn ? (currentUser.photoURL || null) : null);
 }
 
 async function updateAvatarCooldownHint() {
@@ -383,12 +414,20 @@ async function updateAvatarCooldownHint() {
 }
 
 function showProfileEditPanel() {
+    if (!window.firebaseAuthUid) {
+        if (typeof window.openAuthModal === 'function') {
+            window.openAuthModal();
+        } else {
+            alert(window.t ? window.t('alert.loginPlus1') : '請先登入 +1。');
+        }
+        return;
+    }
     const panel = document.getElementById('profile-edit-panel');
     const hostPanel = document.getElementById('host-settings-panel');
     const hostBtn = document.getElementById('edit-host-payment-btn');
     const profileBtn = document.getElementById('edit-profile-btn');
     const nameInput = document.getElementById('profile-name-input');
-    if (nameInput) nameInput.value = getCurrentUserName();
+    if (nameInput) nameInput.value = getSettingsDisplayName();
     if (hostPanel) hostPanel.classList.add('hidden');
     if (hostBtn) hostBtn.classList.remove('is-active-profile-action');
     if (profileBtn) profileBtn.classList.add('is-active-profile-action');

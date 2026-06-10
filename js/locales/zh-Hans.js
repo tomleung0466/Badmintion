@@ -54,6 +54,8 @@ window.I18N_ZH_HANS = {
     'settings.localeHans': '简体',
     'settings.localeEn': 'English',
     'settings.memberKicker': '羽毛球场次会员',
+    'settings.guestKicker': '访客',
+    'settings.guestName': '尚未登录',
     'settings.uploading': '正在上传...',
     'settings.editProfile': '编辑个人资料',
     'settings.hostPayment': '场主收款设置',

@@ -166,7 +166,6 @@
         ['.settings-page-title', 'settings.title'],
         ['.settings-page-subtitle', 'settings.subtitle'],
         ['#profile-avatar-overlay .image-preview-overlay-text', 'settings.uploading'],
-        ['.settings-card--account .settings-member-kicker', 'settings.memberKicker'],
         ['#edit-profile-btn', 'settings.editProfile'],
         ['#edit-host-payment-btn', 'settings.hostPayment'],
         ['#profile-edit-panel .profile-subpanel-title', 'settings.editProfile'],

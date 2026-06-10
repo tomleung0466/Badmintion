@@ -54,6 +54,8 @@ window.I18N_ZH_HANT = {
     'settings.localeHans': '簡體',
     'settings.localeEn': 'English',
     'settings.memberKicker': '羽毛球場次會員',
+    'settings.guestKicker': '訪客',
+    'settings.guestName': '尚未登入',
     'settings.uploading': '正在上傳...',
     'settings.editProfile': '編輯個人資料',
     'settings.hostPayment': '場主收款設定',

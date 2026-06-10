@@ -414,6 +414,19 @@ body.muji-overlay-open {
   color: var(--muji-text);
 }
 
+.profile-avatar-display.is-guest {
+  border: 1px solid var(--muji-border);
+  background: var(--muji-soft);
+  color: var(--muji-muted);
+  font-size: 1.25rem;
+  font-weight: 400;
+  box-shadow: none;
+}
+
+.settings-card--account.is-guest .settings-member-name {
+  color: var(--muji-muted);
+}
+
 .settings-card--account .profile-action-row {
   margin-bottom: 0;
 }

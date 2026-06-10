@@ -1894,6 +1894,14 @@
         let hostSettingsBound = false;
 
         async function showHostSettingsPanel() {
+            if (!window.firebaseAuthUid) {
+                if (typeof window.openAuthModal === 'function') {
+                    window.openAuthModal();
+                } else {
+                    i18nAlert('alert.loginPlus1');
+                }
+                return;
+            }
             const panel = document.getElementById('host-settings-panel');
             const profilePanel = document.getElementById('profile-edit-panel');
             const hostBtn = document.getElementById('edit-host-payment-btn');
