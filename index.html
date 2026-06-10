@@ -385,11 +385,19 @@
                         <div class="time-slot-row">
                             <div class="time-slot-field">
                                 <span class="time-slot-label">開始時間</span>
-                                <input type="time" id="form-start-time" class="publish-time-input" value="09:00" required>
+                                <button type="button" id="form-start-time-btn" onclick="openFormPicker('startTime')" class="publish-time-trigger">
+                                    <span id="form-start-time-text">09:00</span>
+                                    <span class="publish-time-chevron" aria-hidden="true">▼</span>
+                                </button>
+                                <input type="hidden" id="form-start-time" value="09:00" required>
                             </div>
                             <div class="time-slot-field">
                                 <span class="time-slot-label">結束時間</span>
-                                <input type="time" id="form-end-time" class="publish-time-input" value="11:00" required>
+                                <button type="button" id="form-end-time-btn" onclick="openFormPicker('endTime')" class="publish-time-trigger">
+                                    <span id="form-end-time-text">11:00</span>
+                                    <span class="publish-time-chevron" aria-hidden="true">▼</span>
+                                </button>
+                                <input type="hidden" id="form-end-time" value="11:00" required>
                             </div>
                         </div>
                     </div>

@@ -601,17 +601,27 @@
             if (mode === 'skill') {
                 return SKILL_LEVELS.map(s => ({ val: s, label: s }));
             }
+            if (mode === 'startTime') {
+                return buildTimeSlotOptions(TIME_SLOT_DAY_START_MINUTES, TIME_SLOT_START_MAX_MINUTES);
+            }
+            if (mode === 'endTime') {
+                return buildEndTimeSlotOptions();
+            }
             return SHUTTLE_BRANDS.map(b => ({ val: b, label: b }));
         }
 
         function renderFormPickerScroller(mode, scrollTo) {
             const scroller = document.getElementById('form-picker-scroller');
             const items = buildFormPickerItems(mode);
+            if (!items.length) {
+                scroller.innerHTML = '<div class="form-wheel-item snap-center flex h-10 items-center justify-center px-3 text-sm font-medium text-gray-400" data-val="">沒有可選時間</div>';
+                return;
+            }
             scroller.innerHTML = items.map(({ val, label }) =>
                 `<div class="form-wheel-item snap-center flex h-10 items-center justify-center px-3 text-sm font-medium text-gray-400" data-val="${val}">${label}</div>`
             ).join('');
 
-            const initial = scrollTo || items[0]?.val;
+            const initial = items.some(item => item.val === scrollTo) ? scrollTo : (items[0]?.val || scrollTo);
             if (initial) {
                 requestAnimationFrame(() => scrollWheelToValue('form-picker-scroller', 'form-wheel-item', initial));
             }
@@ -656,11 +666,85 @@
             return String(timeValue).trim().replace(':', '');
         }
 
+        const TIME_SLOT_STEP_MINUTES = 30;
+        const TIME_SLOT_DAY_START_MINUTES = 6 * 60;
+        const TIME_SLOT_DAY_END_MINUTES = 23 * 60 + 30;
+        const TIME_SLOT_START_MAX_MINUTES = 23 * 60;
+        const DEFAULT_SESSION_DURATION_MINUTES = 60;
+
         function parseTimeToMinutes(timeValue) {
             if (!timeValue || !String(timeValue).includes(':')) return null;
             const [hours, minutes] = String(timeValue).split(':').map(Number);
             if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
             return hours * 60 + minutes;
+        }
+
+        function formatMinutesToTimeValue(totalMinutes) {
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+
+        function buildTimeSlotOptions(minMinutes = TIME_SLOT_DAY_START_MINUTES, maxMinutes = TIME_SLOT_DAY_END_MINUTES) {
+            const options = [];
+            for (let minutes = minMinutes; minutes <= maxMinutes; minutes += TIME_SLOT_STEP_MINUTES) {
+                const value = formatMinutesToTimeValue(minutes);
+                options.push({ val: value, label: value });
+            }
+            return options;
+        }
+
+        function getPublishStartTimeValue() {
+            return document.getElementById('form-start-time')?.value || '';
+        }
+
+        function getPublishEndTimeValue() {
+            return document.getElementById('form-end-time')?.value || '';
+        }
+
+        function setPublishStartTimeValue(timeValue) {
+            const hidden = document.getElementById('form-start-time');
+            const label = document.getElementById('form-start-time-text');
+            if (hidden) hidden.value = timeValue;
+            if (label) label.textContent = timeValue;
+        }
+
+        function setPublishEndTimeValue(timeValue) {
+            const hidden = document.getElementById('form-end-time');
+            const label = document.getElementById('form-end-time-text');
+            if (hidden) hidden.value = timeValue;
+            if (label) label.textContent = timeValue;
+        }
+
+        function getEarliestEndTimeMinutes(startMinutes) {
+            return Math.min(startMinutes + TIME_SLOT_STEP_MINUTES, TIME_SLOT_DAY_END_MINUTES);
+        }
+
+        function getDefaultEndTimeMinutes(startMinutes) {
+            const preferred = startMinutes + DEFAULT_SESSION_DURATION_MINUTES;
+            const earliest = getEarliestEndTimeMinutes(startMinutes);
+            if (preferred <= TIME_SLOT_DAY_END_MINUTES && preferred > startMinutes) {
+                return preferred;
+            }
+            return earliest;
+        }
+
+        function buildEndTimeSlotOptions() {
+            const startMinutes = parseTimeToMinutes(getPublishStartTimeValue());
+            const minMinutes = startMinutes === null
+                ? TIME_SLOT_DAY_START_MINUTES + TIME_SLOT_STEP_MINUTES
+                : getEarliestEndTimeMinutes(startMinutes);
+            return buildTimeSlotOptions(minMinutes, TIME_SLOT_DAY_END_MINUTES);
+        }
+
+        function ensureValidEndTimeAfterStartChange() {
+            const startMinutes = parseTimeToMinutes(getPublishStartTimeValue());
+            const endMinutes = parseTimeToMinutes(getPublishEndTimeValue());
+            if (startMinutes === null) return;
+
+            if (endMinutes === null || endMinutes <= startMinutes) {
+                setPublishEndTimeValue(formatMinutesToTimeValue(getDefaultEndTimeMinutes(startMinutes)));
+            }
         }
 
         function calculateDurationHours(startTime, endTime) {
@@ -736,11 +820,8 @@
         }
 
         function bindTimeSlotForm() {
-            ['form-start-time', 'form-end-time', 'form-court-count'].forEach(id => {
-                const input = document.getElementById(id);
-                input?.addEventListener('input', updateTimePreview);
-                input?.addEventListener('change', updateTimePreview);
-            });
+            document.getElementById('form-court-count')?.addEventListener('input', updateTimePreview);
+            document.getElementById('form-court-count')?.addEventListener('change', updateTimePreview);
             updateTimePreview();
         }
 
@@ -762,11 +843,9 @@
             document.getElementById('form-venue-note').value = '';
             const shuttleInfoInput = document.getElementById('form-shuttle-info');
             if (shuttleInfoInput) shuttleInfoInput.value = '';
-            const startTimeInput = document.getElementById('form-start-time');
-            const endTimeInput = document.getElementById('form-end-time');
             const courtCountInput = document.getElementById('form-court-count');
-            if (startTimeInput) startTimeInput.value = '09:00';
-            if (endTimeInput) endTimeInput.value = '11:00';
+            setPublishStartTimeValue('09:00');
+            setPublishEndTimeValue('11:00');
             if (courtCountInput) courtCountInput.value = '1';
             updateTimePreview();
             formSelectedDate = todayISO;
@@ -787,9 +866,20 @@
                 alert('請先選擇香港具體分區');
                 return;
             }
+            if (mode === 'endTime' && !getPublishStartTimeValue()) {
+                alert('請先選擇開始時間');
+                return;
+            }
 
             formPickerMode = mode;
-            const titles = { region: '選擇分區', venue: '選擇體育館', brand: '選擇羽毛球品牌', skill: '選擇球技要求' };
+            const titles = {
+                region: '選擇分區',
+                venue: '選擇體育館',
+                brand: '選擇羽毛球品牌',
+                skill: '選擇球技要求',
+                startTime: '開始時間',
+                endTime: '結束時間'
+            };
             document.getElementById('form-picker-title').textContent = titles[mode];
 
             const scrollTo = mode === 'region'
@@ -798,7 +888,11 @@
                 ? (formSelectedVenue || (VENUES_BY_DISTRICT[formSelectedRegion] || [])[0])
                 : mode === 'brand'
                     ? (formSelectedBrand || SHUTTLE_BRANDS[0])
-                    : (formSelectedSkillLevel || DEFAULT_SKILL_LEVEL);
+                    : mode === 'startTime'
+                        ? (getPublishStartTimeValue() || '09:00')
+                        : mode === 'endTime'
+                            ? (getPublishEndTimeValue() || formatMinutesToTimeValue(getDefaultEndTimeMinutes(parseTimeToMinutes(getPublishStartTimeValue()) || TIME_SLOT_DAY_START_MINUTES)))
+                            : (formSelectedSkillLevel || DEFAULT_SKILL_LEVEL);
 
             renderFormPickerScroller(mode, scrollTo);
             toggleFormPicker(true);
@@ -857,6 +951,13 @@
                 formSelectedSkillLevel = selected;
                 document.getElementById('form-skill-level').value = selected;
                 document.getElementById('form-skill-level-text').textContent = getSkillLevelShortLabel(selected);
+            } else if (formPickerMode === 'startTime') {
+                setPublishStartTimeValue(selected);
+                ensureValidEndTimeAfterStartChange();
+                updateTimePreview();
+            } else if (formPickerMode === 'endTime') {
+                setPublishEndTimeValue(selected);
+                updateTimePreview();
             }
 
             toggleFormPicker(false);
@@ -2400,12 +2501,12 @@
             const timeSlot = getTimeSlotFormValues();
             if (!timeSlot.startTimeValue || !timeSlot.endTimeValue) {
                 alert('請選擇開始與結束時間');
-                document.getElementById('form-start-time')?.focus();
+                document.getElementById('form-start-time-btn')?.focus();
                 return;
             }
             if (timeSlot.duration === null || timeSlot.duration <= 0) {
                 alert('結束時間須晚於開始時間');
-                document.getElementById('form-end-time')?.focus();
+                document.getElementById('form-end-time-btn')?.focus();
                 return;
             }
 
