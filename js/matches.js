@@ -1176,12 +1176,49 @@
             });
         }
 
-        function getActivityDateTimeLabel(activity) {
-            const dateLabel = activity.playDate ? formatDateDisplay(activity.playDate) : i18n('date.pending');
-            const timeLabel = activity.playTime && String(activity.playTime).trim()
+        function getActivityDateLabel(activity) {
+            return activity.playDate
+                ? formatDateDisplay(activity.playDate)
+                : i18n('date.pending');
+        }
+
+        function getActivityTimeLabel(activity) {
+            return activity.playTime && String(activity.playTime).trim()
                 ? String(activity.playTime).trim()
                 : i18n('date.timePending');
-            return `${dateLabel} · ${timeLabel}`;
+        }
+
+        function getActivityDateTimeLabel(activity) {
+            return `${getActivityDateLabel(activity)} · ${getActivityTimeLabel(activity)}`;
+        }
+
+        function renderMatchDateTimeCapsules(match, options = {}) {
+            const { showPrivateBadge = false } = options;
+            const badgesHtml = (() => {
+                let cardBadges = '';
+                const isOwnHosted = isOwnHostedMatch(match);
+                if (isOwnHosted) {
+                    cardBadges += `<span class="match-host-owned-badge">${i18n('match.yourPublished')}</span>`;
+                    if (isPrivateMatch(match)) {
+                        cardBadges += `<span class="session-private-badge">${i18n('match.privateTag')}</span>`;
+                    }
+                } else if (showPrivateBadge || isPrivateMatch(match)) {
+                    cardBadges += `<span class="session-private-badge">${i18n('match.privateInvite')}</span>`;
+                }
+                return cardBadges
+                    ? `<div class="match-card-status-badges">${cardBadges}</div>`
+                    : '';
+            })();
+
+            return `
+                <div class="match-card-datetime-block">
+                    <div class="match-card-datetime-capsules">
+                        <span class="match-datetime-capsule">${escapeHtml(getActivityDateLabel(match))}</span>
+                        <span class="match-datetime-capsule">${escapeHtml(getActivityTimeLabel(match))}</span>
+                    </div>
+                    ${badgesHtml}
+                </div>
+            `;
         }
 
         function getMatchPendingUids(match) {
@@ -1327,15 +1364,6 @@
             const joinStatus = getUserJoinStatus(match);
             const bookId = getMatchBookId(match);
             const isOwnHosted = isOwnHostedMatch(match);
-            let cardBadges = '';
-            if (isOwnHosted) {
-                cardBadges += `<span class="match-host-owned-badge">${i18n('match.yourPublished')}</span>`;
-                if (isPrivateMatch(match)) {
-                    cardBadges += `<span class="session-private-badge">${i18n('match.privateTag')}</span>`;
-                }
-            } else if (showPrivateBadge || isPrivateMatch(match)) {
-                cardBadges += `<span class="session-private-badge">${i18n('match.privateInvite')}</span>`;
-            }
 
             let actionHtml = '';
             if (joinStatus === 'approved') {
@@ -1381,13 +1409,10 @@
                 <div data-macro-region="${escapeHtml(macroRegion)}" data-district="${escapeHtml(district)}"${hostOwnAttr} class="match-card bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]">
                     <div class="flex justify-between items-start gap-4 mb-5">
                         <div class="min-w-0 flex-1">
-                            <p class="text-[10px] tracking-[0.18em] text-[#777777]">${i18n('match.dateTimeLabel')} ${cardBadges}</p>
-                            <h4 class="text-base font-medium leading-relaxed tracking-[0.05em] text-[#333333] mt-1">
-                                ${getActivityDateTimeLabel(match)}
-                            </h4>
+                            ${renderMatchDateTimeCapsules(match, options)}
                             ${renderHostPublisherBlock(match)}
                         </div>
-                        <span class="shrink-0 rounded-full border border-[#E5E5E5] px-3 py-1 text-[10px] tracking-[0.08em] text-[#777777]">
+                        <span class="match-slots-pill shrink-0">
                             ${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}
                         </span>
                     </div>
