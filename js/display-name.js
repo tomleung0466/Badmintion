@@ -29,36 +29,34 @@
         return 15;
     }
 
-    function getDisplayNameLimitMessage(category) {
-        if (category === 'mixed') return '中英混合名字最多 8 字';
-        if (category === 'chinese') return '中文名字最多 6 字';
-        return '英文名字最多 15 字';
-    }
-
     window.validateDisplayName = function validateDisplayName(raw) {
         const name = normalizeDisplayName(raw);
 
+        function msg(key) {
+            return typeof window.t === 'function' ? window.t(key) : key;
+        }
+
         if (!name) {
-            return { ok: false, message: '名字不可為空', value: name };
+            return { ok: false, message: msg('displayName.empty'), value: name, code: 'displayName.empty' };
         }
 
         if (EMOJI_RE.test(name)) {
-            return { ok: false, message: '名字不可使用 emoji', value: name };
+            return { ok: false, message: msg('displayName.noEmoji'), value: name, code: 'displayName.noEmoji' };
         }
 
         if (!ALLOWED_RE.test(name)) {
-            return { ok: false, message: '名字只可使用中文、英文、數字及底線', value: name };
+            return { ok: false, message: msg('displayName.invalidChars'), value: name, code: 'displayName.invalidChars' };
         }
 
         const spaceCount = (name.match(/ /g) || []).length;
         if (spaceCount > 1) {
-            return { ok: false, message: '名字最多只可有一個空格', value: name };
+            return { ok: false, message: msg('displayName.tooManySpaces'), value: name, code: 'displayName.tooManySpaces' };
         }
 
         const hasAlnum =
             [...name].some((ch) => CJK_RE.test(ch)) || LATIN_RE.test(name) || DIGIT_RE.test(name);
         if (!hasAlnum) {
-            return { ok: false, message: '名字不可全為符號', value: name };
+            return { ok: false, message: msg('displayName.symbolsOnly'), value: name, code: 'displayName.symbolsOnly' };
         }
 
         const category = getDisplayNameCategory(name);
@@ -66,7 +64,12 @@
         const length = [...name].length;
 
         if (length > maxLen) {
-            return { ok: false, message: getDisplayNameLimitMessage(category), value: name };
+            const limitKey = category === 'mixed'
+                ? 'displayName.limitMixed'
+                : category === 'chinese'
+                    ? 'displayName.limitChinese'
+                    : 'displayName.limitLatin';
+            return { ok: false, message: msg(limitKey), value: name, code: limitKey };
         }
 
         return { ok: true, value: name, category, length, maxLength: maxLen };

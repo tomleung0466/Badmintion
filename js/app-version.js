@@ -2,9 +2,25 @@
  * app-version.js — 版本號與更新內容（每次發佈請同步更新此檔與 sw.js CACHE_NAME）
  */
 window.APP_VERSION = {
-    version: '1.24.0',
-    build: 24,
+    version: '1.25.1',
+    build: 26,
     changelog: [
+        {
+            version: '1.25.1',
+            date: '2026-06-04',
+            items: [
+                '修正大廳無法顯示場主自己發佈場次的問題',
+                '改善發佈後與切換語言時的場次列表刷新'
+            ]
+        },
+        {
+            version: '1.25.0',
+            date: '2026-06-04',
+            items: [
+                '設定頁新增語言切換（繁體／簡體）',
+                '大廳、報名、發佈等主要介面支援簡體顯示'
+            ]
+        },
         {
             version: '1.24.0',
             date: '2026-06-04',

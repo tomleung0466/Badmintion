@@ -14,6 +14,13 @@ function formatDateISO(date) {
 function formatDateDisplay(iso) {
     if (!iso) return '';
     const [y, m, d] = iso.split('-');
+    if (typeof window.t === 'function') {
+        return window.t('date.display', {
+            year: y,
+            month: parseInt(m, 10),
+            day: parseInt(d, 10)
+        });
+    }
     return `${y}年${parseInt(m, 10)}月${parseInt(d, 10)}日`;
 }
 
@@ -136,6 +143,15 @@ function getMatchMacroRegion(match) {
 }
 
 function getRegionFilterLabel(filter) {
+    if (typeof window.t === 'function') {
+        if (filter === 'all') return window.t('region.all');
+        if (filter === '港島') return window.t('region.hkIslandShort');
+        if (filter === '九龍') return window.t('region.kowloon');
+        if (filter === '新界') return window.t('region.newTerritories');
+        if (filter && typeof window.translatePlaceName === 'function') {
+            return window.translatePlaceName(filter);
+        }
+    }
     if (filter === 'all') return '全部';
     if (filter === '港島') return '香港';
     if (MACRO_REGION_VALUES.includes(filter)) return filter;
@@ -352,10 +368,14 @@ async function updateAvatarCooldownHint() {
     try {
         const status = await window.dbFetchAvatarChangeStatus();
         if (status.canChange) {
-            hint.textContent = '每 3 日可更換一次頭像';
+            hint.textContent = typeof window.t === 'function'
+                ? window.t('settings.avatarCooldownDefault')
+                : '每 3 日可更換一次頭像';
             return;
         }
-        hint.textContent = `頭像每 3 日只可更換一次，約 ${status.hoursRemaining} 小時後可再換`;
+        hint.textContent = typeof window.t === 'function'
+            ? window.t('settings.avatarCooldownWait', { hours: status.hoursRemaining })
+            : `頭像每 3 日只可更換一次，約 ${status.hoursRemaining} 小時後可再換`;
     } catch (err) {
         console.warn('讀取頭像冷卻狀態失敗:', err);
         hint.textContent = '每 3 日可更換一次頭像';
@@ -388,18 +408,18 @@ async function saveProfileChanges() {
         (avatarInput && avatarInput.files ? avatarInput.files[0] : null);
 
     if (!window.firebaseAuthUid) {
-        alert('請先登入 VibeUp 波友。');
+        alert(window.t ? window.t('alert.loginVibeUp') : '請先登入 VibeUp 波友。');
         return;
     }
     if (!rawName.trim() && !imageFile) {
-        alert('請輸入新名字或選擇新頭像。');
+        alert(window.t ? window.t('alert.nameOrAvatar') : '請輸入新名字或選擇新頭像。');
         return;
     }
 
     let newName = '';
     if (rawName.trim()) {
         if (typeof window.validateDisplayName !== 'function') {
-            alert('名字驗證服務暫時未連線，請稍後再試。');
+            alert(window.t ? window.t('alert.nameValidationOffline') : '名字驗證服務暫時未連線，請稍後再試。');
             return;
         }
         const nameCheck = window.validateDisplayName(rawName);
@@ -410,7 +430,7 @@ async function saveProfileChanges() {
         newName = nameCheck.value;
     }
     if (typeof window.dbUpdateUserProfile !== 'function') {
-        alert('個人資料服務暫時未連線，請稍後再試。');
+        alert(window.t ? window.t('alert.profileOffline') : '個人資料服務暫時未連線，請稍後再試。');
         return;
     }
 
@@ -418,7 +438,7 @@ async function saveProfileChanges() {
     try {
         if (saveBtn) {
             saveBtn.disabled = true;
-            saveBtn.textContent = '儲存中...';
+            saveBtn.textContent = window.t ? window.t('settings.saving') : '儲存中...';
         }
         if (imageFile) setProfileAvatarUploading(true);
         await window.dbUpdateUserProfile(newName, imageFile);
@@ -439,41 +459,41 @@ async function saveProfileChanges() {
         if (typeof window.renderMatches === 'function') {
             window.renderMatches();
         }
-        alert('修改成功');
+        alert(window.t ? window.t('alert.profileSaved') : '修改成功');
     } catch (err) {
         console.error('修改個人資料失敗:', err);
         setProfileAvatarUploading(false);
         if (err?.code === 'profile/avatar-cooldown') {
-            alert(err.message || '頭像每 3 日只可更換一次。');
+            alert(err.message || (window.t ? window.t('settings.avatarCooldownDefault') : '頭像每 3 日只可更換一次。'));
             updateAvatarCooldownHint();
             return;
         }
         if (err?.code === 'profile/invalid-display-name') {
-            alert(err.message || '名字格式不符合要求。');
+            alert(err.message || (window.t ? window.t('displayName.invalidChars') : '名字格式不符合要求。'));
             return;
         }
         const code = err?.code ? `（${err.code}）` : '';
-        alert(`修改失敗${code}，請檢查 Firebase Storage / Firestore 權限設定。`);
+        alert(window.t ? window.t('alert.profileSaveFailed', { code }) : `修改失敗${code}，請檢查 Firebase Storage / Firestore 權限設定。`);
     } finally {
         if (saveBtn) {
             saveBtn.disabled = false;
-            saveBtn.textContent = originalText || '儲存修改';
+            saveBtn.textContent = originalText || (window.t ? window.t('settings.saveChanges') : '儲存修改');
         }
     }
 }
 
 async function deleteUserAccount() {
     if (!window.firebaseAuthUid) {
-        alert('請先登入 +1。');
+        alert(window.t ? window.t('alert.loginPlus1') : '請先登入 +1。');
         return;
     }
     if (typeof window.dbDeleteUserAccount !== 'function') {
-        alert('帳戶服務暫時未連線，請稍後再試。');
+        alert(window.t ? window.t('alert.accountOffline') : '帳戶服務暫時未連線，請稍後再試。');
         return;
     }
 
     const confirmed = confirm(
-        '確定要注銷帳號？\n\n此操作無法復原。你的個人資料、收款設定及發佈的場次將被永久刪除。'
+        window.t ? window.t('alert.deleteAccountConfirm') : '確定要注銷帳號？\n\n此操作無法復原。你的個人資料、收款設定及發佈的場次將被永久刪除。'
     );
     if (!confirmed) return;
 
@@ -482,28 +502,28 @@ async function deleteUserAccount() {
     try {
         if (deleteBtn) {
             deleteBtn.disabled = true;
-            deleteBtn.textContent = '注銷中...';
+            deleteBtn.textContent = window.t ? window.t('alert.deletingAccount') : '注銷中...';
         }
         await window.dbDeleteUserAccount();
         localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
         localStorage.removeItem(CURRENT_USER_NAME_STORAGE_KEY);
         document.getElementById('profile-edit-panel')?.classList.add('hidden');
         updateProfileUI();
-        alert('帳號已注銷。');
+        alert(window.t ? window.t('alert.accountDeleted') : '帳號已注銷。');
     } catch (err) {
         console.error('注銷帳號失敗:', err);
         const code = err?.code ? `（${err.code}）` : '';
-        let message = `注銷失敗${code}，請稍後再試。`;
+        let message = window.t ? window.t('alert.deleteAccountFailed', { code }) : `注銷失敗${code}，請稍後再試。`;
         if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
-            message = '你已取消驗證，帳號未被注銷。';
+            message = window.t ? window.t('alert.deleteAccountCancelled') : '你已取消驗證，帳號未被注銷。';
         } else if (err?.code === 'auth/requires-recent-login') {
-            message = '為保障帳戶安全，請先登出再重新登入，然後再試一次注銷。';
+            message = window.t ? window.t('alert.accountReauth') : '為保障帳戶安全，請先登出再重新登入，然後再試一次注銷。';
         }
         alert(message);
     } finally {
         if (deleteBtn) {
             deleteBtn.disabled = false;
-            deleteBtn.textContent = originalText || '注銷帳號';
+            deleteBtn.textContent = originalText || (window.t ? window.t('settings.deleteAccount') : '注銷帳號');
         }
     }
 }
@@ -527,7 +547,7 @@ window.runCopyButtonFeedback = function runCopyButtonFeedback(button, options = 
     if (!span) return Promise.resolve();
 
     const originalText = options.originalText || span.dataset.originalText || span.textContent.trim();
-    const successText = options.successText || '✓ 已複製';
+    const successText = options.successText || (window.t ? window.t('alert.copied') : '✓ 已複製');
     const holdMs = options.holdMs ?? 1500;
     const fadeOutMs = options.fadeOutMs ?? 200;
 
@@ -585,15 +605,27 @@ function renderVersionChangelog() {
 
     const info = getAppVersionInfo();
     if (current) {
-        const buildLabel = info.build ? `（Build ${info.build}）` : '';
-        current.textContent = `目前版本 v${info.version || '—'}${buildLabel}`;
+        const buildLabel = info.build
+            ? (window.t ? window.t('settings.versionBuild', { build: info.build }) : `（Build ${info.build}）`)
+            : '';
+        current.textContent = window.t
+            ? window.t('settings.versionCurrent', { version: info.version || '—', build: buildLabel })
+            : `目前版本 v${info.version || '—'}${buildLabel}`;
     }
 
     const entries = Array.isArray(info.changelog) ? info.changelog : [];
     if (!entries.length) {
-        list.innerHTML = '<p class="version-changelog-date">暫無更新紀錄</p>';
+        list.innerHTML = `<p class="version-changelog-date">${window.t ? window.t('settings.versionEmpty') : '暫無更新紀錄'}</p>`;
         return;
     }
+
+    const nowLabel = window.t ? window.t('settings.versionNow') : ' · 目前';
+    const translateItem = (item) => {
+        if (window.getAppLocale && window.getAppLocale() === 'zh-Hans' && typeof window.translatePlaceName === 'function') {
+            return window.translatePlaceName(item);
+        }
+        return item;
+    };
 
     list.innerHTML = entries.map(entry => {
         const items = Array.isArray(entry.items) ? entry.items : [];
@@ -601,11 +633,11 @@ function renderVersionChangelog() {
         return `
             <section class="version-changelog-entry${isCurrent ? ' is-current' : ''}">
                 <div class="version-changelog-head">
-                    <span class="version-changelog-version">v${escapeHtml(entry.version || '—')}${isCurrent ? ' · 目前' : ''}</span>
+                    <span class="version-changelog-version">v${escapeHtml(entry.version || '—')}${isCurrent ? escapeHtml(nowLabel) : ''}</span>
                     <span class="version-changelog-date">${escapeHtml(entry.date || '')}</span>
                 </div>
                 <ul class="version-changelog-items">
-                    ${items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+                    ${items.map(item => `<li>${escapeHtml(translateItem(item))}</li>`).join('')}
                 </ul>
             </section>
         `;
@@ -656,7 +688,7 @@ function setFeedbackStatus(message, tone = '') {
 
 async function openFeedbackModal() {
     if (!window.firebaseAuthUid) {
-        alert('請先登入 +1，然後再提交意見。');
+        alert(window.t ? window.t('alert.loginPlus1Feedback') : '請先登入 +1，然後再提交意見。');
         return;
     }
 
@@ -665,7 +697,7 @@ async function openFeedbackModal() {
     if (input) input.value = '';
     if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = '送出意見';
+        submitBtn.textContent = window.t ? window.t('feedback.submit') : '送出意見';
     }
     setFeedbackStatus('');
 
@@ -694,16 +726,16 @@ async function submitFeedback() {
     const message = input ? input.value.trim() : '';
 
     if (!window.firebaseAuthUid) {
-        alert('請先登入 +1，然後再提交意見。');
+        alert(window.t ? window.t('alert.loginPlus1Feedback') : '請先登入 +1，然後再提交意見。');
         return;
     }
     if (message.length < 5) {
-        setFeedbackStatus('請至少輸入 5 個字。', 'error');
+        setFeedbackStatus(window.t ? window.t('alert.feedbackMin') : '請至少輸入 5 個字。', 'error');
         input?.focus();
         return;
     }
     if (typeof window.dbSubmitFeedback !== 'function') {
-        setFeedbackStatus('意見服務暫時未連線，請稍後再試。', 'error');
+        setFeedbackStatus(window.t ? window.t('alert.feedbackOffline') : '意見服務暫時未連線，請稍後再試。', 'error');
         return;
     }
 
@@ -711,7 +743,7 @@ async function submitFeedback() {
     try {
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.textContent = '送出中...';
+            submitBtn.textContent = window.t ? window.t('feedback.submitting') : '送出中...';
         }
         setFeedbackStatus('');
 
@@ -723,7 +755,7 @@ async function submitFeedback() {
             page: 'settings'
         });
 
-        setFeedbackStatus('多謝你的意見，我們會盡快跟進。', 'success');
+        setFeedbackStatus(window.t ? window.t('alert.feedbackSuccess') : '多謝你的意見，我們會盡快跟進。', 'success');
         if (input) input.value = '';
         window.setTimeout(async () => {
             await closeFeedbackModal();
@@ -731,14 +763,14 @@ async function submitFeedback() {
     } catch (err) {
         console.error('提交意見失敗:', err);
         if (err?.code === 'permission-denied') {
-            setFeedbackStatus('提交被拒絕：請確認已登入，並在 Firebase 發佈最新規則。', 'error');
+            setFeedbackStatus(window.t ? window.t('alert.feedbackDenied') : '提交被拒絕：請確認已登入，並在 Firebase 發佈最新規則。', 'error');
             return;
         }
-        setFeedbackStatus('送出失敗，請稍後再試。', 'error');
+        setFeedbackStatus(window.t ? window.t('alert.feedbackFailed') : '送出失敗，請稍後再試。', 'error');
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.textContent = originalText || '送出意見';
+            submitBtn.textContent = originalText || (window.t ? window.t('feedback.submit') : '送出意見');
         }
     }
 }
@@ -830,10 +862,22 @@ function scrollPickerToValue(value) {
     scrollWheelToValue('picker-scroller', 'wheel-item', value);
 }
 
+window.getLobbyFilterState = function getLobbyFilterState() {
+    return {
+        macroFilter,
+        districtFilter,
+        hasActiveRegionFilter: !!(districtFilter || macroFilter !== 'all')
+    };
+};
+
 function getActiveFilterLabel() {
-    if (districtFilter) return districtFilter;
+    if (districtFilter) {
+        return typeof window.translatePlaceName === 'function'
+            ? window.translatePlaceName(districtFilter)
+            : districtFilter;
+    }
     if (macroFilter !== 'all') return getRegionFilterLabel(macroFilter);
-    return '全部';
+    return window.t ? window.t('region.all') : '全部';
 }
 
 function updateDistrictPickerLabel() {
@@ -841,16 +885,20 @@ function updateDistrictPickerLabel() {
     if (!label) return;
 
     if (districtFilter) {
-        label.textContent = districtFilter;
+        label.textContent = typeof window.translatePlaceName === 'function'
+            ? window.translatePlaceName(districtFilter)
+            : districtFilter;
         return;
     }
 
     if (macroFilter !== 'all') {
-        label.textContent = `選擇${getRegionFilterLabel(macroFilter)}分區`;
+        label.textContent = window.t
+            ? window.t('region.pickDistrict', { region: getRegionFilterLabel(macroFilter) })
+            : `選擇${getRegionFilterLabel(macroFilter)}分區`;
         return;
     }
 
-    label.textContent = '全港十八區';
+    label.textContent = window.t ? window.t('region.allDistricts') : '全港十八區';
 }
 
 function updateDistrictPickerButtonState() {
@@ -989,12 +1037,18 @@ function applyRegionFilter() {
         const hasCards = cards.length > 0;
         const hasActiveFilter = districtFilter || macroFilter !== 'all';
         const showEmpty = hasCards && visibleCount === 0 && hasActiveFilter;
-        emptyEl.textContent = `${getActiveFilterLabel()}暫時沒有開場。`;
+        emptyEl.textContent = window.t
+            ? window.t('match.emptyFilterRegion', { label: getActiveFilterLabel() })
+            : `${getActiveFilterLabel()}暫時沒有開場。`;
         emptyEl.classList.toggle('hidden', !showEmpty);
     }
 }
 
 function getPickerScrollerTitle() {
+    if (window.t) {
+        if (macroFilter === 'all') return window.t('region.allDistricts');
+        return window.t('region.macroDistricts', { region: getRegionFilterLabel(macroFilter) });
+    }
     if (macroFilter === 'all') return '全港十八區';
     return `${getRegionFilterLabel(macroFilter)}分區`;
 }
@@ -1004,9 +1058,13 @@ function renderDistrictPickerScroller() {
     if (!scroller) return;
 
     const districts = getDistrictsForMacro(macroFilter);
+    const translateLabel = (label) => (
+        typeof window.translatePlaceName === 'function' ? window.translatePlaceName(label) : label
+    );
+    const allSessionsLabel = window.t ? window.t('region.allSessions') : '全港場次';
     const items = macroFilter === 'all'
-        ? [{ val: 'all', label: '全港場次' }, ...districts.map(d => ({ val: d, label: d }))]
-        : districts.map(d => ({ val: d, label: d }));
+        ? [{ val: 'all', label: allSessionsLabel }, ...districts.map(d => ({ val: d, label: translateLabel(d) }))]
+        : districts.map(d => ({ val: d, label: translateLabel(d) }));
 
     scroller.innerHTML = items.map(({ val, label }) =>
         `<div class="wheel-item snap-center flex h-10 items-center justify-center text-sm font-medium text-gray-400" data-val="${val}">${label}</div>`
@@ -1495,6 +1553,18 @@ function initSplashScreen() {
     }, 3000);
 }
 
+function handleLocaleChange() {
+    updateDistrictPickerLabel();
+    updateAvatarCooldownHint();
+    renderDistrictPickerScroller();
+    if (typeof window.renderMatches === 'function') {
+        window.renderMatches();
+    }
+    if (typeof window.renderMyActivities === 'function') {
+        window.renderMyActivities();
+    }
+}
+
 function initApp() {
     initInitialPageState();
     loadCurrentUser();
@@ -1505,6 +1575,7 @@ function initApp() {
     initSplashScreen();
     initRegionFilter();
     bindPublishPageUI();
+    window.addEventListener('localechange', handleLocaleChange);
     if (typeof initMatchesApp === 'function') {
         initMatchesApp();
     }

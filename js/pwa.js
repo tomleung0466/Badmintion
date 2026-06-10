@@ -44,10 +44,14 @@
         if (!hint || !textEl) return;
 
         if (mode === 'ios') {
-            textEl.textContent = '在 iPhone 測試：點分享 →「加入主畫面」，即可像 App 一樣開啟 +1。';
+            textEl.textContent = typeof window.t === 'function'
+                ? window.t('pwa.hintIos')
+                : '在 iPhone 測試：點分享 →「加入主畫面」，即可像 App 一樣開啟 +1。';
             actionBtn?.classList.add('hidden');
         } else if (mode === 'android') {
-            textEl.textContent = '可將 +1 加入主畫面，像原生 App 一樣快速開啟。';
+            textEl.textContent = typeof window.t === 'function'
+                ? window.t('pwa.hintAndroid')
+                : '可將 +1 加入主畫面，像原生 App 一樣快速開啟。';
             actionBtn?.classList.remove('hidden');
         } else {
             return;

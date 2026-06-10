@@ -3,6 +3,20 @@
  * 依賴 app.js 提供的日期工具、地區常數、滾筒底層與 getCurrentUserName。
  */
 
+        function i18n(key, params) {
+            return typeof window.t === 'function' ? window.t(key, params) : key;
+        }
+
+        function i18nAlert(key, params) {
+            alert(i18n(key, params));
+        }
+
+        function txPlace(name) {
+            return typeof window.translatePlaceName === 'function'
+                ? window.translatePlaceName(name)
+                : name;
+        }
+
         let defaultMatches = [];
 
         const VENUES_BY_DISTRICT = {
@@ -41,7 +55,16 @@
         const DEFAULT_SKILL_LEVEL = '初中級 (有來回球/開始懂走位)';
 
         function getSkillLevelShortLabel(skillLevel) {
-            if (!skillLevel || skillLevel === '不限水平') return '不限水平';
+            if (!skillLevel || skillLevel === '不限水平') {
+                return typeof window.translateSkillLevel === 'function'
+                    ? window.translateSkillLevel('不限水平')
+                    : '不限水平';
+            }
+            if (typeof window.translateSkillLevel === 'function') {
+                const translated = window.translateSkillLevel(skillLevel);
+                const bracket = translated.indexOf(' (');
+                return bracket > 0 ? translated.slice(0, bracket) : translated;
+            }
             const bracket = skillLevel.indexOf(' (');
             return bracket > 0 ? skillLevel.slice(0, bracket) : skillLevel;
         }
@@ -336,10 +359,10 @@
         function renderHostBadge(profile) {
             if (!profile?.tier) return '';
             if (profile.tier === 'newbie') {
-                return '<span class="host-badge host-badge--newbie">🌱 新場主</span>';
+                return `<span class="host-badge host-badge--newbie">${i18n('match.badgeNewHost')}</span>`;
             }
             if (profile.tier === 'quality') {
-                return '<span class="host-badge host-badge--quality">✨ 優質場主</span>';
+                return `<span class="host-badge host-badge--quality">${i18n('match.badgeQuality')}</span>`;
             }
             return '';
         }
@@ -461,7 +484,7 @@
 
             return `
                 <div class="participants-block">
-                    <p class="participants-label">已報名</p>
+                    <p class="participants-label">${i18n('match.participants')}</p>
                     <div class="participants-list">${chips}</div>
                 </div>
             `;
@@ -525,9 +548,9 @@
 
         function getCalendarCollapsedLabel(mode) {
             const iso = mode === 'home' ? homeSelectedDate : formSelectedDate;
-            if (mode === 'home' && !iso) return '全部日期';
+            if (mode === 'home' && !iso) return i18n('date.allDates');
             const display = formatDateDisplay(iso);
-            if (iso === todayISO) return `${display}（今日）`;
+            if (iso === todayISO) return `${display}${i18n('date.today')}`;
             return display;
         }
 
@@ -612,7 +635,7 @@
             const title = document.getElementById(isHome ? 'home-calendar-title' : 'form-calendar-title');
             const matchDates = getMatchDatesSet();
 
-            title.textContent = `${year}年${month + 1}月`;
+            title.textContent = i18n('date.monthTitle', { year, month: month + 1 });
 
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -665,19 +688,36 @@
             renderCalendar('form');
         }
 
+        function getFormPickerDisplayLabel(mode, val, label) {
+            if (mode === 'skill') {
+                return typeof window.translateSkillLevel === 'function'
+                    ? window.translateSkillLevel(label)
+                    : label;
+            }
+            if (val === PRIVATE_VENUE_VALUE) return i18n('venue.privateOther');
+            if (mode === 'region' || mode === 'venue') return txPlace(label);
+            return label;
+        }
+
         function buildFormPickerItems(mode) {
             if (mode === 'region') {
-                return HONG_KONG_18_DISTRICTS.map(d => ({ val: d, label: d }));
+                return HONG_KONG_18_DISTRICTS.map(d => ({
+                    val: d,
+                    label: getFormPickerDisplayLabel('region', d, d)
+                }));
             }
             if (mode === 'venue') {
                 const venues = VENUES_BY_DISTRICT[formSelectedRegion] || [];
                 return [
-                    ...venues.map(v => ({ val: v, label: v })),
-                    { val: PRIVATE_VENUE_VALUE, label: PRIVATE_VENUE_LABEL }
+                    ...venues.map(v => ({ val: v, label: getFormPickerDisplayLabel('venue', v, v) })),
+                    { val: PRIVATE_VENUE_VALUE, label: i18n('venue.privateOther') }
                 ];
             }
             if (mode === 'skill') {
-                return SKILL_LEVELS.map(s => ({ val: s, label: s }));
+                return SKILL_LEVELS.map(s => ({
+                    val: s,
+                    label: getFormPickerDisplayLabel('skill', s, s)
+                }));
             }
             if (mode === 'startTime') {
                 return buildTimeSlotOptions(TIME_SLOT_DAY_START_MINUTES, TIME_SLOT_START_MAX_MINUTES);
@@ -692,7 +732,7 @@
             const scroller = document.getElementById('form-picker-scroller');
             const items = buildFormPickerItems(mode);
             if (!items.length) {
-                scroller.innerHTML = '<div class="form-wheel-item snap-center flex h-10 items-center justify-center px-3 text-sm font-medium text-gray-400" data-val="">沒有可選時間</div>';
+                scroller.innerHTML = `<div class="form-wheel-item snap-center flex h-10 items-center justify-center px-3 text-sm font-medium text-gray-400" data-val="">${i18n('picker.noTime')}</div>`;
                 return;
             }
             scroller.innerHTML = items.map(({ val, label }) =>
@@ -716,12 +756,12 @@
             venueBtn.classList.toggle('cursor-not-allowed', !hasRegion);
 
             if (!hasRegion) {
-                venueText.textContent = '請先選擇分區';
+                venueText.textContent = i18n('publish.pickVenueFirst');
                 venueInput.value = '';
                 formSelectedVenue = '';
                 handleVenueSelectionChange();
             } else if (!formSelectedVenue) {
-                venueText.textContent = '請滾動選擇體育館';
+                venueText.textContent = i18n('publish.pickVenue');
             }
         }
 
@@ -941,24 +981,24 @@
 
         function openFormPicker(mode) {
             if (mode === 'venue' && !formSelectedRegion) {
-                alert('請先選擇香港具體分區');
+                i18nAlert('alert.pickDistrictFirst');
                 return;
             }
             if (mode === 'endTime' && !getPublishStartTimeValue()) {
-                alert('請先選擇開始時間');
+                i18nAlert('alert.pickStartTimeFirst');
                 return;
             }
 
             formPickerMode = mode;
-            const titles = {
-                region: '選擇分區',
-                venue: '選擇體育館',
-                brand: '選擇羽毛球品牌',
-                skill: '選擇球技要求',
-                startTime: '開始時間',
-                endTime: '結束時間'
+            const titleKeys = {
+                region: 'picker.selectDistrict',
+                venue: 'picker.selectVenue',
+                brand: 'picker.selectBrand',
+                skill: 'picker.selectSkill',
+                startTime: 'picker.startTime',
+                endTime: 'picker.endTime'
             };
-            document.getElementById('form-picker-title').textContent = titles[mode];
+            document.getElementById('form-picker-title').textContent = i18n(titleKeys[mode] || 'common.done');
 
             const scrollTo = mode === 'region'
                 ? (formSelectedRegion || HONG_KONG_18_DISTRICTS[0])
@@ -1008,7 +1048,7 @@
                 if (selected !== formSelectedRegion) {
                     formSelectedRegion = selected;
                     document.getElementById('form-region').value = selected;
-                    document.getElementById('form-region-text').textContent = selected;
+                    document.getElementById('form-region-text').textContent = txPlace(selected);
                     formSelectedVenue = '';
                     document.getElementById('form-venue').value = '';
                     document.getElementById('form-venue-text').textContent = '請滾動選擇體育館';
@@ -1121,13 +1161,13 @@
 
             try {
                 const publicMatches = await window.dbFetchActivities();
-                let privateHosted = [];
-                if (window.firebaseAuthUid && typeof window.dbFetchMyHostedPrivateActivities === 'function') {
-                    privateHosted = await window.dbFetchMyHostedPrivateActivities();
+                let hostLobbyExtras = [];
+                if (window.firebaseAuthUid && typeof window.dbFetchMyHostedLobbyActivities === 'function') {
+                    hostLobbyExtras = await window.dbFetchMyHostedLobbyActivities();
                 }
-                matches = mergeMatchesByFirestoreId(publicMatches, privateHosted);
-                if (privateHosted.length > 0) {
-                    console.info(`[+1] 已載入 ${privateHosted.length} 筆場主私人場次至首頁。`);
+                matches = mergeMatchesByFirestoreId(publicMatches, hostLobbyExtras);
+                if (hostLobbyExtras.length > 0) {
+                    console.info(`[+1] 已合併 ${hostLobbyExtras.length} 筆場主場次至大廳（含私人／未過期）。`);
                 }
                 migrateMatchDates();
                 migrateMatchSlots();
@@ -1152,10 +1192,10 @@
         }
 
         function getActivityDateTimeLabel(activity) {
-            const dateLabel = activity.playDate ? formatDateDisplay(activity.playDate) : '日期待定';
+            const dateLabel = activity.playDate ? formatDateDisplay(activity.playDate) : i18n('date.pending');
             const timeLabel = activity.playTime && String(activity.playTime).trim()
                 ? String(activity.playTime).trim()
-                : '時間待定';
+                : i18n('date.timePending');
             return `${dateLabel} · ${timeLabel}`;
         }
 
@@ -1201,7 +1241,7 @@
             if (!note) return '';
             return `
                         <div class="flex justify-between gap-4">
-                            <span class="text-[#777777] shrink-0">備註</span>
+                            <span class="text-[#777777] shrink-0">${i18n('match.note')}</span>
                             <span class="text-right font-medium text-[#333333]">${escapeHtml(note)}</span>
                         </div>`;
         }
@@ -1304,27 +1344,27 @@
             const isOwnHosted = isOwnHostedMatch(match);
             let cardBadges = '';
             if (isOwnHosted) {
-                cardBadges += '<span class="match-host-owned-badge">你發佈的</span>';
+                cardBadges += `<span class="match-host-owned-badge">${i18n('match.yourPublished')}</span>`;
                 if (isPrivateMatch(match)) {
-                    cardBadges += '<span class="session-private-badge">私人</span>';
+                    cardBadges += `<span class="session-private-badge">${i18n('match.privateTag')}</span>`;
                 }
             } else if (showPrivateBadge || isPrivateMatch(match)) {
-                cardBadges += '<span class="session-private-badge">私人邀請</span>';
+                cardBadges += `<span class="session-private-badge">${i18n('match.privateInvite')}</span>`;
             }
 
             let actionHtml = '';
             if (joinStatus === 'approved') {
                 actionHtml = `
                     <div class="match-book-actions">
-                        <button type="button" class="match-book-btn match-book-btn-reserved" disabled>已預約</button>
-                        <button type="button" class="match-cancel-link" onclick="cancelReservation('${bookId}')">取消預約</button>
+                        <button type="button" class="match-book-btn match-book-btn-reserved" disabled>${i18n('match.reserved')}</button>
+                        <button type="button" class="match-cancel-link" onclick="cancelReservation('${bookId}')">${i18n('match.cancelBooking')}</button>
                     </div>
                 `;
             } else if (joinStatus === 'pending') {
                 actionHtml = `
                     <div class="match-book-actions">
-                        <button type="button" class="match-book-btn match-book-btn-pending" disabled>待場主批准</button>
-                        <button type="button" class="match-cancel-link" onclick="cancelReservation('${bookId}')">取消申請</button>
+                        <button type="button" class="match-book-btn match-book-btn-pending" disabled>${i18n('match.pendingHost')}</button>
+                        <button type="button" class="match-cancel-link" onclick="cancelReservation('${bookId}')">${i18n('match.cancelApplication')}</button>
                     </div>
                 `;
             } else if (isFull) {
@@ -1336,14 +1376,14 @@
                             class="match-book-btn match-book-btn-waitlist${isOnWaitlist ? ' is-active' : ''}"
                             ${isOnWaitlist ? 'disabled' : ''}
                         >
-                            ${isOnWaitlist ? '✓ 已加入後補' : '加入後補 (Waitlist)'}
+                            ${isOnWaitlist ? i18n('match.waitlistedBtn') : i18n('match.waitlistBtn')}
                         </button>
                     </div>
                 `;
             } else {
                 actionHtml = `
                     <div class="match-book-actions">
-                        <button type="button" onclick="bookMatch('${bookId}', this)" class="match-book-btn">點擊報名</button>
+                        <button type="button" onclick="bookMatch('${bookId}', this)" class="match-book-btn">${i18n('match.bookBtn')}</button>
                     </div>
                 `;
             }
@@ -1356,30 +1396,30 @@
                 <div data-macro-region="${escapeHtml(macroRegion)}" data-district="${escapeHtml(district)}"${hostOwnAttr} class="match-card bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]">
                     <div class="flex justify-between items-start gap-4 mb-5">
                         <div>
-                            <p class="text-[10px] tracking-[0.18em] text-[#777777]">日期時間 ${cardBadges}</p>
+                            <p class="text-[10px] tracking-[0.18em] text-[#777777]">${i18n('match.dateTimeLabel')} ${cardBadges}</p>
                             <h4 class="text-base font-medium leading-relaxed tracking-[0.05em] text-[#333333] mt-1">
                                 ${getActivityDateTimeLabel(match)}
                             </h4>
                             ${renderHostPublisherBlock(match)}
                         </div>
                         <span class="shrink-0 rounded-full border border-[#E5E5E5] px-3 py-1 text-[10px] tracking-[0.08em] text-[#777777]">
-                            ${isFull ? '已滿額' : `剩餘 ${remainingSlots} 位`}
+                            ${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}
                         </span>
                     </div>
 
                     <div class="border-y border-[#E5E5E5] py-4 space-y-3 text-sm tracking-[0.05em] leading-relaxed">
                         <div class="flex justify-between gap-4">
-                            <span class="text-[#777777]">地點</span>
-                            <span class="text-right font-medium text-[#333333]">${match.region} · ${match.venue}</span>
+                            <span class="text-[#777777]">${i18n('match.location')}</span>
+                            <span class="text-right font-medium text-[#333333]">${txPlace(match.region)} · ${txPlace(match.venue)}</span>
                         </div>
                         ${renderHostNoteRow(match)}
                         <div class="flex justify-between gap-4">
-                            <span class="text-[#777777]">費用</span>
-                            <span class="font-medium text-[#333333]">HK$ ${match.fee} / 人</span>
+                            <span class="text-[#777777]">${i18n('match.fee')}</span>
+                            <span class="font-medium text-[#333333]">${i18n('match.feePerPerson', { fee: match.fee })}</span>
                         </div>
                         <div class="flex justify-between gap-4">
-                            <span class="text-[#777777]">名額</span>
-                            <span class="font-medium text-[#333333]">${isFull ? '已滿額' : `剩餘 ${remainingSlots} 位`}</span>
+                            <span class="text-[#777777]">${i18n('match.slotsLabel')}</span>
+                            <span class="font-medium text-[#333333]">${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}</span>
                         </div>
                         ${renderParticipantsBlock(match)}
                     </div>
@@ -1403,7 +1443,7 @@
                 section.classList.remove('hidden');
                 section.innerHTML = `
                     <div class="invite-match-wrap">
-                        <p class="invite-match-note">此私人球局已過期或不存在。</p>
+                        <p class="invite-match-note">${i18n('invite.expired')}</p>
                     </div>
                 `;
                 return;
@@ -1412,7 +1452,7 @@
             section.classList.remove('hidden');
             section.innerHTML = `
                 <div class="invite-match-wrap">
-                    <p class="invite-match-note">你透過專屬連結進入的私人球局</p>
+                    <p class="invite-match-note">${i18n('invite.viaLink')}</p>
                     ${buildMatchCardHtml(inviteMatch, { showPrivateBadge: true })}
                 </div>
             `;
@@ -1504,11 +1544,11 @@
             if (!link) return;
             try {
                 await navigator.clipboard.writeText(link);
-                alert('已複製專屬連結，可貼到 WhatsApp / Signal 群組分享。');
+                i18nAlert('alert.linkCopied');
             } catch (_err) {
                 urlInput?.select();
                 document.execCommand?.('copy');
-                alert('已複製專屬連結，可貼到 WhatsApp / Signal 群組分享。');
+                i18nAlert('alert.linkCopied');
             }
         }
 
@@ -1528,15 +1568,15 @@
             if (!hostedContainer || !joinedContainer) return;
 
             if (!window.firebaseAuthUid) {
-                hostedContainer.innerHTML = '<div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你發佈的場次</div>';
-                joinedContainer.innerHTML = '<div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你參加的場次</div>';
+                hostedContainer.innerHTML = `<div class="px-4 py-5 text-center text-xs text-gray-400">${i18n('profile.hostedEmpty')}</div>`;
+                joinedContainer.innerHTML = `<div class="px-4 py-5 text-center text-xs text-gray-400">${i18n('profile.joinedEmpty')}</div>`;
                 return;
             }
 
             const bridgeReady = await waitForDbBridge();
             if (!bridgeReady) {
-                hostedContainer.innerHTML = '<div class="px-4 py-5 text-center text-xs text-gray-400">雲端資料暫時未連線</div>';
-                joinedContainer.innerHTML = '<div class="px-4 py-5 text-center text-xs text-gray-400">雲端資料暫時未連線</div>';
+                hostedContainer.innerHTML = `<div class="px-4 py-5 text-center text-xs text-gray-400">${i18n('profile.cloudOffline')}</div>`;
+                joinedContainer.innerHTML = `<div class="px-4 py-5 text-center text-xs text-gray-400">${i18n('profile.cloudOffline')}</div>`;
                 return;
             }
 
@@ -1550,36 +1590,48 @@
 
                 hostedContainer.innerHTML = recentHosted.length
                     ? recentHosted.map(renderHostedActivitySummary).join('')
-                    : '<div class="px-4 py-5 text-center text-xs text-gray-400">你暫時未發佈場次</div>';
+                    : `<div class="px-4 py-5 text-center text-xs text-gray-400">${i18n('profile.noHosted')}</div>`;
                 joinedContainer.innerHTML = recentJoined.length
                     ? recentJoined.map(renderJoinedActivitySummary).join('')
-                    : '<div class="px-4 py-5 text-center text-xs text-gray-400">你暫時未參加場次</div>';
+                    : `<div class="px-4 py-5 text-center text-xs text-gray-400">${i18n('profile.noJoined')}</div>`;
             } catch (err) {
                 console.error('讀取我的場次失敗:', err);
-                hostedContainer.innerHTML = '<div class="px-4 py-5 text-center text-xs text-gray-400">讀取失敗，請稍後再試</div>';
-                joinedContainer.innerHTML = '<div class="px-4 py-5 text-center text-xs text-gray-400">讀取失敗，請稍後再試</div>';
+                hostedContainer.innerHTML = `<div class="px-4 py-5 text-center text-xs text-gray-400">${i18n('profile.loadFailed')}</div>`;
+                joinedContainer.innerHTML = `<div class="px-4 py-5 text-center text-xs text-gray-400">${i18n('profile.loadFailed')}</div>`;
             }
         }
 
         window.renderMyActivities = renderMyActivities;
 
+        let renderMatchesGeneration = 0;
+
         // 渲染搵波打列表（私人球局僅場主本人與專屬連結訪客可見）
         async function renderMatches() {
+            const generation = ++renderMatchesGeneration;
             const listContainer = document.getElementById('matches-list');
+            if (!listContainer) return;
             listContainer.innerHTML = '';
 
             let filtered = matches.filter(m => canShowMatchInLobby(m));
-            filtered = filtered.filter(m => isMatchActive(m));
+            filtered = filtered.filter(m => isMatchActive(m) || isOwnHostedMatch(m));
             if (homeSelectedDate) {
                 filtered = filtered.filter(m => m.playDate === homeSelectedDate || isOwnHostedMatch(m));
             }
 
             if (filtered.length === 0) {
+                const lobbyVisibleCount = matches.filter(m => canShowMatchInLobby(m)).length;
+                const filterState = typeof window.getLobbyFilterState === 'function'
+                    ? window.getLobbyFilterState()
+                    : { hasActiveRegionFilter: false };
                 const emptyMsg = inviteMatch && inviteMatch.isPrivate
-                    ? '大廳暫時沒有其他公開球局。'
-                    : homeSelectedDate
-                      ? `${formatDateDisplay(homeSelectedDate)} 暫時沒有開場。`
-                      : '該區域暫時沒有開場。';
+                    ? i18n('match.emptyLobbyPrivate')
+                    : lobbyVisibleCount === 0
+                      ? i18n('match.empty')
+                      : homeSelectedDate
+                        ? i18n('match.emptyLobbyDate', { date: formatDateDisplay(homeSelectedDate) })
+                        : filterState.hasActiveRegionFilter
+                          ? i18n('match.emptyFiltered')
+                          : i18n('match.emptyLobbyRegion');
                 if (inviteMatch) {
                     await prefetchParticipantAttendance(getActivityParticipants(inviteMatch).map(p => p.uid));
                     if (inviteMatch.hostUid) await prefetchHostProfiles([inviteMatch.hostUid]);
@@ -1599,6 +1651,8 @@
                 prefetchParticipantAttendance(participantUids),
                 prefetchHostProfiles(hostUids)
             ]);
+
+            if (generation !== renderMatchesGeneration) return;
 
             renderInviteMatchSection();
 
@@ -1621,14 +1675,14 @@
             if (!match) return;
 
             if (isMatchEnded(match)) {
-                alert('此場次已結束，無法報名。');
+                i18nAlert('alert.sessionEnded');
                 await renderMatches();
                 renderInviteMatchSection();
                 return;
             }
 
             if (!window.firebaseAuthUid) {
-                alert('請先登入 +1，然後再報名。');
+                i18nAlert('alert.loginPlus1Book');
                 return;
             }
 
@@ -1637,11 +1691,11 @@
             if (!Array.isArray(match.waitlist)) match.waitlist = [];
             const joinStatus = getUserJoinStatus(match);
             if (joinStatus === 'approved') {
-                alert('你已預約此場次。');
+                i18nAlert('alert.alreadyBooked');
                 return;
             }
             if (joinStatus === 'pending') {
-                alert('你已提交報名申請，待場主批准。');
+                i18nAlert('alert.pendingApproval');
                 return;
             }
 
@@ -1653,13 +1707,13 @@
             }
 
             if (isUserOnWaitlist(match)) {
-                alert('你已加入後補名單，有名額釋放時場主會通知你。');
+                i18nAlert('alert.waitlisted');
                 await renderMatches();
                 return;
             }
 
             if (!match.firestoreId) {
-                alert('此場次尚未連接雲端，暫時無法加入後補。');
+                i18nAlert('alert.waitlistOffline');
                 return;
             }
 
@@ -1685,19 +1739,17 @@
                 await loadActivitiesFromCloud();
                 await renderMatches();
                 renderInviteMatchSection();
-                alert(result?.alreadyWaitlisted
-                    ? '你已加入後補名單。'
-                    : '已加入後補名單！有名額釋放時場主會優先通知你。');
+                i18nAlert(result?.alreadyWaitlisted ? 'alert.waitlistAlready' : 'alert.waitlistSuccess');
             } catch (err) {
                 console.error('加入後補失敗:', err);
                 if (err?.code === 'activity/ended') {
-                    alert('此場次已結束，無法加入後補。');
+                    i18nAlert('alert.sessionEndedWaitlist');
                     await renderMatches();
                     renderInviteMatchSection();
                     return;
                 }
                 const code = err?.code ? `（${err.code}）` : '';
-                alert(`加入後補失敗${code}，請稍後再試。`);
+                i18nAlert('alert.waitlistFailed', { code });
             } finally {
                 if (btn) {
                     btn.disabled = false;
@@ -1735,17 +1787,17 @@
             if (!match) return;
 
             if (isMatchEnded(match)) {
-                alert('此場次已結束，無法報名。');
+                i18nAlert('alert.sessionEnded');
                 return;
             }
 
             const joinStatus = getUserJoinStatus(match);
             if (joinStatus === 'approved') {
-                alert('你已預約此場次。');
+                i18nAlert('alert.alreadyBooked');
                 return;
             }
             if (joinStatus === 'pending') {
-                alert('你已提交報名申請，待場主批准。');
+                i18nAlert('alert.pendingApproval');
                 return;
             }
 
@@ -1801,7 +1853,7 @@
 
         function jumpToPayMe() {
             if (!pendingPaymeLink) {
-                alert('場主尚未設定 PayMe 連結。');
+                i18nAlert('alert.noPayme');
                 return;
             }
             const url = pendingPaymeLink.startsWith('http')
@@ -1817,7 +1869,7 @@
             const whatsappNumber = getHostWhatsAppNumber(match);
             const url = buildWhatsAppUrl(whatsappNumber);
             if (!url) {
-                alert('場主尚未設定 WhatsApp 號碼。');
+                i18nAlert('alert.noWhatsapp');
                 return;
             }
             window.open(url, '_blank', 'noopener,noreferrer');
@@ -1846,7 +1898,7 @@
 
         async function uploadCroppedHostQr(type, croppedFile) {
             if (!window.firebaseAuthUid) {
-                alert('請先登入 +1，然後再上傳收款碼。');
+                i18nAlert('alert.loginPlus1Payment');
                 const error = new Error('請先登入後再上傳收款碼');
                 error.code = 'auth/not-signed-in';
                 throw error;
@@ -1895,19 +1947,19 @@
             const fpsId = fpsInput ? fpsInput.value.trim() : '';
 
             if (!window.firebaseAuthUid) {
-                alert('請先登入 +1，然後再儲存收款設定。');
+                i18nAlert('alert.loginPlus1SavePayment');
                 return;
             }
 
             const fpsChanged = fpsId !== (cachedOwnHostSettings?.fpsId || '');
             if (!fpsChanged) {
-                alert('沒有需要儲存的變更。');
+                i18nAlert('alert.noPaymentChanges');
                 return;
             }
 
             const bridgeReady = await waitForDbBridge();
             if (!bridgeReady) {
-                alert('雲端服務暫時未連線，請稍後再試。');
+                i18nAlert('alert.cloudOffline');
                 return;
             }
 
@@ -1929,11 +1981,11 @@
 
                 applyHostSettingsToUI(cachedOwnHostSettings || getEmptyHostSettings());
                 setHostPaymentStatus('WhatsApp 號碼已儲存');
-                alert('WhatsApp 號碼已儲存');
+                i18nAlert('alert.whatsappSaved');
             } catch (err) {
                 console.error('儲存收款設定失敗:', err);
                 const code = err?.code ? `（${err.code}）` : '';
-                alert(`儲存失敗${code}，請檢查 Firebase Storage / Firestore 權限設定。`);
+                i18nAlert('alert.paymentSaveFailed', { code });
                 setHostPaymentStatus('儲存失敗');
                 await refreshHostPaymentSettings();
             } finally {
@@ -1969,11 +2021,11 @@
             }
             if (isMatchEnded(match)) {
                 togglePaymentSheet(false);
-                alert('此場次已結束，無法報名。');
+                i18nAlert('alert.sessionEnded');
                 return;
             }
             if (!window.firebaseAuthUid) {
-                alert('請先登入 +1，然後再報名。');
+                i18nAlert('alert.loginPlus1Book');
                 return;
             }
 
@@ -2010,20 +2062,18 @@
                 await renderMatches();
                 renderInviteMatchSection();
                 await renderMyActivities();
-                alert(result?.alreadyJoined
-                    ? '你已提交報名申請。'
-                    : '報名申請已提交，待場主批准後才會確認名額。');
+                i18nAlert(result?.alreadyJoined ? 'alert.bookingAlready' : 'alert.bookingSuccess');
             } catch (err) {
                 console.error('提交報名失敗:', err);
                 if (err?.code === 'activity/ended') {
                     togglePaymentSheet(false);
-                    alert('此場次已結束，無法報名。');
+                    i18nAlert('alert.sessionEnded');
                     await renderMatches();
                     renderInviteMatchSection();
                     return;
                 }
                 const code = err?.code ? `（${err.code}）` : '';
-                alert(`提交報名失敗${code}，請稍後再試或聯絡場主。`);
+                i18nAlert('alert.bookingFailed', { code });
             }
         }
 
@@ -2076,7 +2126,7 @@
             }
 
             if (!activity) {
-                alert('找不到場次資料。');
+                i18nAlert('alert.activityNotFound');
                 return;
             }
 
@@ -2145,7 +2195,7 @@
 
         window.openHostInfoPayme = function openHostInfoPayme(link) {
             if (!link) {
-                alert('場主尚未設定 PayMe 連結。');
+                i18nAlert('alert.noPayme');
                 return;
             }
             const url = link.startsWith('http') ? link : `https://${link}`;
@@ -2202,7 +2252,7 @@
         async function openHostManageModal(activityId) {
             if (!activityId) return;
             if (!window.firebaseAuthUid) {
-                alert('請先登入 +1。');
+                i18nAlert('alert.loginPlus1');
                 return;
             }
 
@@ -2230,11 +2280,11 @@
                 activity = matches.find(m => String(m.firestoreId) === String(activityId) || String(m.id) === String(activityId)) || null;
             }
             if (!activity) {
-                alert('找不到場次資料。');
+                i18nAlert('alert.activityNotFound');
                 return;
             }
             if (activity.hostUid !== window.firebaseAuthUid) {
-                alert('只有場主可以管理此場次。');
+                i18nAlert('alert.hostOnly');
                 return;
             }
 
@@ -2319,7 +2369,7 @@
             const activityId = currentHostManageActivityId;
             if (!activityId) return;
             if (!window.firebaseAuthUid) {
-                alert('請先登入 +1。');
+                i18nAlert('alert.loginPlus1');
                 return;
             }
             await openDeleteActivityConfirmModal();
@@ -2354,11 +2404,11 @@
                 console.error('刪除場次失敗:', err);
                 await closeDeleteActivityConfirmModal();
                 if (err?.code === 'permission-denied') {
-                    alert('刪除被拒絕：請確認你是此場次的場主，並已登入。');
+                    i18nAlert('alert.deleteDenied');
                     return;
                 }
                 const code = err?.code ? `（${err.code}）` : '';
-                alert(`刪除場次失敗${code}，請稍後再試。`);
+                i18nAlert('alert.deleteFailed', { code });
             } finally {
                 if (confirmBtn) {
                     confirmBtn.disabled = false;
@@ -2385,7 +2435,7 @@
             } catch (err) {
                 console.error('批准報名失敗:', err);
                 const code = err?.code ? `（${err.code}）` : '';
-                alert(`批准失敗${code}，請稍後再試。`);
+                i18nAlert('alert.approveFailed', { code });
             }
         }
 
@@ -2407,7 +2457,7 @@
             } catch (err) {
                 console.error('拒絕報名失敗:', err);
                 const code = err?.code ? `（${err.code}）` : '';
-                alert(`拒絕失敗${code}，請稍後再試。`);
+                i18nAlert('alert.rejectFailed', { code });
             }
         }
 
@@ -2481,7 +2531,7 @@
         async function cancelReservation(id) {
             const match = await resolveMatchByBookId(id);
             if (!match) {
-                alert('找不到場次資料。');
+                i18nAlert('alert.activityNotFound');
                 return;
             }
 
@@ -2489,7 +2539,7 @@
             if (joinStatus === 'none') return;
 
             if (!window.firebaseAuthUid) {
-                alert('請先登入 +1，然後再取消預約。');
+                i18nAlert('alert.loginPlus1Cancel');
                 return;
             }
 
@@ -2500,7 +2550,7 @@
             if (!confirmed) return;
 
             if (!match.firestoreId) {
-                alert('此場次尚未連接雲端，暫時無法取消預約。');
+                i18nAlert('alert.cancelOffline');
                 return;
             }
 
@@ -2531,13 +2581,11 @@
                 await renderMatches();
                 renderInviteMatchSection();
                 await renderMyActivities();
-                alert(isPending
-                    ? '已取消報名申請。'
-                    : '已取消預約，名額已釋放。\n如已付款，請私訊場主安排退款。');
+                i18nAlert(isPending ? 'alert.cancelPendingSuccess' : 'alert.cancelApprovedSuccess');
             } catch (err) {
                 console.error('取消預約失敗:', err);
                 const code = err?.code ? `（${err.code}）` : '';
-                alert(`取消預約失敗${code}，請稍後再試或聯絡場主。`);
+                i18nAlert('alert.cancelFailed', { code });
             }
         }
 
@@ -2545,9 +2593,9 @@
         function rateHost(id) {
             let stars = prompt("請為本次活動及場主評分（請輸入 1 至 5 粒星）：", "5");
             if (stars >= 1 && stars <= 5) {
-                alert(`多謝 ${stars} 星好評！你的回饋會幫 VibeUp 波友搵到更靠譜的玩伴 🙌`);
+                i18nAlert('alert.ratingThanks', { stars });
             } else if (stars !== null) {
-                alert("請輸入正確的 1 至 5 數字。");
+                i18nAlert('alert.ratingInvalid');
             }
         }
 
@@ -2634,22 +2682,22 @@
                 publishedFirestoreId = await window.dbPublishActivity(newMatch);
                 newMatch.firestoreId = publishedFirestoreId;
                 const loaded = await loadActivitiesFromCloud();
+                matches = mergeMatchesByFirestoreId(matches, [newMatch]);
                 if (!loaded) {
-                    matches = mergeMatchesByFirestoreId(matches, [newMatch]);
                     saveMatches();
                 }
             } catch (err) {
                 console.error('發佈場次失敗:', err);
                 if (err?.code === 'activity/missing-session-ends-at') {
-                    alert('請重新選擇開場日期與時間後再發佈。');
+                    i18nAlert('alert.repickDateTime');
                     return;
                 }
                 if (err?.code === 'permission-denied') {
-                    alert('發佈被拒絕：請確認已登入，並在 Firebase Console 發佈最新的 firestore.rules。');
+                    i18nAlert('alert.publishDenied');
                     return;
                 }
                 const code = err?.code ? `（${err.code}）` : '';
-                alert(`發佈失敗${code}，請稍後再試。`);
+                i18nAlert('alert.publishFailed', { code });
                 return;
             }
 
@@ -2713,16 +2761,16 @@
             const currentPlayers = Number.isNaN(currentPlayersRaw) ? 0 : Math.max(0, currentPlayersRaw);
 
             if (currentPlayers > maxSlots) {
-                alert('現時人數不能超過總名額');
+                i18nAlert('alert.playersOverMax');
                 return;
             }
 
             if (!region || !HONG_KONG_18_DISTRICTS.includes(region)) {
-                alert('請選擇香港具體分區');
+                i18nAlert('alert.pickDistrict');
                 return;
             }
             if (!venueValue) {
-                alert('請選擇體育館名稱');
+                i18nAlert('alert.pickVenue');
                 return;
             }
 
@@ -2730,23 +2778,23 @@
             const finalVenue = isPrivateVenue ? venueNoteInput.value.trim() : venueValue;
 
             if (isPrivateVenue && !finalVenue) {
-                alert('請填寫「備註 / 具體地點」');
+                i18nAlert('alert.fillVenueNote');
                 venueNoteInput.focus();
                 return;
             }
             const playDate = document.getElementById('form-play-date').value;
             if (!playDate) {
-                alert('請選擇開場日期');
+                i18nAlert('alert.pickPlayDate');
                 return;
             }
             const timeSlot = getTimeSlotFormValues();
             if (!timeSlot.startTimeValue || !timeSlot.endTimeValue) {
-                alert('請選擇開始與結束時間');
+                i18nAlert('alert.pickTimeRange');
                 document.getElementById('form-start-time-btn')?.focus();
                 return;
             }
             if (timeSlot.duration === null || timeSlot.duration <= 0) {
-                alert('結束時間須晚於開始時間');
+                i18nAlert('alert.endAfterStart');
                 document.getElementById('form-end-time-btn')?.focus();
                 return;
             }
@@ -2759,7 +2807,7 @@
                 : null;
             if (sessionEndsAt && typeof window.isActivityEnded === 'function'
                 && window.isActivityEnded({ playDate, startTime: timeSlot.startTime, sessionEndsAt })) {
-                alert('開場已逾半小時，請選擇較晚的時段。');
+                i18nAlert('alert.startTooSoon');
                 return;
             }
 
@@ -2807,11 +2855,11 @@
             };
             const bridgeReady = await waitForDbBridge();
             if (!bridgeReady) {
-                alert('雲端資料庫暫時未連線，請稍後再試。');
+                i18nAlert('alert.dbOffline');
                 return;
             }
             if (!window.firebaseAuthUid) {
-                alert('請先登入 VibeUp 波友，然後再發佈場次。');
+                i18nAlert('alert.loginPlus1Publish');
                 return;
             }
 

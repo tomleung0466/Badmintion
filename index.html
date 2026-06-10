@@ -29,8 +29,8 @@
     <!-- 首次進入免責聲明 -->
     <div id="disclaimer-modal" class="hidden fixed inset-0 z-[95] flex items-end justify-center bg-black/45 p-4 sm:items-center">
         <div class="disclaimer-panel w-full max-w-sm rounded-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl">
-            <p class="disclaimer-text">+1 僅提供球友自助約戰資訊平台，不涉及任何資金託管或球局組織。請隊員與場主自行核實球局真實性。轉帳前請務必與場主取得聯絡。</p>
-            <button type="button" id="disclaimer-ack-btn" class="disclaimer-ack-btn">我知道了</button>
+            <p class="disclaimer-text" data-i18n="disclaimer.text">+1 僅提供球友自助約戰資訊平台，不涉及任何資金託管或球局組織。請隊員與場主自行核實球局真實性。轉帳前請務必與場主取得聯絡。</p>
+            <button type="button" id="disclaimer-ack-btn" class="disclaimer-ack-btn" data-i18n="disclaimer.ack">我知道了</button>
         </div>
     </div>
 
@@ -45,16 +45,16 @@
             <div class="flex items-start justify-between gap-3 mb-2">
                 <div class="min-w-0 flex-1">
                     <h1 class="text-2xl md:text-3xl font-bold tracking-[0.05em] text-[#333333] leading-relaxed">+1</h1>
-                    <p class="mt-2 text-xs leading-relaxed tracking-[0.04em] text-[#777777]">一齊打波</p>
+                    <p class="mt-2 text-xs leading-relaxed tracking-[0.04em] text-[#777777]" data-i18n="app.tagline">一齊打波</p>
                 </div>
                 <div class="shrink-0 text-right">
-                    <button id="loginBtn" type="button" class="bg-[#F4F4F2] text-[#333333] border border-[#E5E5E5] text-[11px] font-medium px-3.5 py-2 rounded-full">
+                    <button id="loginBtn" type="button" class="bg-[#F4F4F2] text-[#333333] border border-[#E5E5E5] text-[11px] font-medium px-3.5 py-2 rounded-full" data-i18n="auth.loginRegister">
                         登入 / 註冊
                     </button>
                     <div id="auth-user-wrap" class="hidden items-center gap-2">
                         <img id="auth-user-avatar" class="w-6 h-6 rounded-full object-cover border border-gray-200 hidden" alt="avatar">
                         <span id="auth-user-email" class="text-[10px] text-gray-600 max-w-[130px] truncate"></span>
-                        <button id="auth-logout-btn" type="button" class="bg-[#F4F4F2] text-[#333333] border border-[#E5E5E5] text-[10px] font-medium px-2.5 py-1.5 rounded-full">
+                        <button id="auth-logout-btn" type="button" class="bg-[#F4F4F2] text-[#333333] border border-[#E5E5E5] text-[10px] font-medium px-2.5 py-1.5 rounded-full" data-i18n="auth.logout">
                             登出
                         </button>
                     </div>
@@ -63,11 +63,11 @@
 
             <!-- 地區篩選：三大區膠囊 + 十八區滾筒 -->
             <div class="region-filter-scroll no-scrollbar mb-2">
-                <div id="region-filter" class="region-filter" role="tablist" aria-label="地區篩選">
-                    <button type="button" class="region-filter-btn is-active" data-filter="all" role="tab" aria-selected="true">全部</button>
-                    <button type="button" class="region-filter-btn" data-filter="港島" role="tab" aria-selected="false">香港</button>
-                    <button type="button" class="region-filter-btn" data-filter="九龍" role="tab" aria-selected="false">九龍</button>
-                    <button type="button" class="region-filter-btn" data-filter="新界" role="tab" aria-selected="false">新界</button>
+                <div id="region-filter" class="region-filter" role="tablist" data-i18n-aria="aria.regionFilter" aria-label="地區篩選">
+                    <button type="button" class="region-filter-btn is-active" data-filter="all" role="tab" aria-selected="true" data-i18n="region.all">全部</button>
+                    <button type="button" class="region-filter-btn" data-filter="港島" role="tab" aria-selected="false" data-i18n="region.hkIslandShort">香港</button>
+                    <button type="button" class="region-filter-btn" data-filter="九龍" role="tab" aria-selected="false" data-i18n="region.kowloon">九龍</button>
+                    <button type="button" class="region-filter-btn" data-filter="新界" role="tab" aria-selected="false" data-i18n="region.newTerritories">新界</button>
                 </div>
             </div>
             <button type="button" id="district-picker-btn" onclick="toggleScrollPicker(true)" class="district-picker-btn mb-4">
@@ -78,8 +78,8 @@
             <!-- 日期篩選日曆（預設收起，顯示全部日期） -->
             <div class="bg-white border border-[#E5E5E5] rounded-xl p-3 mb-6">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-medium text-[#333333] tracking-[0.08em]">打球日期</span>
-                    <button type="button" id="home-calendar-clear" onclick="clearHomeDateFilter()" class="text-[10px] font-medium text-[#777777]">顯示全部</button>
+                    <span class="text-xs font-medium text-[#333333] tracking-[0.08em]" data-i18n="date.playDate">打球日期</span>
+                    <button type="button" id="home-calendar-clear" onclick="clearHomeDateFilter()" class="text-[10px] font-medium text-[#777777]" data-i18n="date.showAll">顯示全部</button>
                 </div>
                 <button type="button" onclick="toggleCalendarExpand('home')" class="w-full bg-[#F9F9F9] border border-[#E5E5E5] rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center">
                     <span id="home-calendar-collapsed-text"></span>
@@ -92,7 +92,7 @@
                         <button type="button" onclick="changeCalendarMonth('home', 1)" class="w-8 h-8 rounded-full text-gray-500 hover:bg-gray-200 text-lg leading-none">›</button>
                     </div>
                     <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-400 font-medium mb-1">
-                        <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+                        <span class="calendar-weekday" data-i18n="date.sun">日</span><span class="calendar-weekday" data-i18n="date.mon">一</span><span class="calendar-weekday" data-i18n="date.tue">二</span><span class="calendar-weekday" data-i18n="date.wed">三</span><span class="calendar-weekday" data-i18n="date.thu">四</span><span class="calendar-weekday" data-i18n="date.fri">五</span><span class="calendar-weekday" data-i18n="date.sat">六</span>
                     </div>
                     <div id="home-calendar-grid" class="grid grid-cols-7 gap-1"></div>
                 </div>
@@ -107,7 +107,7 @@
             </div>
 
             <!-- 懸浮發佈按鈕 (+) -->
-            <button id="publish-fab-btn" type="button" class="fixed bottom-24 right-6 bg-white text-[#333333] border border-[#E5E5E5] w-14 h-14 rounded-full flex items-center justify-center text-2xl font-light transition-colors z-40" aria-label="發佈場次">
+            <button id="publish-fab-btn" type="button" class="fixed bottom-24 right-6 bg-white text-[#333333] border border-[#E5E5E5] w-14 h-14 rounded-full flex items-center justify-center text-2xl font-light transition-colors z-40" data-i18n-aria="publish.fabAria" aria-label="發佈場次">
                 ＋
             </button>
         </div>
@@ -174,32 +174,32 @@
 
         <!-- ==================== 頁面 4：我的場次 ==================== -->
         <div id="page-profile" class="app-page hidden flex-1 p-5 pb-24">
-            <h1 class="text-3xl font-extrabold tracking-[0.05em] mb-1">我的場次</h1>
-            <p class="text-xs text-gray-400 mb-6">最近出席紀錄與場次記錄</p>
+            <h1 class="text-3xl font-extrabold tracking-[0.05em] mb-1" data-i18n="profile.title">我的場次</h1>
+            <p class="text-xs text-gray-400 mb-6" data-i18n="profile.subtitle">出席紀錄與誠信積分</p>
 
             <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200 shadow-sm mb-6">
-                <p class="text-gray-800 font-medium text-sm">最近3次出席紀錄：<span id="profile-credit-points" class="font-extrabold text-amber-600">3／3</span></p>
-                <p class="text-gray-500 text-xs mt-1">以最近3次已確認場次計算</p>
+                <p class="text-gray-800 font-medium text-sm"><span data-i18n="profile.attendanceTitle">最近3次出席紀錄：</span><span id="profile-credit-points" class="font-extrabold text-amber-600">3／3</span></p>
+                <p class="text-gray-500 text-xs mt-1" data-i18n="profile.attendanceHint">以最近3次已確認場次計算</p>
             </div>
 
             <div class="space-y-4">
                 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                     <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                        <h3 class="text-sm font-extrabold text-gray-900">我發佈的場次</h3>
-                        <p class="text-[10px] text-gray-400 mt-0.5">最近 3 筆由你建立的羽毛球場次</p>
+                        <h3 class="text-sm font-extrabold text-gray-900" data-i18n="profile.hostedTitle">我發佈的場次</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5" data-i18n="profile.hostedHint">最近 3 筆由你建立的羽毛球場次</p>
                     </div>
                     <div id="my-hosted-activities" class="divide-y divide-gray-100">
-                        <div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你發佈的場次</div>
+                        <div class="px-4 py-5 text-center text-xs text-gray-400" data-i18n="profile.hostedEmpty">登入後顯示你發佈的場次</div>
                     </div>
                 </div>
 
                 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                     <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                        <h3 class="text-sm font-extrabold text-gray-900">我參加的場次</h3>
-                        <p class="text-[10px] text-gray-400 mt-0.5">最近 3 筆你已成功留位的場次</p>
+                        <h3 class="text-sm font-extrabold text-gray-900" data-i18n="profile.joinedTitle">我參加的場次</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5" data-i18n="profile.joinedHint">最近 3 筆你已成功留位的場次</p>
                     </div>
                     <div id="my-joined-activities" class="divide-y divide-gray-100">
-                        <div class="px-4 py-5 text-center text-xs text-gray-400">登入後顯示你參加的場次</div>
+                        <div class="px-4 py-5 text-center text-xs text-gray-400" data-i18n="profile.joinedEmpty">登入後顯示你參加的場次</div>
                     </div>
                 </div>
             </div>
@@ -207,8 +207,8 @@
 
         <!-- ==================== 頁面 5：設定 ==================== -->
         <div id="page-settings" class="app-page hidden flex-1 p-5 pb-24">
-            <h1 class="settings-page-title">設定</h1>
-            <p class="settings-page-subtitle">帳戶與 App 設定</p>
+            <h1 class="settings-page-title" data-i18n="settings.title">設定</h1>
+            <p class="settings-page-subtitle" data-i18n="settings.subtitle">帳戶與 App 設定</p>
 
             <div class="settings-page-stack">
             <section class="settings-card settings-card--account">
@@ -295,6 +295,14 @@
             </section>
 
             <section class="settings-card settings-card--general">
+                <div class="settings-language-block">
+                    <p class="settings-language-label" data-i18n="settings.language">語言</p>
+                    <div class="settings-language-options" role="group" aria-label="語言">
+                        <button type="button" class="settings-language-btn" data-locale-option="zh-Hant" aria-pressed="true" data-i18n="settings.localeHant">繁體</button>
+                        <button type="button" class="settings-language-btn" data-locale-option="zh-Hans" aria-pressed="false" data-i18n="settings.localeHans">簡體</button>
+                    </div>
+                    <p class="profile-field-hint settings-language-hint" data-i18n="settings.languageHint">切換介面顯示為繁體或簡體中文</p>
+                </div>
                 <div class="settings-about-row">
                     <button type="button" id="settings-version-btn" class="settings-about-btn">
                         <span class="settings-about-btn-label">版本與更新</span>
@@ -329,7 +337,7 @@
         <!-- ==================== 底部固定導航欄 (Uber風格) ==================== -->
         <footer class="app-footer bg-white/90 backdrop-blur border-t border-gray-100 py-2 flex justify-around text-[9px] font-medium text-gray-400 fixed bottom-0 w-full max-w-md z-50 shadow-lg">
             <button id="nav-match" onclick="switchPage('match')" class="text-black flex flex-col items-center gap-0.5 min-w-0 flex-1 px-0.5">
-                <span class="text-base">🏸</span><span>場次</span>
+                <span class="text-base">🏸</span><span data-i18n="nav.matches">場次</span>
             </button>
             <button id="nav-market" onclick="switchPage('market')" class="hidden flex flex-col items-center gap-0.5 min-w-0 flex-1 px-0.5">
                 <span class="text-base">🛒</span><span>用品交易</span>
@@ -338,10 +346,10 @@
                 <span class="text-base">🎓</span><span>搵教練</span>
             </button>
             <button id="nav-profile" onclick="switchPage('profile')" class="flex flex-col items-center gap-0.5 min-w-0 flex-1 px-0.5">
-                <span class="text-base">📊</span><span class="leading-tight text-center">我的場次</span>
+                <span class="text-base">📊</span><span class="leading-tight text-center" data-i18n="nav.mySessions">我的場次</span>
             </button>
             <button id="nav-settings" onclick="switchPage('settings')" class="flex flex-col items-center gap-0.5 min-w-0 flex-1 px-0.5">
-                <span class="text-base">⚙️</span><span>設定</span>
+                <span class="text-base">⚙️</span><span data-i18n="nav.settings">設定</span>
             </button>
         </footer>
 
@@ -392,7 +400,7 @@
                                 <button type="button" onclick="changeCalendarMonth('form', 1)" class="w-7 h-7 rounded-full text-gray-500 hover:bg-gray-200 text-base leading-none">›</button>
                             </div>
                             <div class="grid grid-cols-7 gap-0.5 text-center text-[9px] text-gray-400 font-medium mb-1">
-                                <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+                                <span class="calendar-weekday" data-i18n="date.sun">日</span><span class="calendar-weekday" data-i18n="date.mon">一</span><span class="calendar-weekday" data-i18n="date.tue">二</span><span class="calendar-weekday" data-i18n="date.wed">三</span><span class="calendar-weekday" data-i18n="date.thu">四</span><span class="calendar-weekday" data-i18n="date.fri">五</span><span class="calendar-weekday" data-i18n="date.sat">六</span>
                             </div>
                             <div id="form-calendar-grid" class="grid grid-cols-7 gap-0.5"></div>
                         </div>
@@ -606,7 +614,7 @@
             <h4 class="confirm-dialog-title">給我們意見</h4>
             <p class="confirm-dialog-text">歡迎告訴我們你想改善的地方、遇到的問題或新功能建議。</p>
             <label for="feedback-message-input" class="feedback-field-label">你的意見</label>
-            <textarea id="feedback-message-input" rows="4" maxlength="1000" class="publish-note-input feedback-message-input" placeholder="例如：報名流程太複雜、希望加入某某功能…"></textarea>
+            <textarea id="feedback-message-input" rows="4" maxlength="1000" class="publish-note-input feedback-message-input" data-i18n-placeholder="feedback.placeholder" placeholder="例如：報名流程太複雜、希望加入某某功能…"></textarea>
             <p id="feedback-status" class="feedback-status hidden" aria-live="polite"></p>
             <button type="button" id="feedback-submit-btn" class="confirm-dialog-primary-btn">送出意見</button>
             <button type="button" id="feedback-cancel-btn" class="confirm-dialog-cancel-btn">稍後再說</button>
@@ -731,6 +739,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
     <script src="js/app-version.js"></script>
+    <script src="js/locales/zh-Hant.js"></script>
+    <script src="js/locales/zh-Hans.js"></script>
+    <script src="js/i18n.js"></script>
     <script src="js/display-name.js"></script>
     <script src="js/overlay-transition.js"></script>
     <script src="js/pwa.js"></script>

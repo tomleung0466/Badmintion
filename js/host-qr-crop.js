@@ -170,7 +170,7 @@
         if (!file) return;
 
         if (!file.type.startsWith('image/')) {
-            alert('請選擇圖片檔案（JPG、PNG 等）。');
+            alert(typeof window.t === 'function' ? window.t('alert.imageOnly') : '請選擇圖片檔案（JPG、PNG 等）。');
             input.value = '';
             return;
         }
@@ -210,7 +210,9 @@
         } catch (err) {
             console.error('裁切或上傳 QR 失敗:', err);
             const code = err?.code ? `（${err.code}）` : '';
-            alert(`裁切或上傳失敗${code}，請再試一次。`);
+            alert(typeof window.t === 'function'
+                ? window.t('alert.cropUploadFailed', { code })
+                : `裁切或上傳失敗${code}，請再試一次。`);
         } finally {
             if (confirmBtn) {
                 confirmBtn.disabled = false;

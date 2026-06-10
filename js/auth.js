@@ -289,7 +289,10 @@ async function closeAuthModal() {
 function showWelcomeMessage(user) {
     if (!user) return;
     const name = user.displayName || user.email?.split("@")[0] || "VibeUp 波友";
-    alert(`歡迎回來，${name}！\n一起在同城搵玩伴、開波上浮 vibe 🏸`);
+    const welcome = typeof window.t === "function"
+        ? window.t("auth.welcomeBack", { name })
+        : `歡迎回來，${name}！\n一起在同城搵玩伴、開波上浮 vibe 🏸`;
+    alert(welcome);
 }
 
 function buildUserProfile(user) {
@@ -1059,6 +1062,33 @@ window.dbRejectParticipant = async function dbRejectParticipant(activityId, part
     } catch (err) {
         console.error("拒絕報名失敗:", err);
         throw err;
+    }
+};
+
+window.dbFetchMyHostedLobbyActivities = async function dbFetchMyHostedLobbyActivities() {
+    const user = auth.currentUser;
+    if (!user) return [];
+    const todayISO = getTodayISO();
+
+    const mapHosted = docs => docs
+        .map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }))
+        .filter(activity => activity.playDate && activity.playDate >= todayISO);
+
+    try {
+        const snapshot = await getDocs(query(
+            collection(db, "activities"),
+            where("hostUid", "==", user.uid),
+            where("playDate", ">=", todayISO),
+            orderBy("playDate", "desc")
+        ));
+        return mapHosted(snapshot.docs);
+    } catch (err) {
+        console.error("讀取場主大廳場次失敗，改為前端篩選:", err);
+        const snapshot = await getDocs(query(
+            collection(db, "activities"),
+            where("hostUid", "==", user.uid)
+        ));
+        return mapHosted(snapshot.docs);
     }
 };
 
