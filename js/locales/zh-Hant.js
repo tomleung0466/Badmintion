@@ -131,7 +131,7 @@ window.I18N_ZH_HANT = {
     'skill.intermediate': '中級 (擊球穩定/懂雙打跑位)',
     'skill.advanced': '中高級 (速度力量兼備/有戰術)',
     'skill.expert': '高級 (比賽選手級/強力殺球抗衡)',
-    'match.hostPublishedBy': '由以下場主發佈',
+    'match.hostPublishedBy': '由{{name}}發佈',
     'match.participants': '已報名',
     'match.note': '備註',
     'match.hostAttendance': '出席 {{label}}',

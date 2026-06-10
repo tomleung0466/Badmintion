@@ -403,32 +403,8 @@
             const hostUid = match?.hostUid;
             if (!hostUid && !match?.contact) return '';
 
-            const { displayName, photoURL, initial, profile } = getHostPublisherInfo(match);
-            const avatarHtml = photoURL
-                ? `<img src="${escapeHtml(photoURL)}" alt="${escapeHtml(displayName)}" class="host-publisher-avatar-image">`
-                : `<span class="host-publisher-avatar-initial">${escapeHtml(initial)}</span>`;
-
-            const badgeHtml = renderHostBadge(profile);
-            const attendanceLabel = profile?.attendance?.label;
-            const metaParts = [];
-            if (badgeHtml) metaParts.push(`<div class="host-meta-badges">${badgeHtml}</div>`);
-            if (attendanceLabel) {
-                metaParts.push(`<span class="host-attendance-meta" title="場主最近3次出席紀錄">出席 ${escapeHtml(attendanceLabel)}</span>`);
-            }
-            const metaHtml = metaParts.length
-                ? `<div class="host-publisher-meta">${metaParts.join('')}</div>`
-                : '';
-
-            return `
-                <div class="host-publisher-card">
-                    <div class="host-publisher-avatar" aria-hidden="true">${avatarHtml}</div>
-                    <div class="host-publisher-body">
-                        <p class="host-publisher-kicker">由以下場主發佈</p>
-                        <p class="host-publisher-name">${escapeHtml(displayName)}</p>
-                        ${metaHtml}
-                    </div>
-                </div>
-            `;
+            const { displayName } = getHostPublisherInfo(match);
+            return `<p class="host-publisher-line">${i18n('match.hostPublishedBy', { name: escapeHtml(displayName) })}</p>`;
         }
 
         function getActivityParticipants(match) {
