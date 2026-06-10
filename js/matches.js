@@ -1192,31 +1192,28 @@
             return `${getActivityDateLabel(activity)} · ${getActivityTimeLabel(activity)}`;
         }
 
-        function renderMatchDateTimeCapsules(match, options = {}) {
+        function getMatchCardBadges(match, options = {}) {
             const { showPrivateBadge = false } = options;
-            const badgesHtml = (() => {
-                let cardBadges = '';
-                const isOwnHosted = isOwnHostedMatch(match);
-                if (isOwnHosted) {
-                    cardBadges += `<span class="match-host-owned-badge">${i18n('match.yourPublished')}</span>`;
-                    if (isPrivateMatch(match)) {
-                        cardBadges += `<span class="session-private-badge">${i18n('match.privateTag')}</span>`;
-                    }
-                } else if (showPrivateBadge || isPrivateMatch(match)) {
-                    cardBadges += `<span class="session-private-badge">${i18n('match.privateInvite')}</span>`;
+            let cardBadges = '';
+            const isOwnHosted = isOwnHostedMatch(match);
+            if (isOwnHosted) {
+                cardBadges += `<span class="match-host-owned-badge">${i18n('match.yourPublished')}</span>`;
+                if (isPrivateMatch(match)) {
+                    cardBadges += `<span class="session-private-badge">${i18n('match.privateTag')}</span>`;
                 }
-                return cardBadges
-                    ? `<div class="match-card-status-badges">${cardBadges}</div>`
-                    : '';
-            })();
+            } else if (showPrivateBadge || isPrivateMatch(match)) {
+                cardBadges += `<span class="session-private-badge">${i18n('match.privateInvite')}</span>`;
+            }
+            return cardBadges;
+        }
 
+        function renderMatchDateTimeCapsules(match, options = {}) {
+            const cardBadges = getMatchCardBadges(match, options);
             return `
-                <div class="match-card-datetime-block">
-                    <div class="match-card-datetime-capsules">
-                        <span class="match-datetime-capsule">${escapeHtml(getActivityDateLabel(match))}</span>
-                        <span class="match-datetime-capsule">${escapeHtml(getActivityTimeLabel(match))}</span>
-                    </div>
-                    ${badgesHtml}
+                <p class="match-card-kicker">${i18n('match.dateTimeLabel')} ${cardBadges}</p>
+                <div class="match-card-capsules">
+                    <span class="match-card-capsule match-card-capsule--date">${escapeHtml(getActivityDateLabel(match))}</span>
+                    <span class="match-card-capsule match-card-capsule--time">${escapeHtml(getActivityTimeLabel(match))}</span>
                 </div>
             `;
         }
@@ -1407,12 +1404,12 @@
 
             return `
                 <div data-macro-region="${escapeHtml(macroRegion)}" data-district="${escapeHtml(district)}"${hostOwnAttr} class="match-card bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]">
-                    <div class="flex justify-between items-start gap-4 mb-5">
-                        <div class="min-w-0 flex-1">
+                    <div class="match-card-header">
+                        <div class="match-card-head">
                             ${renderMatchDateTimeCapsules(match, options)}
                             ${renderHostPublisherBlock(match)}
                         </div>
-                        <span class="match-slots-pill shrink-0">
+                        <span class="match-slots-pill">
                             ${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}
                         </span>
                     </div>

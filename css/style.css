@@ -2183,55 +2183,66 @@ button:hover {
   vertical-align: middle;
 }
 
-.match-card-datetime-block {
+/* ── 場次卡片頂部（MUJI 膠囊） ── */
+.match-card-header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: flex-start;
-  gap: 0.375rem;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 
-.match-card-datetime-capsules {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.375rem;
+.match-card-head {
+  min-width: 0;
+  flex: 1;
 }
 
-.match-datetime-capsule {
-  display: inline-block;
-  padding: 0.3rem 0.75rem;
-  border: 1px solid var(--muji-border);
-  border-radius: 9999px;
-  background: var(--muji-soft);
-  font-size: 11px;
+.match-card-kicker {
+  margin: 0;
+  font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.18em;
   line-height: 1.4;
-  color: var(--muji-text);
+  color: #777777;
 }
 
-.match-slots-pill,
-.match-card-status-badges .match-host-owned-badge,
-.match-card-status-badges .session-private-badge {
-  margin-left: 0;
-}
-
-.match-card-status-badges {
+.match-card-capsules {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.375rem;
+  margin-top: 0.375rem;
 }
 
-.match-slots-pill {
-  flex-shrink: 0;
+.match-card-capsule {
+  display: inline-block;
   padding: 0.25rem 0.75rem;
-  border: 1px solid var(--muji-border);
+  border: 1px solid #e5e5e5;
   border-radius: 9999px;
+  background: #fff;
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.08em;
   line-height: 1.4;
-  color: var(--muji-muted);
+  color: #333333;
+}
+
+.match-card-capsule--time {
+  color: #777777;
+}
+
+.match-slots-pill {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 9999px;
+  background: #fff;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  color: #777777;
   white-space: nowrap;
 }
 
@@ -2767,16 +2778,16 @@ button:hover {
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  margin-top: 0.625rem;
+  margin-top: 0.5rem;
 }
 
 .match-card .host-publisher-avatar {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
 .match-card .host-publisher-avatar-initial {
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .host-publisher-avatar {
@@ -2812,7 +2823,7 @@ button:hover {
   font-weight: 500;
   letter-spacing: 0.06em;
   line-height: 1.4;
-  color: var(--muji-muted);
+  color: #777777;
 }
 
 /* ── 場主分級與雙向出席率 ── */
