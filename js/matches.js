@@ -403,8 +403,17 @@
             const hostUid = match?.hostUid;
             if (!hostUid && !match?.contact) return '';
 
-            const { displayName } = getHostPublisherInfo(match);
-            return `<p class="host-publisher-line">${i18n('match.hostPublishedBy', { name: escapeHtml(displayName) })}</p>`;
+            const { displayName, photoURL, initial } = getHostPublisherInfo(match);
+            const avatarHtml = photoURL
+                ? `<img src="${escapeHtml(photoURL)}" alt="" class="host-publisher-avatar-image">`
+                : `<span class="host-publisher-avatar-initial">${escapeHtml(initial)}</span>`;
+
+            return `
+                <div class="host-publisher-row">
+                    <div class="host-publisher-avatar" aria-hidden="true">${avatarHtml}</div>
+                    <p class="host-publisher-line">${i18n('match.hostPublishedBy', { name: escapeHtml(displayName) })}</p>
+                </div>
+            `;
         }
 
         function getActivityParticipants(match) {
