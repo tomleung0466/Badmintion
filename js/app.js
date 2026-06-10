@@ -340,6 +340,28 @@ function updateProfileUI() {
     applyProfileAvatarDisplay(currentUser.photoURL || null);
 }
 
+async function updateAvatarCooldownHint() {
+    const hint = document.getElementById('profile-avatar-cooldown-hint');
+    if (!hint) return;
+
+    if (!window.firebaseAuthUid || typeof window.dbFetchAvatarChangeStatus !== 'function') {
+        hint.textContent = '每 3 日可更換一次頭像';
+        return;
+    }
+
+    try {
+        const status = await window.dbFetchAvatarChangeStatus();
+        if (status.canChange) {
+            hint.textContent = '每 3 日可更換一次頭像';
+            return;
+        }
+        hint.textContent = `頭像每 3 日只可更換一次，約 ${status.hoursRemaining} 小時後可再換`;
+    } catch (err) {
+        console.warn('讀取頭像冷卻狀態失敗:', err);
+        hint.textContent = '每 3 日可更換一次頭像';
+    }
+}
+
 function showProfileEditPanel() {
     const panel = document.getElementById('profile-edit-panel');
     const hostPanel = document.getElementById('host-settings-panel');
@@ -351,6 +373,9 @@ function showProfileEditPanel() {
     if (hostBtn) hostBtn.classList.remove('is-active-profile-action');
     if (profileBtn) profileBtn.classList.add('is-active-profile-action');
     if (panel) panel.classList.toggle('hidden');
+    if (panel && !panel.classList.contains('hidden')) {
+        updateAvatarCooldownHint();
+    }
 }
 
 async function saveProfileChanges() {
@@ -393,10 +418,22 @@ async function saveProfileChanges() {
             window.clearPendingProfileAvatarFile();
         }
         document.getElementById('profile-edit-panel')?.classList.add('hidden');
+        updateAvatarCooldownHint();
+        if (window.firebaseAuthUid && typeof window.invalidateHostProfileCache === 'function') {
+            window.invalidateHostProfileCache(window.firebaseAuthUid);
+        }
+        if (typeof window.renderMatches === 'function') {
+            window.renderMatches();
+        }
         alert('修改成功');
     } catch (err) {
         console.error('修改個人資料失敗:', err);
         setProfileAvatarUploading(false);
+        if (err?.code === 'profile/avatar-cooldown') {
+            alert(err.message || '頭像每 3 日只可更換一次。');
+            updateAvatarCooldownHint();
+            return;
+        }
         const code = err?.code ? `（${err.code}）` : '';
         alert(`修改失敗${code}，請檢查 Firebase Storage / Firestore 權限設定。`);
     } finally {

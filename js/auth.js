@@ -115,6 +115,42 @@ function resolveSessionEndsAtTimestamp(activityData = {}) {
     return null;
 }
 
+const AVATAR_CHANGE_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
+
+function resolveAvatarUpdatedAtDate(raw) {
+    if (!raw) return null;
+    if (typeof raw.toDate === "function") return raw.toDate();
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function buildAvatarChangeStatus(avatarUpdatedAtRaw, now = new Date()) {
+    const lastChangedAt = resolveAvatarUpdatedAtDate(avatarUpdatedAtRaw);
+    if (!lastChangedAt) {
+        return { canChange: true, nextChangeAt: null, hoursRemaining: 0 };
+    }
+    const nextChangeAt = new Date(lastChangedAt.getTime() + AVATAR_CHANGE_COOLDOWN_MS);
+    const canChange = now.getTime() >= nextChangeAt.getTime();
+    const hoursRemaining = canChange
+        ? 0
+        : Math.max(1, Math.ceil((nextChangeAt.getTime() - now.getTime()) / (60 * 60 * 1000)));
+    return { canChange, nextChangeAt, hoursRemaining };
+}
+
+async function syncHostPublicProfile(uid, profile = {}) {
+    if (!uid) return;
+    const displayName = String(profile.displayName || "").trim();
+    const photoURL = profile.photoURL || null;
+    if (!displayName && !photoURL) return;
+
+    await setDoc(doc(db, "hostPublicProfile", uid), {
+        uid,
+        displayName: displayName || "場主",
+        photoURL,
+        updatedAt: serverTimestamp()
+    }, { merge: true });
+}
+
 function buildActivityPublishPayload(activityData = {}, user) {
     const sessionEndsAt = resolveSessionEndsAtTimestamp(activityData);
     if (!sessionEndsAt) {
@@ -134,6 +170,13 @@ function buildActivityPublishPayload(activityData = {}, user) {
     return {
         hostUid: user.uid,
         hostEmail: activityData.hostEmail || user.email || null,
+        hostDisplayName: String(
+            activityData.hostDisplayName
+            || user.displayName
+            || user.email?.split("@")[0]
+            || "場主"
+        ),
+        hostPhotoURL: activityData.hostPhotoURL || user.photoURL || null,
         isPrivate: activityData.isPrivate === true,
         region: String(activityData.region || ""),
         venue: String(activityData.venue || ""),
@@ -277,14 +320,17 @@ async function ensureUserProfileAndAttendance(user) {
     const userSnap = await getDoc(userRef);
     const now = serverTimestamp();
 
-    await setDoc(
-        userRef,
-        {
-            ...buildUserProfile(user),
-            ...(userSnap.exists() ? {} : { createdAt: now })
-        },
-        { merge: true }
-    );
+    const profilePayload = {
+        ...buildUserProfile(user),
+        ...(userSnap.exists() ? {} : { createdAt: now })
+    };
+
+    await setDoc(userRef, profilePayload, { merge: true });
+
+    await syncHostPublicProfile(user.uid, {
+        displayName: profilePayload.displayName,
+        photoURL: profilePayload.photoURL
+    });
 
     await setDoc(
         attendanceRef,
@@ -573,12 +619,18 @@ window.dbFetchHostProfiles = async function dbFetchHostProfiles(uids = []) {
 
     await Promise.all(uniqueUids.map(async uid => {
         try {
-            const userSnap = await getDoc(doc(db, "users", uid));
+            const [userSnap, publicSnap] = await Promise.all([
+                getDoc(doc(db, "users", uid)),
+                getDoc(doc(db, "hostPublicProfile", uid))
+            ]);
             const data = userSnap.exists() ? userSnap.data() : {};
+            const publicData = publicSnap.exists() ? publicSnap.data() : {};
             const sessionCount = await resolveHostSessionCount(uid, data.hostSessionCount);
             const complaintCount = Number(data.hostComplaintCount) || 0;
             const attendance = attendanceRates[uid] || mapAttendanceRate(data.recentAttendance);
             result[uid] = {
+                displayName: publicData.displayName || data.displayName || "場主",
+                photoURL: publicData.photoURL || data.photoURL || null,
                 sessionCount,
                 complaintCount,
                 tier: resolveHostTier(sessionCount, complaintCount),
@@ -587,6 +639,8 @@ window.dbFetchHostProfiles = async function dbFetchHostProfiles(uids = []) {
         } catch (err) {
             console.error(`讀取場主檔案 ${uid} 失敗:`, err);
             result[uid] = {
+                displayName: "場主",
+                photoURL: null,
                 sessionCount: 0,
                 complaintCount: 0,
                 tier: "newbie",
@@ -1267,6 +1321,11 @@ async function deleteUserHostedActivities(uid) {
 }
 
 async function deleteUserFirestoreData(uid) {
+    try {
+        await deleteDoc(doc(db, "hostPublicProfile", uid));
+    } catch (err) {
+        console.warn("刪除 hostPublicProfile 失敗:", err);
+    }
     if (!uid) return;
     try {
         await deleteDoc(doc(db, "users", uid, "attendance", "recent"));
@@ -1298,6 +1357,17 @@ window.dbDeleteUserAccount = async function dbDeleteUserAccount() {
     await deleteUser(user);
 };
 
+window.dbFetchAvatarChangeStatus = async function dbFetchAvatarChangeStatus() {
+    const user = auth.currentUser;
+    if (!user) {
+        return { canChange: false, nextChangeAt: null, hoursRemaining: 0 };
+    }
+
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    const avatarUpdatedAt = userSnap.exists() ? userSnap.data().avatarUpdatedAt : null;
+    return buildAvatarChangeStatus(avatarUpdatedAt);
+};
+
 window.dbUpdateUserProfile = async function dbUpdateUserProfile(newName, imageFile) {
     try {
         const user = auth.currentUser;
@@ -1307,10 +1377,23 @@ window.dbUpdateUserProfile = async function dbUpdateUserProfile(newName, imageFi
             throw error;
         }
 
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        const existingData = userSnap.exists() ? userSnap.data() : {};
+
         const displayName = (newName || "").trim() || user.displayName || user.email?.split("@")[0] || "波友";
-        let photoURL = user.photoURL || null;
+        let photoURL = user.photoURL || existingData.photoURL || null;
 
         if (imageFile) {
+            const cooldown = buildAvatarChangeStatus(existingData.avatarUpdatedAt);
+            if (!cooldown.canChange) {
+                const error = new Error(`頭像每 3 日只可更換一次，請約 ${cooldown.hoursRemaining} 小時後再試。`);
+                error.code = "profile/avatar-cooldown";
+                error.hoursRemaining = cooldown.hoursRemaining;
+                error.nextChangeAt = cooldown.nextChangeAt;
+                throw error;
+            }
+
             const avatarRef = ref(storage, `avatars/${user.uid}`);
             await uploadBytes(avatarRef, imageFile);
             photoURL = await getDownloadURL(avatarRef);
@@ -1321,11 +1404,18 @@ window.dbUpdateUserProfile = async function dbUpdateUserProfile(newName, imageFi
             photoURL
         });
 
-        await updateDoc(doc(db, "users", user.uid), {
+        const userUpdate = {
             displayName,
             photoURL,
             updatedAt: serverTimestamp()
-        });
+        };
+        if (imageFile) {
+            userUpdate.avatarUpdatedAt = serverTimestamp();
+        }
+
+        await updateDoc(userRef, userUpdate);
+
+        await syncHostPublicProfile(user.uid, { displayName, photoURL });
 
         window.firebaseAuthUser = {
             uid: user.uid,

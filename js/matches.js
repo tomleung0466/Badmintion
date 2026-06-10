@@ -344,21 +344,66 @@
             return '';
         }
 
-        function renderHostMetaBlock(match) {
+        function extractPublisherNameFromContact(contact) {
+            const raw = String(contact || '').trim();
+            if (!raw) return '';
+            return raw.split(/\s+/)[0] || '';
+        }
+
+        function getHostPublisherInfo(match) {
             const hostUid = match?.hostUid;
-            if (!hostUid) return '';
+            const profile = hostUid ? getHostProfile(hostUid) : null;
+            const isSelf = !!(hostUid && hostUid === window.firebaseAuthUid);
+            const authUser = window.firebaseAuthUser;
 
-            const profile = getHostProfile(hostUid);
+            let displayName = profile?.displayName
+                || match?.hostDisplayName
+                || (isSelf && authUser?.displayName)
+                || extractPublisherNameFromContact(match?.contact)
+                || '場主';
+            displayName = String(displayName).replace(/^波友_/, '').trim() || '場主';
+
+            let photoURL = profile?.photoURL
+                || match?.hostPhotoURL
+                || (isSelf ? (authUser?.photoURL || null) : null)
+                || null;
+
+            return {
+                displayName,
+                photoURL,
+                initial: displayName.charAt(0) || '主',
+                profile
+            };
+        }
+
+        function renderHostPublisherBlock(match) {
+            const hostUid = match?.hostUid;
+            if (!hostUid && !match?.contact) return '';
+
+            const { displayName, photoURL, initial, profile } = getHostPublisherInfo(match);
+            const avatarHtml = photoURL
+                ? `<img src="${escapeHtml(photoURL)}" alt="${escapeHtml(displayName)}" class="host-publisher-avatar-image">`
+                : `<span class="host-publisher-avatar-initial">${escapeHtml(initial)}</span>`;
+
             const badgeHtml = renderHostBadge(profile);
-            const attendanceLabel = profile?.attendance?.label || '—';
-            const attendanceHtml = `<span class="host-attendance-meta" title="場主最近3次出席紀錄">場主出席 ${escapeHtml(attendanceLabel)}</span>`;
-
-            if (!badgeHtml && attendanceLabel === '—') return '';
+            const attendanceLabel = profile?.attendance?.label;
+            const metaParts = [];
+            if (badgeHtml) metaParts.push(`<div class="host-meta-badges">${badgeHtml}</div>`);
+            if (attendanceLabel) {
+                metaParts.push(`<span class="host-attendance-meta" title="場主最近3次出席紀錄">出席 ${escapeHtml(attendanceLabel)}</span>`);
+            }
+            const metaHtml = metaParts.length
+                ? `<div class="host-publisher-meta">${metaParts.join('')}</div>`
+                : '';
 
             return `
-                <div class="host-meta-block">
-                    ${badgeHtml ? `<div class="host-meta-badges">${badgeHtml}</div>` : ''}
-                    ${attendanceHtml}
+                <div class="host-publisher-card">
+                    <div class="host-publisher-avatar" aria-hidden="true">${avatarHtml}</div>
+                    <div class="host-publisher-body">
+                        <p class="host-publisher-kicker">由以下場主發佈</p>
+                        <p class="host-publisher-name">${escapeHtml(displayName)}</p>
+                        ${metaHtml}
+                    </div>
                 </div>
             `;
         }
@@ -1315,7 +1360,7 @@
                             <h4 class="text-base font-medium leading-relaxed tracking-[0.05em] text-[#333333] mt-1">
                                 ${getActivityDateTimeLabel(match)}
                             </h4>
-                            ${renderHostMetaBlock(match)}
+                            ${renderHostPublisherBlock(match)}
                         </div>
                         <span class="shrink-0 rounded-full border border-[#E5E5E5] px-3 py-1 text-[10px] tracking-[0.08em] text-[#777777]">
                             ${isFull ? '已滿額' : `剩餘 ${remainingSlots} 位`}
@@ -2755,6 +2800,8 @@
                 applicantEmail: null,
                 hostUid: window.firebaseAuthUid || null,
                 hostEmail: window.firebaseAuthUser?.email || null,
+                hostDisplayName: hostName,
+                hostPhotoURL: window.firebaseAuthUser?.photoURL || null,
                 fpsId: hostPhone,
                 paymeLink: `payme.hsbc/${hostName.split(/\s+/)[0] || '場主'}_VibeUp`
             };
@@ -2847,3 +2894,6 @@
         window.renderMatches = renderMatches;
         window.cancelReservation = cancelReservation;
         window.resetPublishForm = resetPublishForm;
+        window.invalidateHostProfileCache = function invalidateHostProfileCache(uid) {
+            if (uid) hostProfileCache.delete(uid);
+        };
