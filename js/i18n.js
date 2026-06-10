@@ -161,7 +161,7 @@
         ['.settings-page-title', 'settings.title'],
         ['.settings-page-subtitle', 'settings.subtitle'],
         ['#profile-avatar-overlay .image-preview-overlay-text', 'settings.uploading'],
-        ['.settings-member-kicker', 'settings.memberKicker'],
+        ['.settings-card--account .settings-member-kicker', 'settings.memberKicker'],
         ['#edit-profile-btn', 'settings.editProfile'],
         ['#edit-host-payment-btn', 'settings.hostPayment'],
         ['#profile-edit-panel .profile-subpanel-title', 'settings.editProfile'],
@@ -184,7 +184,7 @@
         ['#save-host-payment-btn', 'settings.saveHostPayment'],
         ['#settings-version-btn .settings-about-btn-label', 'settings.version'],
         ['#settings-feedback-btn .settings-about-btn-label', 'settings.feedback'],
-        ['.settings-about-hint', 'settings.feedbackHint'],
+        ['.settings-about-row + .settings-about-hint', 'settings.feedbackHint'],
         ['#profile-logout-btn', 'auth.logout'],
         ['#nav-match span:last-child', 'nav.matches'],
         ['#nav-profile span:last-child', 'nav.mySessions'],
@@ -284,7 +284,7 @@
         document.querySelectorAll('[data-locale-option]').forEach((btn) => {
             const locale = btn.getAttribute('data-locale-option');
             const active = locale === currentLocale;
-            btn.classList.toggle('is-active', active);
+            btn.classList.toggle('is-active-profile-action', active);
             btn.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
     }

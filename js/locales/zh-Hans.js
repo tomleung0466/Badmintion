@@ -49,7 +49,7 @@ window.I18N_ZH_HANS = {
     'settings.title': '设置',
     'settings.subtitle': '账户与 App 设置',
     'settings.language': '语言',
-    'settings.languageHint': '切换界面显示为繁体或简体中文',
+    'settings.languageHint': '仅切换界面语言，场次内容维持原样',
     'settings.localeHant': '繁体',
     'settings.localeHans': '简体',
     'settings.memberKicker': '羽毛球场次会员',

@@ -505,44 +505,16 @@ body.muji-overlay-open {
   border-bottom: 1px solid var(--muji-border);
 }
 
-.settings-language-label {
-  margin: 0 0 0.5rem;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  color: var(--muji-text);
+.settings-language-block .settings-member-kicker {
+  margin-bottom: 0.5rem;
 }
 
-.settings-language-options {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-
-.settings-language-btn {
-  min-height: 2.75rem;
-  border: 1px solid var(--muji-border);
-  border-radius: 0.75rem;
-  background: var(--muji-soft);
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  color: var(--muji-text);
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.settings-language-btn:hover {
-  background: var(--muji-hover);
-}
-
-.settings-language-btn.is-active {
-  border-color: var(--muji-text);
-  background: #fff;
+.settings-language-block .profile-action-row {
+  margin-bottom: 0;
 }
 
 .settings-language-hint {
-  margin-top: 0.5rem;
+  margin-top: 0.625rem;
   text-align: center;
 }
 

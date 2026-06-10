@@ -49,7 +49,7 @@ window.I18N_ZH_HANT = {
     'settings.title': '設定',
     'settings.subtitle': '帳戶與 App 設定',
     'settings.language': '語言',
-    'settings.languageHint': '切換介面顯示為繁體或簡體中文',
+    'settings.languageHint': '僅切換介面語言，場次內容維持原樣',
     'settings.localeHant': '繁體',
     'settings.localeHans': '簡體',
     'settings.memberKicker': '羽毛球場次會員',
