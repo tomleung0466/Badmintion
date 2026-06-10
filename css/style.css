@@ -15,6 +15,15 @@
 html {
   height: 100%;
   height: -webkit-fill-available;
+  font-size: 16px;
+}
+
+html[data-font-size="large"] {
+  font-size: 18px;
+}
+
+html[data-font-size="xlarge"] {
+  font-size: 20px;
 }
 
 html,
@@ -358,6 +367,7 @@ body.muji-overlay-open {
 #publish-duplicate-modal.muji-overlay,
 #version-modal.muji-overlay,
 #language-modal.muji-overlay,
+#font-size-modal.muji-overlay,
 #feedback-modal.muji-overlay {
   z-index: 125;
 }

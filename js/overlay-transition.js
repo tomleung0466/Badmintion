@@ -18,6 +18,7 @@
         'publish-duplicate-modal': 'modal',
         'version-modal': 'modal',
         'language-modal': 'modal',
+        'font-size-modal': 'modal',
         'feedback-modal': 'modal',
         'private-share-modal': 'modal',
         'host-qr-crop-modal': 'modal',

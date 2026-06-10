@@ -302,6 +302,13 @@
                     </button>
                     <p class="profile-field-hint settings-language-hint" data-i18n="settings.languageHint">僅切換介面語言，場次內容維持原樣</p>
                 </div>
+                <div class="settings-language-block">
+                    <button type="button" id="settings-font-size-btn" class="settings-about-btn settings-about-btn--single">
+                        <span class="settings-about-btn-label" data-i18n="settings.fontSize">字體大小</span>
+                        <span id="settings-font-size-label" class="settings-about-btn-value">標準</span>
+                    </button>
+                    <p class="profile-field-hint settings-language-hint" data-i18n="settings.fontSizeHint">調整 App 介面文字大小</p>
+                </div>
                 <div class="settings-about-row">
                     <button type="button" id="settings-version-btn" class="settings-about-btn">
                         <span class="settings-about-btn-label">版本與更新</span>
@@ -593,6 +600,24 @@
         </div>
     </div>
 
+    <!-- 字體大小 -->
+    <div id="font-size-modal" class="hidden fixed inset-0 z-[92] flex items-end justify-center bg-black/45 p-4 sm:items-center">
+        <div class="version-modal-panel w-full max-w-sm rounded-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl">
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <div>
+                    <h4 class="confirm-dialog-title text-left" data-i18n="settings.fontSize">字體大小</h4>
+                    <p class="version-modal-current" data-i18n="settings.fontSizeHint">調整 App 介面文字大小</p>
+                </div>
+                <button type="button" id="font-size-modal-close" class="session-modal-close" data-i18n-aria="common.close" aria-label="關閉">✕</button>
+            </div>
+            <div class="language-modal-options" role="radiogroup" data-i18n-aria="settings.fontSize" aria-label="字體大小">
+                <button type="button" class="language-modal-option" data-font-size-option="normal" aria-pressed="true" data-i18n="settings.fontSizeNormal">標準</button>
+                <button type="button" class="language-modal-option" data-font-size-option="large" aria-pressed="false" data-i18n="settings.fontSizeLarge">較大</button>
+                <button type="button" class="language-modal-option" data-font-size-option="xlarge" aria-pressed="false" data-i18n="settings.fontSizeXlarge">特大</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 語言選擇 -->
     <div id="language-modal" class="hidden fixed inset-0 z-[92] flex items-end justify-center bg-black/45 p-4 sm:items-center">
         <div class="version-modal-panel w-full max-w-sm rounded-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl">
@@ -758,6 +783,7 @@
     <script src="js/locales/zh-Hant.js"></script>
     <script src="js/locales/zh-Hans.js"></script>
     <script src="js/i18n.js"></script>
+    <script src="js/font-size.js"></script>
     <script src="js/display-name.js"></script>
     <script src="js/overlay-transition.js"></script>
     <script src="js/pwa.js"></script>

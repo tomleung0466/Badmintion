@@ -735,6 +735,28 @@ async function closeLanguageModal() {
 
 window.closeLanguageModal = closeLanguageModal;
 
+async function openFontSizeModal() {
+    const modal = document.getElementById('font-size-modal');
+    if (!modal) return;
+    if (typeof window.openMujiOverlay === 'function') {
+        await window.openMujiOverlay(modal);
+    } else {
+        modal.classList.remove('hidden');
+    }
+}
+
+async function closeFontSizeModal() {
+    const modal = document.getElementById('font-size-modal');
+    if (!modal) return;
+    if (typeof window.closeMujiOverlay === 'function') {
+        await window.closeMujiOverlay(modal);
+    } else {
+        modal.classList.add('hidden');
+    }
+}
+
+window.closeFontSizeModal = closeFontSizeModal;
+
 function setFeedbackStatus(message, tone = '') {
     const statusEl = document.getElementById('feedback-status');
     if (!statusEl) return;
@@ -841,16 +863,26 @@ function bindSettingsPageUI() {
     if (typeof window.updateSettingsLanguageLabel === 'function') {
         window.updateSettingsLanguageLabel();
     }
+    if (typeof window.updateSettingsFontSizeLabel === 'function') {
+        window.updateSettingsFontSizeLabel();
+    }
     document.getElementById('settings-language-btn')?.addEventListener('click', openLanguageModal);
+    document.getElementById('settings-font-size-btn')?.addEventListener('click', openFontSizeModal);
     document.getElementById('settings-version-btn')?.addEventListener('click', openVersionModal);
     document.getElementById('settings-feedback-btn')?.addEventListener('click', openFeedbackModal);
     document.getElementById('language-modal-close')?.addEventListener('click', closeLanguageModal);
+    document.getElementById('font-size-modal-close')?.addEventListener('click', closeFontSizeModal);
     document.getElementById('version-modal-close')?.addEventListener('click', closeVersionModal);
     document.getElementById('feedback-submit-btn')?.addEventListener('click', submitFeedback);
     document.getElementById('feedback-cancel-btn')?.addEventListener('click', closeFeedbackModal);
     document.getElementById('language-modal')?.addEventListener('click', event => {
         if (event.target.id === 'language-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
             closeLanguageModal();
+        }
+    });
+    document.getElementById('font-size-modal')?.addEventListener('click', event => {
+        if (event.target.id === 'font-size-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
+            closeFontSizeModal();
         }
     });
     document.getElementById('version-modal')?.addEventListener('click', event => {
