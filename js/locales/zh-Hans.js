@@ -134,7 +134,7 @@ window.I18N_ZH_HANS = {
     'skill.intermediate': '中级 (击球稳定/懂双打走位)',
     'skill.advanced': '中高级 (速度力量兼备/有战术)',
     'skill.expert': '高级 (比赛选手级/强力杀球抗衡)',
-    'match.hostPublishedBy': '由{{name}}发布',
+    'match.hostPublishedBy': '由 {{name}} 发布',
     'match.participants': '已报名',
     'match.note': '备注',
     'match.hostAttendance': '出席 {{label}}',

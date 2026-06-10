@@ -2827,6 +2827,11 @@ button:hover {
   object-fit: cover;
 }
 
+.host-publisher-avatar-image.hidden,
+.host-publisher-avatar-initial.hidden {
+  display: none;
+}
+
 .host-publisher-avatar-initial {
   font-size: 11px;
   font-weight: 500;

@@ -179,6 +179,31 @@
                 .replace(/'/g, '&#39;');
         }
 
+        function safePhotoSrc(url) {
+            const raw = String(url || '').trim();
+            if (!/^https?:\/\//i.test(raw)) return '';
+            return raw.replace(/"/g, '%22');
+        }
+
+        function renderAvatarMarkup(photoURL, initial, imageClass) {
+            const src = safePhotoSrc(photoURL);
+            const safeInitial = escapeHtml(initial || '主');
+            if (!src) {
+                return `<span class="host-publisher-avatar-initial">${safeInitial}</span>`;
+            }
+            return `
+                <img
+                    src="${src}"
+                    alt=""
+                    class="${imageClass} host-publisher-avatar-image"
+                    referrerpolicy="no-referrer"
+                    loading="lazy"
+                    onerror="this.classList.add('hidden');this.parentElement.querySelector('.host-publisher-avatar-initial')?.classList.remove('hidden')"
+                >
+                <span class="host-publisher-avatar-initial hidden">${safeInitial}</span>
+            `;
+        }
+
         function getEmptyHostSettings() {
             return { paymeQrUrl: '', fpsQrUrl: '', fpsId: '' };
         }
@@ -367,10 +392,8 @@
             return '';
         }
 
-        function extractPublisherNameFromContact(contact) {
-            const raw = String(contact || '').trim();
-            if (!raw) return '';
-            return raw.split(/\s+/)[0] || '';
+        function normalizePublisherDisplayName(raw) {
+            return String(raw || '').replace(/^波友_/, '').trim();
         }
 
         function getHostPublisherInfo(match) {
@@ -379,15 +402,16 @@
             const isSelf = !!(hostUid && hostUid === window.firebaseAuthUid);
             const authUser = window.firebaseAuthUser;
 
-            let displayName = profile?.displayName
-                || match?.hostDisplayName
+            const displayName = normalizePublisherDisplayName(
+                match?.hostDisplayName
+                || profile?.displayName
                 || (isSelf && authUser?.displayName)
-                || extractPublisherNameFromContact(match?.contact)
-                || '場主';
-            displayName = String(displayName).replace(/^波友_/, '').trim() || '場主';
+                || (isSelf && authUser?.email?.split('@')[0])
+                || '場主'
+            ) || '場主';
 
-            let photoURL = profile?.photoURL
-                || match?.hostPhotoURL
+            const photoURL = match?.hostPhotoURL
+                || profile?.photoURL
                 || (isSelf ? (authUser?.photoURL || null) : null)
                 || null;
 
@@ -400,13 +424,10 @@
         }
 
         function renderHostPublisherBlock(match) {
-            const hostUid = match?.hostUid;
-            if (!hostUid && !match?.contact) return '';
+            if (!match?.hostUid && !match?.hostDisplayName) return '';
 
             const { displayName, photoURL, initial } = getHostPublisherInfo(match);
-            const avatarHtml = photoURL
-                ? `<img src="${escapeHtml(photoURL)}" alt="" class="host-publisher-avatar-image">`
-                : `<span class="host-publisher-avatar-initial">${escapeHtml(initial)}</span>`;
+            const avatarHtml = renderAvatarMarkup(photoURL, initial, 'host-publisher-avatar-image');
 
             return `
                 <div class="host-publisher-row">
@@ -452,8 +473,9 @@
             if (!participants.length) return '';
 
             const chips = participants.map(participant => {
-                const avatarHtml = participant.photoURL
-                    ? `<img src="${escapeHtml(participant.photoURL)}" alt="${escapeHtml(participant.name)}" class="participant-avatar-image">`
+                const src = safePhotoSrc(participant.photoURL);
+                const avatarHtml = src
+                    ? `<img src="${src}" alt="${escapeHtml(participant.name)}" class="participant-avatar-image" referrerpolicy="no-referrer" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'participant-avatar-initial',textContent:'${escapeHtml(participant.initial)}'}))">`
                     : `<span class="participant-avatar-initial">${escapeHtml(participant.initial)}</span>`;
                 const tooltip = formatAttendanceTooltip(participant.name, participant.uid);
                 return `
