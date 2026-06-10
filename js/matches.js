@@ -157,6 +157,26 @@
             return { paymeQrUrl: '', fpsQrUrl: '', fpsId: '' };
         }
 
+        function getHostDisplayName() {
+            if (typeof getCurrentUserName === 'function') {
+                const name = String(getCurrentUserName() || '').trim();
+                if (name) return name;
+            }
+            const authUser = window.firebaseAuthUser;
+            if (authUser?.displayName) return String(authUser.displayName).trim();
+            if (authUser?.email) return authUser.email.split('@')[0] || '場主';
+            return '場主';
+        }
+
+        async function resolveHostPublishContact() {
+            if (typeof window.refreshHostPaymentSettings === 'function') {
+                await window.refreshHostPaymentSettings();
+            }
+            const name = getHostDisplayName();
+            const phone = String(cachedOwnHostSettings?.fpsId || '').trim();
+            return phone ? `${name} ${phone}` : name;
+        }
+
         function getHostPaymentInfo(match, remoteSettings = null) {
             const ownSettings = cachedOwnHostSettings || getEmptyHostSettings();
             const isOwnMatch = !!match?.hostUid && match.hostUid === window.firebaseAuthUid;
@@ -2539,6 +2559,10 @@
                 return;
             }
 
+            const hostContact = await resolveHostPublishContact();
+            const hostName = getHostDisplayName();
+            const hostPhone = extractPhoneFromContact(hostContact) || String(cachedOwnHostSettings?.fpsId || '').trim();
+
             const newMatch = {
                 id: Date.now(),
                 isPrivate,
@@ -2556,7 +2580,7 @@
                 hours: timeSlot.duration,
                 fee: parseInt(document.getElementById('form-fee').value) || 50,
                 hostRating: "5.0",
-                contact: document.getElementById('form-contact').value,
+                contact: hostContact,
                 shuttleInfo: shuttleInfo || '',
                 shuttleBrand: shuttleInfo || '',
                 shuttleModel: '',
@@ -2572,15 +2596,8 @@
                 applicantEmail: null,
                 hostUid: window.firebaseAuthUid || null,
                 hostEmail: window.firebaseAuthUser?.email || null,
-                fpsId: (() => {
-                    const contact = document.getElementById('form-contact').value;
-                    const phone = contact.match(/\d{8}/);
-                    return phone ? phone[0] : '91234567';
-                })(),
-                paymeLink: (() => {
-                    const contact = document.getElementById('form-contact').value.trim().split(/\s+/)[0] || '場主';
-                    return `payme.hsbc/${contact}_VibeUp`;
-                })()
+                fpsId: hostPhone,
+                paymeLink: `payme.hsbc/${hostName.split(/\s+/)[0] || '場主'}_VibeUp`
             };
             const bridgeReady = await waitForDbBridge();
             if (!bridgeReady) {
