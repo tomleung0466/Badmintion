@@ -354,7 +354,8 @@ body.muji-overlay-open {
   z-index: 120;
 }
 
-#delete-activity-confirm-modal.muji-overlay {
+#delete-activity-confirm-modal.muji-overlay,
+#publish-duplicate-modal.muji-overlay {
   z-index: 125;
 }
 

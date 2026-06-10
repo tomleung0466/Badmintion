@@ -139,6 +139,9 @@
         let pendingPaymeLink = '';
         let inviteActivityId = null;
         let inviteMatch = null;
+        let pendingPublishSubmission = null;
+
+        const HOST_DUPLICATE_SLOT_LIMIT = 3;
 
         let cachedOwnHostSettings = null;
         const participantAttendanceCache = new Map();
@@ -2380,6 +2383,13 @@
                     closeDeleteActivityConfirmModal();
                 }
             });
+            document.getElementById('publish-duplicate-confirm-btn')?.addEventListener('click', confirmPublishDespiteDuplicate);
+            document.getElementById('publish-duplicate-cancel-btn')?.addEventListener('click', cancelPublishDuplicateModal);
+            document.getElementById('publish-duplicate-modal')?.addEventListener('click', event => {
+                if (event.target.id === 'publish-duplicate-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
+                    cancelPublishDuplicateModal();
+                }
+            });
             document.getElementById('host-payment-info-modal')?.addEventListener('click', event => {
                 if (event.target.id === 'host-payment-info-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
                     closeHostPaymentInfoModal();
@@ -2496,6 +2506,155 @@
             }
         }
 
+        function buildDuplicateSlotCriteria(match) {
+            return {
+                playDate: String(match?.playDate || '').trim(),
+                region: String(match?.region || '').trim(),
+                venue: String(match?.venue || '').trim(),
+                startTime: match?.startTime || match?.startTimeValue || '',
+                endTime: match?.endTime || match?.endTimeValue || '',
+                skillLevel: String(match?.skillLevel || '').trim()
+            };
+        }
+
+        function countLocalHostDuplicateSlots(criteria) {
+            const uid = window.firebaseAuthUid;
+            if (!uid) return 0;
+            return matches.filter(match =>
+                match?.hostUid === uid
+                && isMatchActive(match)
+                && typeof window.activityMatchesDuplicateSlot === 'function'
+                    ? window.activityMatchesDuplicateSlot(match, criteria)
+                    : false
+            ).length;
+        }
+
+        async function countHostDuplicateSlots(criteria) {
+            if (typeof window.dbCountHostDuplicateActivities === 'function') {
+                try {
+                    return await window.dbCountHostDuplicateActivities(criteria);
+                } catch (err) {
+                    console.warn('雲端重複場次檢查失敗，改用本地資料:', err);
+                }
+            }
+            return countLocalHostDuplicateSlots(criteria);
+        }
+
+        async function openPublishDuplicateModal({ mode, duplicateCount }) {
+            const modal = document.getElementById('publish-duplicate-modal');
+            const title = document.getElementById('publish-duplicate-title');
+            const text = document.getElementById('publish-duplicate-text');
+            const confirmBtn = document.getElementById('publish-duplicate-confirm-btn');
+            const cancelBtn = document.getElementById('publish-duplicate-cancel-btn');
+            if (!modal || !title || !text || !confirmBtn || !cancelBtn) return;
+
+            const skillLabel = pendingPublishSubmission?.skillLevelLabel || '此球技要求';
+            const slotLabel = pendingPublishSubmission?.timeSlotLabel || '相同時段';
+
+            if (mode === 'blocked') {
+                title.textContent = '無法發佈';
+                text.textContent = `相同時段、地點與「${skillLabel}」的場次已達 ${HOST_DUPLICATE_SLOT_LIMIT} 場上限。請先刪除既有場次，或更改時段、地點、球技要求。`;
+                confirmBtn.classList.add('hidden');
+                cancelBtn.textContent = '知道了';
+            } else {
+                title.textContent = '重複場次提醒';
+                text.textContent = `你已有 ${duplicateCount} 場「${slotLabel} · ${skillLabel}」的場次（最多 ${HOST_DUPLICATE_SLOT_LIMIT} 場）。仍要發佈嗎？`;
+                confirmBtn.classList.remove('hidden');
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = '仍要發佈';
+                cancelBtn.textContent = '返回修改';
+            }
+
+            if (typeof window.openMujiOverlay === 'function') {
+                await window.openMujiOverlay(modal);
+            } else {
+                modal.classList.remove('hidden');
+            }
+        }
+
+        async function closePublishDuplicateModal() {
+            const modal = document.getElementById('publish-duplicate-modal');
+            if (!modal) return;
+            if (typeof window.closeMujiOverlay === 'function') {
+                await window.closeMujiOverlay(modal);
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        async function executePublishSubmission(submission) {
+            const { newMatch, formEvent, isPrivate, playDate, region } = submission;
+            let publishedFirestoreId = null;
+            try {
+                publishedFirestoreId = await window.dbPublishActivity(newMatch);
+                newMatch.firestoreId = publishedFirestoreId;
+                const loaded = await loadActivitiesFromCloud();
+                if (!loaded) {
+                    matches = mergeMatchesByFirestoreId(matches, [newMatch]);
+                    saveMatches();
+                }
+            } catch (err) {
+                console.error('發佈場次失敗:', err);
+                if (err?.code === 'activity/missing-session-ends-at') {
+                    alert('請重新選擇開場日期與時間後再發佈。');
+                    return;
+                }
+                if (err?.code === 'permission-denied') {
+                    alert('發佈被拒絕：請確認已登入，並在 Firebase Console 發佈最新的 firestore.rules。');
+                    return;
+                }
+                const code = err?.code ? `（${err.code}）` : '';
+                alert(`發佈失敗${code}，請稍後再試。`);
+                return;
+            }
+
+            if (typeof window.closePublishPage === 'function') {
+                await window.closePublishPage();
+            }
+            if (typeof window.alignLobbyRegionFilter === 'function') {
+                window.alignLobbyRegionFilter(region);
+            }
+            syncHomeLobbyAfterPublish(playDate);
+            formEvent.target.reset();
+            resetPublishForm();
+            if (typeof window.switchPage === 'function') {
+                await window.switchPage('match');
+            }
+            await renderMatches();
+            await renderMyActivities();
+
+            if (isPrivate && publishedFirestoreId) {
+                openPrivateShareModal(publishedFirestoreId);
+            }
+        }
+
+        async function confirmPublishDespiteDuplicate() {
+            const submission = pendingPublishSubmission;
+            if (!submission) return;
+
+            const confirmBtn = document.getElementById('publish-duplicate-confirm-btn');
+            const originalText = confirmBtn ? confirmBtn.textContent : '';
+            try {
+                if (confirmBtn) {
+                    confirmBtn.disabled = true;
+                    confirmBtn.textContent = '發佈中...';
+                }
+                await closePublishDuplicateModal();
+                await executePublishSubmission(submission);
+            } finally {
+                pendingPublishSubmission = null;
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = originalText || '仍要發佈';
+                }
+            }
+        }
+
+        async function cancelPublishDuplicateModal() {
+            await closePublishDuplicateModal();
+            pendingPublishSubmission = null;
+        }
+
         // 處理新場地發佈表格
         async function handleFormSubmit(event) {
             event.preventDefault();
@@ -2609,48 +2768,49 @@
                 return;
             }
 
-            let publishedFirestoreId = null;
-            try {
-                publishedFirestoreId = await window.dbPublishActivity(newMatch);
-                newMatch.firestoreId = publishedFirestoreId;
-                const loaded = await loadActivitiesFromCloud();
-                if (!loaded) {
-                    matches = mergeMatchesByFirestoreId(matches, [newMatch]);
-                    saveMatches();
-                }
-            } catch (err) {
-                console.error('發佈場次失敗:', err);
-                if (err?.code === 'activity/missing-session-ends-at') {
-                    alert('請重新選擇開場日期與時間後再發佈。');
-                    return;
-                }
-                if (err?.code === 'permission-denied') {
-                    alert('發佈被拒絕：請確認已登入，並在 Firebase Console 發佈最新的 firestore.rules。');
-                    return;
-                }
-                const code = err?.code ? `（${err.code}）` : '';
-                alert(`發佈失敗${code}，請稍後再試。`);
+            const duplicateCriteria = buildDuplicateSlotCriteria(newMatch);
+            const duplicateCount = await countHostDuplicateSlots(duplicateCriteria);
+            const skillLevelLabel = getSkillLevelShortLabel(newMatch.skillLevel);
+            const timeSlotLabel = timeSlot.displayTimeSlot || `${newMatch.startTime}-${newMatch.endTime}`;
+
+            if (duplicateCount >= HOST_DUPLICATE_SLOT_LIMIT) {
+                pendingPublishSubmission = {
+                    newMatch,
+                    formEvent: event,
+                    isPrivate,
+                    playDate,
+                    region,
+                    skillLevelLabel,
+                    timeSlotLabel
+                };
+                await openPublishDuplicateModal({ mode: 'blocked', duplicateCount });
+                pendingPublishSubmission = null;
                 return;
             }
 
-            if (typeof window.closePublishPage === 'function') {
-                await window.closePublishPage();
+            if (duplicateCount > 0) {
+                pendingPublishSubmission = {
+                    newMatch,
+                    formEvent: event,
+                    isPrivate,
+                    playDate,
+                    region,
+                    skillLevelLabel,
+                    timeSlotLabel
+                };
+                await openPublishDuplicateModal({ mode: 'confirm', duplicateCount });
+                return;
             }
-            if (typeof window.alignLobbyRegionFilter === 'function') {
-                window.alignLobbyRegionFilter(region);
-            }
-            syncHomeLobbyAfterPublish(playDate);
-            event.target.reset();
-            resetPublishForm();
-            if (typeof window.switchPage === 'function') {
-                await window.switchPage('match');
-            }
-            await renderMatches();
-            await renderMyActivities();
 
-            if (isPrivate && publishedFirestoreId) {
-                openPrivateShareModal(publishedFirestoreId);
-            }
+            await executePublishSubmission({
+                newMatch,
+                formEvent: event,
+                isPrivate,
+                playDate,
+                region,
+                skillLevelLabel,
+                timeSlotLabel
+            });
         }
 
         async function initMatchesApp() {

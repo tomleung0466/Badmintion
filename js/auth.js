@@ -406,6 +406,63 @@ if (document.readyState === "loading") {
     initAuth();
 }
 
+function normalizeSlotTimeValue(timeValue) {
+    const raw = String(timeValue || "").trim();
+    if (!raw) return "";
+    if (raw.includes(":")) {
+        const [hours, minutes] = raw.split(":").map(Number);
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return raw;
+        return `${String(hours).padStart(2, "0")}${String(minutes).padStart(2, "0")}`;
+    }
+    if (/^\d{3,4}$/.test(raw)) {
+        return raw.padStart(4, "0");
+    }
+    return raw;
+}
+
+window.activityMatchesDuplicateSlot = function activityMatchesDuplicateSlot(activity = {}, criteria = {}) {
+    return String(activity.playDate || "").trim() === String(criteria.playDate || "").trim()
+        && String(activity.region || "").trim() === String(criteria.region || "").trim()
+        && String(activity.venue || "").trim() === String(criteria.venue || "").trim()
+        && normalizeSlotTimeValue(activity.startTime) === normalizeSlotTimeValue(criteria.startTime)
+        && normalizeSlotTimeValue(activity.endTime) === normalizeSlotTimeValue(criteria.endTime)
+        && String(activity.skillLevel || "").trim() === String(criteria.skillLevel || "").trim();
+};
+
+window.dbCountHostDuplicateActivities = async function dbCountHostDuplicateActivities(criteria = {}) {
+    const user = auth.currentUser;
+    if (!user) return 0;
+
+    const playDate = String(criteria.playDate || "").trim();
+    if (!playDate) return 0;
+
+    const mapMatching = docs => filterActiveActivities(docs
+        .map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }))
+        .filter(activity => activity.hostUid === user.uid)
+        .filter(activity => activityMatchesDuplicateSlot(activity, criteria)));
+
+    try {
+        const snapshot = await getDocs(query(
+            collection(db, "activities"),
+            where("hostUid", "==", user.uid),
+            where("playDate", "==", playDate)
+        ));
+        return mapMatching(snapshot.docs).length;
+    } catch (err) {
+        console.error("讀取重複場次失敗，改為查詢場主全部場次:", err);
+        try {
+            const snapshot = await getDocs(query(
+                collection(db, "activities"),
+                where("hostUid", "==", user.uid)
+            ));
+            return mapMatching(snapshot.docs).length;
+        } catch (fallbackErr) {
+            console.error("讀取場主場次失敗:", fallbackErr);
+            return 0;
+        }
+    }
+};
+
 window.dbPublishActivity = async function dbPublishActivity(activityData) {
     try {
         const user = auth.currentUser;
