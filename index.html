@@ -207,11 +207,12 @@
 
         <!-- ==================== 頁面 5：設定 ==================== -->
         <div id="page-settings" class="app-page hidden flex-1 p-5 pb-24">
-            <h1 class="text-3xl font-extrabold tracking-[0.05em] mb-1">設定</h1>
-            <p class="text-xs text-gray-400 mb-6">帳戶與收款設定</p>
+            <h1 class="settings-page-title">設定</h1>
+            <p class="settings-page-subtitle">帳戶與 App 設定</p>
 
-            <div class="bg-gray-50 rounded-2xl p-5 border border-gray-200 shadow-sm mb-6">
-                <div class="flex items-center gap-4 mb-4">
+            <div class="settings-page-stack">
+            <section class="settings-card settings-card--account">
+                <div class="settings-member-row">
                     <div class="profile-avatar-wrap shrink-0">
                         <div id="profile-avatar" class="profile-avatar-display w-16 h-16 bg-black text-white rounded-full flex items-center justify-center text-xl font-extrabold shadow-md">強</div>
                         <div id="profile-avatar-overlay" class="image-preview-overlay profile-avatar-overlay" aria-hidden="true">
@@ -220,8 +221,8 @@
                         </div>
                     </div>
                     <div>
-                        <p class="text-[10px] text-gray-400 font-medium">羽毛球場次會員</p>
-                        <h2 id="profile-display-name" class="text-lg font-extrabold text-gray-900">阿強</h2>
+                        <p class="settings-member-kicker">羽毛球場次會員</p>
+                        <h2 id="profile-display-name" class="settings-member-name">阿強</h2>
                     </div>
                 </div>
                 <div class="profile-action-row">
@@ -289,24 +290,26 @@
                         儲存設定
                     </button>
                 </div>
-                <div class="settings-about-section">
-                    <p class="profile-subpanel-title">關於 +1</p>
-                    <div class="settings-about-row">
-                        <button type="button" id="settings-version-btn" class="settings-about-btn">
-                            <span class="settings-about-btn-label">版本與更新</span>
-                            <span id="settings-version-label" class="settings-about-btn-value">—</span>
-                        </button>
-                        <button type="button" id="settings-feedback-btn" class="settings-about-btn settings-about-btn--single">
-                            <span class="settings-about-btn-label">給我們意見</span>
-                        </button>
-                    </div>
-                    <p class="profile-field-hint settings-about-hint">意見會儲存至雲端，方便我們跟進改善 App。</p>
-                </div>
-                <div id="profile-logout-wrap" class="hidden mt-4">
-                    <button type="button" id="profile-logout-btn" class="profile-logout-btn">
-                        登出
+            </section>
+
+            <section class="settings-card settings-card--general">
+                <div class="settings-about-row">
+                    <button type="button" id="settings-version-btn" class="settings-about-btn">
+                        <span class="settings-about-btn-label">版本與更新</span>
+                        <span id="settings-version-label" class="settings-about-btn-value">—</span>
+                    </button>
+                    <button type="button" id="settings-feedback-btn" class="settings-about-btn settings-about-btn--single">
+                        <span class="settings-about-btn-label">給我們意見</span>
                     </button>
                 </div>
+                <p class="profile-field-hint settings-about-hint">意見會儲存至雲端，方便我們跟進改善 App。</p>
+            </section>
+
+            <section id="profile-logout-wrap" class="settings-card settings-card--logout hidden">
+                <button type="button" id="profile-logout-btn" class="settings-logout-btn">
+                    登出
+                </button>
+            </section>
             </div>
         </div>
 

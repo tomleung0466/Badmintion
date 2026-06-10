@@ -361,12 +361,91 @@ body.muji-overlay-open {
   z-index: 125;
 }
 
-/* 設定頁：關於與回饋（對齊 profile-action-btn） */
-.settings-about-section {
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--muji-border);
+/* 設定頁：三區卡片佈局 */
+.settings-page-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--muji-text);
 }
+
+.settings-page-subtitle {
+  margin: 0 0 1.25rem;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--muji-muted);
+}
+
+.settings-page-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settings-card {
+  padding: 1.25rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.settings-member-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.settings-member-kicker {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--muji-muted);
+}
+
+.settings-member-name {
+  margin: 0.125rem 0 0;
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--muji-text);
+}
+
+.settings-card--account .profile-action-row {
+  margin-bottom: 0;
+}
+
+.settings-card--account .profile-subpanel {
+  margin-top: 0.875rem;
+  margin-bottom: 0;
+}
+
+.settings-card--logout {
+  padding: 0.875rem 1.25rem;
+}
+
+.settings-logout-btn {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: none;
+  border-radius: 0.75rem;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: #b91c1c;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.settings-logout-btn:hover {
+  background: #fef2f2 !important;
+  color: #991b1b !important;
+}
+
+/* 設定頁：關於與回饋（對齊 profile-action-btn） */
 
 .settings-about-row {
   display: grid;
