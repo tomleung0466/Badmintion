@@ -52,6 +52,7 @@ window.I18N_ZH_HANT = {
     'settings.languageHint': '僅切換介面語言，場次內容維持原樣',
     'settings.localeHant': '繁體',
     'settings.localeHans': '簡體',
+    'settings.localeEn': 'English',
     'settings.memberKicker': '羽毛球場次會員',
     'settings.uploading': '正在上傳...',
     'settings.editProfile': '編輯個人資料',

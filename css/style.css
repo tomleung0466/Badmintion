@@ -357,6 +357,7 @@ body.muji-overlay-open {
 #delete-activity-confirm-modal.muji-overlay,
 #publish-duplicate-modal.muji-overlay,
 #version-modal.muji-overlay,
+#language-modal.muji-overlay,
 #feedback-modal.muji-overlay {
   z-index: 125;
 }
@@ -505,17 +506,39 @@ body.muji-overlay-open {
   border-bottom: 1px solid var(--muji-border);
 }
 
-.settings-language-block .settings-member-kicker {
-  margin-bottom: 0.5rem;
-}
-
-.settings-language-block .profile-action-row {
-  margin-bottom: 0;
-}
-
 .settings-language-hint {
   margin-top: 0.625rem;
   text-align: center;
+}
+
+.language-modal-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.language-modal-option {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.75rem;
+  background: var(--muji-soft);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--muji-text);
+  text-align: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.language-modal-option:hover {
+  background: var(--muji-hover);
+}
+
+.language-modal-option.is-active-profile-action {
+  border-color: #c8c8c4;
+  background: #fff;
 }
 
 .version-modal-current {

@@ -296,11 +296,10 @@
 
             <section class="settings-card settings-card--general">
                 <div class="settings-language-block">
-                    <p class="settings-member-kicker" data-i18n="settings.language">語言</p>
-                    <div class="profile-action-row settings-language-options" role="group" data-i18n-aria="settings.language" aria-label="語言">
-                        <button type="button" class="profile-action-btn" data-locale-option="zh-Hant" aria-pressed="true" data-i18n="settings.localeHant">繁體</button>
-                        <button type="button" class="profile-action-btn" data-locale-option="zh-Hans" aria-pressed="false" data-i18n="settings.localeHans">簡體</button>
-                    </div>
+                    <button type="button" id="settings-language-btn" class="settings-about-btn settings-about-btn--single">
+                        <span class="settings-about-btn-label" data-i18n="settings.language">語言</span>
+                        <span id="settings-language-label" class="settings-about-btn-value">繁體</span>
+                    </button>
                     <p class="profile-field-hint settings-language-hint" data-i18n="settings.languageHint">僅切換介面語言，場次內容維持原樣</p>
                 </div>
                 <div class="settings-about-row">
@@ -591,6 +590,23 @@
             <p id="publish-duplicate-text" class="confirm-dialog-text"></p>
             <button type="button" id="publish-duplicate-confirm-btn" class="confirm-dialog-primary-btn">仍要發佈</button>
             <button type="button" id="publish-duplicate-cancel-btn" class="confirm-dialog-cancel-btn">返回修改</button>
+        </div>
+    </div>
+
+    <!-- 語言選擇 -->
+    <div id="language-modal" class="hidden fixed inset-0 z-[92] flex items-end justify-center bg-black/45 p-4 sm:items-center">
+        <div class="version-modal-panel w-full max-w-sm rounded-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl">
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <div>
+                    <h4 class="confirm-dialog-title text-left" data-i18n="settings.language">語言</h4>
+                    <p class="version-modal-current" data-i18n="settings.languageHint">僅切換介面語言，場次內容維持原樣</p>
+                </div>
+                <button type="button" id="language-modal-close" class="session-modal-close" data-i18n-aria="common.close" aria-label="關閉">✕</button>
+            </div>
+            <div class="language-modal-options" role="radiogroup" data-i18n-aria="settings.language" aria-label="語言">
+                <button type="button" class="language-modal-option" data-locale-option="zh-Hant" aria-pressed="true" data-i18n="settings.localeHant">繁體</button>
+                <button type="button" class="language-modal-option" data-locale-option="zh-Hans" aria-pressed="false" data-i18n="settings.localeHans">簡體</button>
+            </div>
         </div>
     </div>
 

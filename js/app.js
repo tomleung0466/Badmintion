@@ -674,6 +674,28 @@ async function closeVersionModal() {
     }
 }
 
+async function openLanguageModal() {
+    const modal = document.getElementById('language-modal');
+    if (!modal) return;
+    if (typeof window.openMujiOverlay === 'function') {
+        await window.openMujiOverlay(modal);
+    } else {
+        modal.classList.remove('hidden');
+    }
+}
+
+async function closeLanguageModal() {
+    const modal = document.getElementById('language-modal');
+    if (!modal) return;
+    if (typeof window.closeMujiOverlay === 'function') {
+        await window.closeMujiOverlay(modal);
+    } else {
+        modal.classList.add('hidden');
+    }
+}
+
+window.closeLanguageModal = closeLanguageModal;
+
 function setFeedbackStatus(message, tone = '') {
     const statusEl = document.getElementById('feedback-status');
     if (!statusEl) return;
@@ -777,11 +799,21 @@ async function submitFeedback() {
 
 function bindSettingsPageUI() {
     updateSettingsVersionLabel();
+    if (typeof window.updateSettingsLanguageLabel === 'function') {
+        window.updateSettingsLanguageLabel();
+    }
+    document.getElementById('settings-language-btn')?.addEventListener('click', openLanguageModal);
     document.getElementById('settings-version-btn')?.addEventListener('click', openVersionModal);
     document.getElementById('settings-feedback-btn')?.addEventListener('click', openFeedbackModal);
+    document.getElementById('language-modal-close')?.addEventListener('click', closeLanguageModal);
     document.getElementById('version-modal-close')?.addEventListener('click', closeVersionModal);
     document.getElementById('feedback-submit-btn')?.addEventListener('click', submitFeedback);
     document.getElementById('feedback-cancel-btn')?.addEventListener('click', closeFeedbackModal);
+    document.getElementById('language-modal')?.addEventListener('click', event => {
+        if (event.target.id === 'language-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
+            closeLanguageModal();
+        }
+    });
     document.getElementById('version-modal')?.addEventListener('click', event => {
         if (event.target.id === 'version-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
             closeVersionModal();

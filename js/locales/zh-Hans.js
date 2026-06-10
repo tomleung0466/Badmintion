@@ -52,6 +52,7 @@ window.I18N_ZH_HANS = {
     'settings.languageHint': '仅切换界面语言，场次内容维持原样',
     'settings.localeHant': '繁体',
     'settings.localeHans': '简体',
+    'settings.localeEn': 'English',
     'settings.memberKicker': '羽毛球场次会员',
     'settings.uploading': '正在上传...',
     'settings.editProfile': '编辑个人资料',

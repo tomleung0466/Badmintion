@@ -5,6 +5,11 @@
     const STORAGE_KEY = 'plus1_locale';
     const DEFAULT_LOCALE = 'zh-Hant';
     const SUPPORTED = ['zh-Hant', 'zh-Hans'];
+    const LOCALE_LABEL_KEYS = {
+        'zh-Hant': 'settings.localeHant',
+        'zh-Hans': 'settings.localeHans',
+        'en': 'settings.localeEn'
+    };
 
     const CHAR_T2S = {
         區: '区', 東: '东', 島: '岛', 灣: '湾', 門: '门', 鄉: '乡', 頭: '头', 馬: '马',
@@ -182,8 +187,10 @@
         ['#host-settings-panel .profile-field:nth-child(4) .profile-upload-text', 'settings.uploadFps'],
         ['label[for="host-fps-id-input"]', 'settings.whatsapp'],
         ['#save-host-payment-btn', 'settings.saveHostPayment'],
+        ['#settings-language-btn .settings-about-btn-label', 'settings.language'],
         ['#settings-version-btn .settings-about-btn-label', 'settings.version'],
         ['#settings-feedback-btn .settings-about-btn-label', 'settings.feedback'],
+        ['#language-modal-close', 'common.close', 'aria'],
         ['.settings-about-row + .settings-about-hint', 'settings.feedbackHint'],
         ['#profile-logout-btn', 'auth.logout'],
         ['#nav-match span:last-child', 'nav.matches'],
@@ -280,6 +287,16 @@
         }
     };
 
+    function getLocaleDisplayLabel(locale) {
+        const key = LOCALE_LABEL_KEYS[locale];
+        return key ? t(key) : locale;
+    }
+
+    window.updateSettingsLanguageLabel = function updateSettingsLanguageLabel() {
+        const label = document.getElementById('settings-language-label');
+        if (label) label.textContent = getLocaleDisplayLabel(currentLocale);
+    };
+
     function updateLanguageSelectorUi() {
         document.querySelectorAll('[data-locale-option]').forEach((btn) => {
             const locale = btn.getAttribute('data-locale-option');
@@ -287,6 +304,7 @@
             btn.classList.toggle('is-active-profile-action', active);
             btn.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
+        window.updateSettingsLanguageLabel();
     }
 
     function persistLocale(locale) {
@@ -314,9 +332,13 @@
 
     function bindLanguageSelector() {
         document.querySelectorAll('[data-locale-option]').forEach((btn) => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 const locale = btn.getAttribute('data-locale-option');
-                if (locale) window.setAppLocale(locale);
+                if (!locale || !SUPPORTED.includes(locale)) return;
+                window.setAppLocale(locale);
+                if (typeof window.closeLanguageModal === 'function') {
+                    await window.closeLanguageModal();
+                }
             });
         });
     }
