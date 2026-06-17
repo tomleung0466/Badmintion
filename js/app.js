@@ -400,6 +400,7 @@ function updateProfileUI() {
 
     setProfileAvatarUploading(false);
     applyProfileAvatarDisplay(isLoggedIn ? (currentUser.photoURL || null) : null);
+    refreshDirectoryOptInUI();
 }
 
 async function updateAvatarCooldownHint() {
@@ -895,6 +896,44 @@ async function submitFeedback() {
     }
 }
 
+async function refreshDirectoryOptInUI() {
+    const checkbox = document.getElementById('settings-directory-opt-in');
+    if (!checkbox) return;
+    if (!window.firebaseAuthUid || typeof window.dbGetUserDirectoryOptIn !== 'function') {
+        checkbox.checked = false;
+        checkbox.disabled = true;
+        return;
+    }
+    checkbox.disabled = false;
+    try {
+        checkbox.checked = await window.dbGetUserDirectoryOptIn();
+    } catch (err) {
+        console.error('讀取搜尋邀請設定失敗:', err);
+        checkbox.checked = false;
+    }
+}
+
+async function handleDirectoryOptInChange(event) {
+    const enabled = event.target?.checked === true;
+    if (!window.firebaseAuthUid) {
+        event.target.checked = false;
+        alert(window.t ? window.t('community.loginRequired') : '請先登入');
+        return;
+    }
+    if (typeof window.dbSetUserDirectoryOptIn !== 'function') {
+        event.target.checked = !enabled;
+        alert(window.t ? window.t('alert.profileOffline') : '個人資料服務暫時未連線，請稍後再試。');
+        return;
+    }
+    try {
+        await window.dbSetUserDirectoryOptIn(enabled);
+    } catch (err) {
+        console.error('更新搜尋邀請設定失敗:', err);
+        event.target.checked = !enabled;
+        alert(err?.message || (window.t ? window.t('directory.optInFailed') : '更新設定失敗'));
+    }
+}
+
 function bindSettingsPageUI() {
     updateSettingsVersionLabel();
     renderVersionChangelog();
@@ -912,6 +951,8 @@ function bindSettingsPageUI() {
     document.getElementById('settings-font-size-btn')?.addEventListener('click', openFontSizeModal);
     document.getElementById('settings-version-btn')?.addEventListener('click', openVersionModal);
     document.getElementById('settings-feedback-btn')?.addEventListener('click', openFeedbackModal);
+    document.getElementById('settings-directory-opt-in')?.addEventListener('change', handleDirectoryOptInChange);
+    refreshDirectoryOptInUI();
     document.getElementById('language-modal-close')?.addEventListener('click', closeLanguageModal);
     document.getElementById('appearance-modal-close')?.addEventListener('click', closeAppearanceModal);
     document.getElementById('font-size-modal-close')?.addEventListener('click', closeFontSizeModal);

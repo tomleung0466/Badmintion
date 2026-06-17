@@ -3,9 +3,20 @@
  * 每次發佈請同步更新：version、build、changelog 第一筆，以及 sw.js 的 CACHE_NAME
  */
 window.APP_VERSION = {
-    version: '1.29.0',
-    build: 33,
+    version: '1.30.0',
+    build: 34,
     changelog: [
+        {
+            version: '1.30.0',
+            date: '2026-06-04',
+            items: [
+                '參加者也可代報名（發佈時可選）',
+                '設定可開啟「允許被搜尋邀請進社群」',
+                '社群建立者可搜尋波友並發送邀請',
+                '加強 Firestore 場次更新規則（僅允許必要欄位變更）',
+                'push 到 main 可自動部署網站與規則（需設定 GitHub Secret）'
+            ]
+        },
         {
             version: '1.29.0',
             date: '2026-06-04',

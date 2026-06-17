@@ -251,6 +251,12 @@
             const soloOwner = isOwner && members.length <= 1;
             leaveBtn?.classList.toggle('hidden', isOwner);
             deleteBtn?.classList.toggle('hidden', !soloOwner);
+            document.getElementById('community-search-invite-block')
+                ?.classList.toggle('hidden', !isOwner);
+            const searchResults = document.getElementById('community-user-search-results');
+            if (searchResults) searchResults.innerHTML = '';
+            const searchInput = document.getElementById('community-user-search-input');
+            if (searchInput) searchInput.value = '';
 
             await renderCommunitySessions(id);
         } catch (err) {
@@ -259,10 +265,147 @@
         }
     }
 
+    async function renderCommunityInvitesBanner() {
+        const banner = document.getElementById('community-invites-banner');
+        if (!banner) return;
+        if (!isSignedIn() || typeof window.dbListMyCommunityInvites !== 'function') {
+            banner.classList.add('hidden');
+            banner.innerHTML = '';
+            return;
+        }
+
+        try {
+            const invites = await window.dbListMyCommunityInvites();
+            if (!invites.length) {
+                banner.classList.add('hidden');
+                banner.innerHTML = '';
+                return;
+            }
+
+            banner.classList.remove('hidden');
+            banner.innerHTML = invites.map(invite => `
+                <div class="community-invite-card" data-community-id="${escapeHtml(invite.communityId || invite.id)}">
+                    <p class="community-invite-card__text">${escapeHtml(i18n('directory.inviteReceived', {
+                        name: invite.communityName || '',
+                        from: invite.invitedByName || ''
+                    }))}</p>
+                    <div class="community-invite-card__actions">
+                        <button type="button" class="community-invite-card__accept" data-action="accept">${escapeHtml(i18n('directory.acceptInvite'))}</button>
+                        <button type="button" class="community-invite-card__decline" data-action="decline">${escapeHtml(i18n('directory.declineInvite'))}</button>
+                    </div>
+                </div>
+            `).join('');
+
+            banner.querySelectorAll('.community-invite-card').forEach(card => {
+                const communityId = card.getAttribute('data-community-id');
+                card.querySelector('[data-action="accept"]')?.addEventListener('click', () => acceptCommunityInvite(communityId));
+                card.querySelector('[data-action="decline"]')?.addEventListener('click', () => declineCommunityInvite(communityId));
+            });
+        } catch (err) {
+            console.error('載入社群邀請失敗:', err);
+            banner.classList.add('hidden');
+        }
+    }
+
+    async function acceptCommunityInvite(communityId) {
+        try {
+            const result = await window.dbAcceptCommunityInvite(communityId);
+            await refreshMyCommunities();
+            await renderCommunityInvitesBanner();
+            alert(i18n('directory.inviteAccepted', { name: result?.name || '' }));
+            await openCommunityDetail(communityId);
+        } catch (err) {
+            console.error('接受邀請失敗:', err);
+            alert(err?.message || i18n('directory.inviteAcceptFailed'));
+        }
+    }
+
+    async function declineCommunityInvite(communityId) {
+        try {
+            await window.dbDeclineCommunityInvite(communityId);
+            await renderCommunityInvitesBanner();
+        } catch (err) {
+            console.error('拒絕邀請失敗:', err);
+            alert(err?.message || i18n('directory.inviteDeclineFailed'));
+        }
+    }
+
+    function renderSearchResultRow(user) {
+        const initial = (user.displayName || '?').trim().charAt(0) || '?';
+        const avatar = user.photoURL
+            ? `<img src="${escapeHtml(user.photoURL)}" alt="" class="community-search-avatar">`
+            : `<span class="community-search-avatar community-search-avatar--initial">${escapeHtml(initial)}</span>`;
+        return `
+            <div class="community-search-result" role="listitem">
+                ${avatar}
+                <span class="community-search-result__name">${escapeHtml(user.displayName || i18n('community.unknownMember'))}</span>
+                <button type="button" class="community-search-invite-btn" data-target-uid="${escapeHtml(user.id)}">${escapeHtml(i18n('directory.sendInvite'))}</button>
+            </div>
+        `;
+    }
+
+    async function searchUsersForCommunityInvite() {
+        const input = document.getElementById('community-user-search-input');
+        const resultsEl = document.getElementById('community-user-search-results');
+        if (!input || !resultsEl || !activeCommunityId) return;
+
+        const queryText = input.value.trim();
+        if (queryText.length < 2) {
+            alert(i18n('directory.searchMin'));
+            return;
+        }
+
+        const bridgeReady = await waitForDbBridge();
+        if (!bridgeReady || typeof window.dbSearchUserDirectory !== 'function') {
+            alert(i18n('community.dbOffline'));
+            return;
+        }
+
+        try {
+            const results = await window.dbSearchUserDirectory(queryText);
+            if (!results.length) {
+                resultsEl.innerHTML = `<p class="community-search-empty">${escapeHtml(i18n('directory.searchEmpty'))}</p>`;
+                return;
+            }
+            resultsEl.innerHTML = results.map(renderSearchResultRow).join('');
+            resultsEl.querySelectorAll('.community-search-invite-btn').forEach(btn => {
+                btn.addEventListener('click', () => sendCommunityInvite(btn.getAttribute('data-target-uid'), btn));
+            });
+        } catch (err) {
+            console.error('搜尋波友失敗:', err);
+            alert(i18n('directory.searchFailed'));
+        }
+    }
+
+    async function sendCommunityInvite(targetUid, btn) {
+        if (!activeCommunityId || !targetUid) return;
+        const originalText = btn?.textContent;
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = i18n('directory.inviting');
+        }
+        try {
+            await window.dbSendCommunityInvite(activeCommunityId, targetUid);
+            alert(i18n('directory.inviteSent'));
+            if (btn) btn.textContent = i18n('directory.inviteSentShort');
+        } catch (err) {
+            console.error('發送邀請失敗:', err);
+            let message = i18n('directory.inviteSendFailed');
+            if (err?.code === 'community-invite/already-member') message = i18n('directory.inviteAlreadyMember');
+            else if (err?.code === 'community-invite/not-searchable') message = i18n('directory.inviteNotSearchable');
+            alert(message);
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = originalText || i18n('directory.sendInvite');
+            }
+        }
+    }
+
     async function refreshMyCommunities() {
         if (!isSignedIn()) {
             myCommunities = [];
             renderCommunityList();
+            await renderCommunityInvitesBanner();
             return;
         }
 
@@ -279,6 +422,7 @@
             myCommunities = [];
         }
         renderCommunityList();
+        await renderCommunityInvitesBanner();
     }
 
     async function openCreateCommunityModal() {
@@ -499,6 +643,13 @@
         document.getElementById('community-copy-invite-btn')?.addEventListener('click', copyCommunityInviteLink);
         document.getElementById('community-leave-btn')?.addEventListener('click', handleLeaveCommunity);
         document.getElementById('community-delete-btn')?.addEventListener('click', handleDeleteCommunity);
+        document.getElementById('community-user-search-btn')?.addEventListener('click', searchUsersForCommunityInvite);
+        document.getElementById('community-user-search-input')?.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                searchUsersForCommunityInvite();
+            }
+        });
 
         window.addEventListener('firebase-auth-ready', () => {
             refreshMyCommunities();

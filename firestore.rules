@@ -32,7 +32,8 @@ service cloud.firestore {
         'hostPaymentUpdatedAt',
         'hostSessionCount',
         'hostComplaintCount',
-        'avatarUpdatedAt'
+        'avatarUpdatedAt',
+        'directoryOptIn'
       ];
     }
 
@@ -113,6 +114,14 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == resource.data.hostUid;
     }
 
+    function isApprovedParticipant() {
+      return request.auth.uid in resource.data.get('participantUids', []);
+    }
+
+    function activityUpdateKeysOnly(allowed) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
+    }
+
     // 報名申請：加入 pendingParticipantUids，待場主批准
     function isValidPendingJoin() {
       let uid = request.auth.uid;
@@ -134,7 +143,8 @@ service cloud.firestore {
         && request.resource.data.currentPlayers == resource.data.currentPlayers
         && participantListsEqual()
         && uid in request.resource.data.get('participants', {})
-        && waitlistShrunkOk;
+        && waitlistShrunkOk
+        && activityUpdateKeysOnly(['pendingParticipantUids', 'participants', 'waitlist', 'waitlistProfiles', 'updatedAt']);
     }
 
     // 後補：滿額後把自己的 uid 加入 waitlist
@@ -153,10 +163,9 @@ service cloud.firestore {
         && uid in newWait
         && newWait.size() == oldWait.size() + 1
         && request.resource.data.currentPlayers == resource.data.currentPlayers
-        && participantListsEqual();
+        && participantListsEqual()
+        && activityUpdateKeysOnly(['waitlist', 'waitlistProfiles', 'updatedAt']);
     }
-
-    // 取消已批准預約
     function isValidCancelApproved() {
       let uid = request.auth.uid;
       let oldUids = resource.data.get('participantUids', []);
@@ -169,7 +178,8 @@ service cloud.firestore {
         && request.resource.data.currentPlayers == resource.data.currentPlayers - 1
         && request.resource.data.currentPlayers >= 0
         && pendingListsEqual()
-        && !(uid in request.resource.data.get('participants', {}));
+        && !(uid in request.resource.data.get('participants', {}))
+        && activityUpdateKeysOnly(['participantUids', 'participants', 'currentPlayers', 'updatedAt']);
     }
 
     // 取消待批准申請
@@ -184,7 +194,8 @@ service cloud.firestore {
         && newPending.size() == oldPending.size() - 1
         && request.resource.data.currentPlayers == resource.data.currentPlayers
         && participantListsEqual()
-        && !(uid in request.resource.data.get('participants', {}));
+        && !(uid in request.resource.data.get('participants', {}))
+        && activityUpdateKeysOnly(['pendingParticipantUids', 'participants', 'updatedAt']);
     }
 
     function isValidHostApprove() {
@@ -200,7 +211,8 @@ service cloud.firestore {
         && request.resource.data.currentPlayers == resource.data.currentPlayers + 1
         && request.resource.data.currentPlayers <= request.resource.data.maxSlots
         && newUids.size() == oldUids.size() + 1
-        && newPending.size() == oldPending.size() - 1;
+        && newPending.size() == oldPending.size() - 1
+        && activityUpdateKeysOnly(['participantUids', 'pendingParticipantUids', 'participants', 'currentPlayers', 'updatedAt']);
     }
 
     function isValidHostReject() {
@@ -214,7 +226,8 @@ service cloud.firestore {
         && request.resource.data.maxSlots == resource.data.maxSlots
         && request.resource.data.currentPlayers == resource.data.currentPlayers
         && newUids.size() == oldUids.size()
-        && newPending.size() == oldPending.size() - 1;
+        && newPending.size() == oldPending.size() - 1
+        && activityUpdateKeysOnly(['pendingParticipantUids', 'participants', 'updatedAt']);
     }
 
     function allowsGuestSignup(data) {
@@ -242,7 +255,7 @@ service cloud.firestore {
         && request.resource.data.sessionEndsAt == resource.data.sessionEndsAt;
     }
 
-    function isValidGuestAdd() {
+    function isValidGuestAddByHost() {
       let oldGuests = resource.data.get('guestParticipants', {});
       let newGuests = request.resource.data.get('guestParticipants', {});
       let guestDiff = newGuests.diff(oldGuests);
@@ -260,10 +273,38 @@ service cloud.firestore {
         && pendingListsEqual()
         && request.resource.data.get('pendingParticipantUids', [])
           == resource.data.get('pendingParticipantUids', [])
-        && request.resource.data.get('waitlist', []) == resource.data.get('waitlist', []);
+        && request.resource.data.get('waitlist', []) == resource.data.get('waitlist', [])
+        && activityUpdateKeysOnly(['guestParticipants', 'currentPlayers', 'updatedAt']);
     }
 
-    function isValidGuestRemove() {
+    function isValidGuestAddByParticipant() {
+      let oldGuests = resource.data.get('guestParticipants', {});
+      let newGuests = request.resource.data.get('guestParticipants', {});
+      let guestDiff = newGuests.diff(oldGuests);
+
+      return isApprovedParticipant()
+        && !isHost()
+        && activityNotEnded()
+        && resource.data.get('allowGuestSignupBy', 'none') == 'host_and_participants'
+        && activityGuestHostFieldsUnchanged()
+        && guestDiff.addedKeys().size() == 1
+        && guestDiff.removedKeys().size() == 0
+        && guestDiff.changedKeys().size() == 0
+        && request.resource.data.currentPlayers == resource.data.currentPlayers + 1
+        && request.resource.data.currentPlayers <= request.resource.data.maxSlots
+        && participantListsEqual()
+        && pendingListsEqual()
+        && request.resource.data.get('pendingParticipantUids', [])
+          == resource.data.get('pendingParticipantUids', [])
+        && request.resource.data.get('waitlist', []) == resource.data.get('waitlist', [])
+        && activityUpdateKeysOnly(['guestParticipants', 'currentPlayers', 'updatedAt']);
+    }
+
+    function isValidGuestAdd() {
+      return isValidGuestAddByHost() || isValidGuestAddByParticipant();
+    }
+
+    function isValidGuestRemoveByHost() {
       let oldGuests = resource.data.get('guestParticipants', {});
       let newGuests = request.resource.data.get('guestParticipants', {});
       let guestDiff = newGuests.diff(oldGuests);
@@ -279,7 +320,33 @@ service cloud.firestore {
         && pendingListsEqual()
         && request.resource.data.get('pendingParticipantUids', [])
           == resource.data.get('pendingParticipantUids', [])
-        && request.resource.data.get('waitlist', []) == resource.data.get('waitlist', []);
+        && request.resource.data.get('waitlist', []) == resource.data.get('waitlist', [])
+        && activityUpdateKeysOnly(['guestParticipants', 'currentPlayers', 'updatedAt']);
+    }
+
+    function isValidGuestRemoveByParticipant() {
+      let oldGuests = resource.data.get('guestParticipants', {});
+      let newGuests = request.resource.data.get('guestParticipants', {});
+      let guestDiff = newGuests.diff(oldGuests);
+
+      return isApprovedParticipant()
+        && !isHost()
+        && activityGuestHostFieldsUnchanged()
+        && guestDiff.removedKeys().size() == 1
+        && guestDiff.addedKeys().size() == 0
+        && guestDiff.changedKeys().size() == 0
+        && request.resource.data.currentPlayers == resource.data.currentPlayers - 1
+        && request.resource.data.currentPlayers >= 0
+        && participantListsEqual()
+        && pendingListsEqual()
+        && request.resource.data.get('pendingParticipantUids', [])
+          == resource.data.get('pendingParticipantUids', [])
+        && request.resource.data.get('waitlist', []) == resource.data.get('waitlist', [])
+        && activityUpdateKeysOnly(['guestParticipants', 'currentPlayers', 'updatedAt']);
+    }
+
+    function isValidGuestRemove() {
+      return isValidGuestRemoveByHost() || isValidGuestRemoveByParticipant();
     }
 
     function isValidActivityCreate() {
@@ -303,6 +370,7 @@ service cloud.firestore {
         && (
           request.resource.data.get('allowGuestSignupBy', 'none') == 'none'
           || request.resource.data.get('allowGuestSignupBy', 'none') == 'host_only'
+          || request.resource.data.get('allowGuestSignupBy', 'none') == 'host_and_participants'
         );
     }
 
@@ -425,6 +493,26 @@ service cloud.firestore {
         allow update: if false;
         allow delete: if isOwner(userId);
       }
+
+      // 社群邀請（搜尋邀請進社群）
+      match /communityInvites/{communityId} {
+        allow read: if isOwner(userId);
+        allow create: if isSignedIn()
+          && communityId == request.resource.data.communityId
+          && get(/databases/$(database)/documents/communities/$(communityId)).data.ownerUid == request.auth.uid
+          && userId != request.auth.uid
+          && exists(/databases/$(database)/documents/userDirectory/$(userId))
+          && !exists(/databases/$(database)/documents/communities/$(communityId)/members/$(userId))
+          && request.resource.data.invitedByUid == request.auth.uid
+          && request.resource.data.communityName is string
+          && request.resource.data.invitedByName is string
+          && request.resource.data.keys().hasAll(['communityId', 'communityName', 'invitedByUid', 'invitedByName', 'createdAt']);
+        allow update: if false;
+        allow delete: if isOwner(userId)
+          || (isSignedIn()
+            && resource.data.invitedByUid == request.auth.uid
+            && get(/databases/$(database)/documents/communities/$(communityId)).data.ownerUid == request.auth.uid);
+      }
     }
 
     function feedbackAllowedKeys() {
@@ -451,6 +539,21 @@ service cloud.firestore {
         && request.resource.data.message.size() >= 5
         && request.resource.data.message.size() <= 1000
         && request.resource.data.keys().hasOnly(feedbackAllowedKeys());
+    }
+
+    // ── userDirectory：可被搜尋邀請的公開索引 ────────────────
+    match /userDirectory/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 1
+        && request.resource.data.displayName.size() <= 64
+        && request.resource.data.displayNameLower is string
+        && request.resource.data.displayNameLower.size() >= 1
+        && (!('photoURL' in request.resource.data) || request.resource.data.photoURL is string)
+        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'displayNameLower', 'photoURL', 'updatedAt']);
+      allow delete: if isOwner(userId);
     }
 
     // ── communities：社群（Phase 1）────────────────────────

@@ -484,6 +484,7 @@
                 return {
                     guestId,
                     uid: null,
+                    addedByUid: profile?.addedByUid || null,
                     name,
                     photoURL: null,
                     initial: name.charAt(0) || '友',
@@ -499,6 +500,22 @@
         function allowsGuestSignupForActivity(match) {
             const mode = match?.allowGuestSignupBy || 'none';
             return mode === 'host_only' || mode === 'host_and_participants';
+        }
+
+        function canUserAddGuest(match) {
+            if (!allowsGuestSignupForActivity(match)) return false;
+            if (Number(match.currentPlayers ?? 0) >= Number(match.maxSlots ?? 6)) return false;
+            const uid = window.firebaseAuthUid;
+            if (!uid) return false;
+            if (match.hostUid === uid) return true;
+            if (match.allowGuestSignupBy !== 'host_and_participants') return false;
+            return getUserJoinStatus(match) === 'approved';
+        }
+
+        function countUserGuestsInMatch(match) {
+            const uid = window.firebaseAuthUid;
+            if (!uid) return 0;
+            return getActivityGuests(match).filter(g => g.addedByUid === uid).length;
         }
 
         function getActivityTimeCompactLabel(match) {
@@ -1112,6 +1129,7 @@
             document.getElementById('form-court-count')?.addEventListener('change', updateTimePreview);
             updateTimePreview();
             bindPublishVisibilityUI();
+            updatePublishGuestSignupUI();
         }
 
         function getPublishVisibility() {
@@ -1169,6 +1187,19 @@
                 input.addEventListener('change', updatePublishVisibilityUI);
             });
             document.getElementById('form-community-btn')?.addEventListener('click', () => openFormPicker('community'));
+            document.getElementById('form-allow-guest-signup')?.addEventListener('change', updatePublishGuestSignupUI);
+        }
+
+        function updatePublishGuestSignupUI() {
+            const enabled = document.getElementById('form-allow-guest-signup')?.checked;
+            document.getElementById('publish-guest-signup-mode-wrap')
+                ?.classList.toggle('hidden', !enabled);
+        }
+
+        function getPublishGuestSignupMode() {
+            const allowGuest = document.getElementById('form-allow-guest-signup')?.checked;
+            if (!allowGuest) return 'none';
+            return document.querySelector('input[name="form-guest-signup-mode"]:checked')?.value || 'host_only';
         }
 
         function resetPublishForm() {
@@ -1208,6 +1239,9 @@
             if (publicVisibility) publicVisibility.checked = true;
             const allowGuestSignup = document.getElementById('form-allow-guest-signup');
             if (allowGuestSignup) allowGuestSignup.checked = false;
+            const hostOnlyMode = document.querySelector('input[name="form-guest-signup-mode"][value="host_only"]');
+            if (hostOnlyMode) hostOnlyMode.checked = true;
+            updatePublishGuestSignupUI();
             const communityInput = document.getElementById('form-community');
             if (communityInput) communityInput.value = '';
             const communityText = document.getElementById('form-community-text');
@@ -1686,6 +1720,34 @@
             `;
         }
 
+        function renderMatchGuestSignupSection(match) {
+            const activityId = match.firestoreId || match.id;
+            const uid = window.firebaseAuthUid;
+            if (!activityId || !uid) return '';
+
+            const myGuests = getActivityGuests(match).filter(g => g.addedByUid === uid);
+            const canAdd = canUserAddGuest(match);
+            if (!canAdd && !myGuests.length) return '';
+
+            const guestRows = myGuests.map(guest => `
+                <div class="match-my-guest-row">
+                    <span>${escapeHtml(guest.name)} <span class="participant-proxy-tag">${escapeHtml(i18n('match.guestProxyTag'))}</span></span>
+                    <button type="button" class="match-my-guest-remove" onclick="handleRemoveGuestParticipant('${escapeHtml(String(activityId))}', '${escapeHtml(guest.guestId)}')">${escapeHtml(i18n('guest.remove'))}</button>
+                </div>
+            `).join('');
+
+            const addBtn = canAdd
+                ? `<button type="button" class="match-add-guest-btn" onclick="openAddGuestModal('${escapeHtml(String(activityId))}')">${escapeHtml(i18n('guest.addBtn'))}</button>`
+                : '';
+
+            return `
+                <div class="match-my-guests-block">
+                    ${guestRows ? `<div class="match-my-guests-list">${guestRows}</div>` : ''}
+                    ${addBtn}
+                </div>
+            `;
+        }
+
         function buildMatchExpandedCancelHtml(match) {
             const joinStatus = getUserJoinStatus(match);
             const bookId = getMatchBookId(match);
@@ -1789,6 +1851,7 @@
                                 </div>
                                 ${renderParticipantsBlock(match)}
                             </div>
+                            ${renderMatchGuestSignupSection(match)}
                             ${buildMatchExpandedCancelHtml(match)}
                         </div>
                     </div>
@@ -2606,6 +2669,7 @@
         let currentHostPaymentActivityId = null;
         let currentHostManageActivityId = null;
         let currentHostManageActivity = null;
+        let pendingGuestActivityId = null;
 
         async function closeHostPaymentInfoModal() {
             const modal = document.getElementById('host-payment-info-modal');
@@ -2727,9 +2791,15 @@
             window.open(url, '_blank', 'noopener,noreferrer');
         };
 
-        function renderHostManageGuestRow(guest, { activityId } = {}) {
+        function renderHostManageGuestRow(guest, { activityId, activity } = {}) {
             const name = escapeHtml(guest.name || '波友');
             const guestId = escapeHtml(guest.guestId || '');
+            const uid = window.firebaseAuthUid;
+            const isHost = activity?.hostUid === uid;
+            const canRemove = isHost || guest.addedByUid === uid;
+            const removeBtn = canRemove
+                ? `<button type="button" class="session-manage-btn session-manage-btn--reject" onclick="handleRemoveGuestParticipant('${escapeHtml(activityId)}', '${guestId}')">${escapeHtml(i18n('guest.remove'))}</button>`
+                : '';
             return `
                 <div class="session-manage-item">
                     <div class="session-manage-user">
@@ -2741,7 +2811,7 @@
                             <span class="session-manage-guest-tag">${escapeHtml(i18n('match.guestProxyTag'))}</span>
                         </div>
                     </div>
-                    <button type="button" class="session-manage-btn session-manage-btn--reject" onclick="handleRemoveGuestParticipant('${escapeHtml(activityId)}', '${guestId}')">${escapeHtml(i18n('guest.remove'))}</button>
+                    ${removeBtn}
                 </div>
             `;
         }
@@ -2763,7 +2833,7 @@
             const pendingList = getPendingParticipants(activity);
             const approvedList = getActivityParticipants(activity);
             const guestList = getActivityGuests(activity);
-            const canAddGuest = allowsGuestSignupForActivity(activity) && currentPlayers < maxSlots;
+            const canAddGuest = canUserAddGuest(activity);
 
             if (subtitle) {
                 subtitle.textContent = `${activity.venue || ''} · ${activity.region || ''}`;
@@ -2793,7 +2863,7 @@
                 ? `<p class="session-manage-group-label">${i18n('guest.pendingGroup')}</p>${pendingList.map(p => renderHostManageParticipantRow(p, { pending: true, activityId })).join('')}`
                 : '';
             const guestHtml = guestList.length
-                ? `<p class="session-manage-group-label">${i18n('guest.listLabel')}</p>${guestList.map(g => renderHostManageGuestRow(g, { activityId })).join('')}`
+                ? `<p class="session-manage-group-label">${i18n('guest.listLabel')}</p>${guestList.map(g => renderHostManageGuestRow(g, { activityId, activity })).join('')}`
                 : '';
 
             listEl.innerHTML = pendingHtml + approvedHtml + guestHtml;
@@ -2804,8 +2874,9 @@
             }
         }
 
-        async function openAddGuestModal() {
-            if (!currentHostManageActivityId) return;
+        async function openAddGuestModal(activityId) {
+            pendingGuestActivityId = activityId || currentHostManageActivityId;
+            if (!pendingGuestActivityId) return;
             const modal = document.getElementById('add-guest-modal');
             const nameInput = document.getElementById('add-guest-name');
             const noteInput = document.getElementById('add-guest-note');
@@ -2835,7 +2906,7 @@
         }
 
         async function submitAddGuestParticipant() {
-            const activityId = currentHostManageActivityId;
+            const activityId = pendingGuestActivityId || currentHostManageActivityId;
             if (!activityId) return;
 
             const nameInput = document.getElementById('add-guest-name');
@@ -2891,6 +2962,7 @@
                 else if (err?.code === 'guest/limit-reached') message = i18n('guest.limitReached');
                 else if (err?.code === 'activity/full') message = i18n('match.fullLabel');
                 else if (err?.code === 'guest/not-allowed') message = i18n('guest.notAllowed');
+                else if (err?.code === 'guest/not-participant') message = i18n('guest.notParticipant');
                 if (statusEl) {
                     statusEl.textContent = message;
                     statusEl.classList.remove('hidden');
@@ -2939,6 +3011,7 @@
         }
 
         window.handleRemoveGuestParticipant = handleRemoveGuestParticipant;
+        window.openAddGuestModal = openAddGuestModal;
 
         function renderHostManageParticipantRow(participant, { pending = false, activityId } = {}) {
             const name = escapeHtml(participant.name || '波友');
@@ -3584,7 +3657,7 @@
                 audience: isCommunity ? 'community' : (isPrivate ? 'private' : 'public'),
                 communityId: isCommunity ? formSelectedCommunityId : '',
                 communityName: isCommunity ? formSelectedCommunityName : '',
-                allowGuestSignupBy: document.getElementById('form-allow-guest-signup')?.checked ? 'host_only' : 'none',
+                allowGuestSignupBy: getPublishGuestSignupMode(),
                 guestParticipants: {},
                 region,
                 venue: finalVenue,

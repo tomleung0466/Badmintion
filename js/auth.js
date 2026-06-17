@@ -37,7 +37,8 @@ import {
     increment,
     getCountFromServer,
     serverTimestamp,
-    Timestamp
+    Timestamp,
+    limit
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 import {
     getStorage,
@@ -302,18 +303,28 @@ function assertGuestNameNotDuplicate(activity = {}, displayName = "") {
     }
 }
 
-function assertHostCanManageGuests(activity = {}, user) {
+function assertUserCanAddGuest(activity = {}, user) {
     const mode = normalizeAllowGuestSignupBy(activity.allowGuestSignupBy);
     if (mode === "none") {
         const error = new Error("此場次未開放代報名");
         error.code = "guest/not-allowed";
         throw error;
     }
-    if (activity.hostUid !== user.uid) {
-        const error = new Error("只有場主可以代報名");
-        error.code = "guest/not-host";
+    if (activity.hostUid === user.uid) return;
+    if (mode === "host_and_participants") {
+        const participantUids = Array.isArray(activity.participantUids) ? activity.participantUids : [];
+        if (participantUids.includes(user.uid)) return;
+        const error = new Error("只有已批准參加者可以代報名");
+        error.code = "guest/not-participant";
         throw error;
     }
+    const error = new Error("只有場主可以代報名");
+    error.code = "guest/not-host";
+    throw error;
+}
+
+function getGuestAddedByRole(activity = {}, user) {
+    return activity.hostUid === user.uid ? "host" : "participant";
 }
 
 function byId(id) {
@@ -1078,7 +1089,7 @@ window.dbAddGuestParticipant = async function dbAddGuestParticipant(activityId, 
 
         const activity = activitySnap.data();
         assertActivityNotEnded(activity);
-        assertHostCanManageGuests(activity, user);
+        assertUserCanAddGuest(activity, user);
 
         if (countGuestsAddedBy(activity, user.uid) >= GUEST_SIGNUP_MAX_PER_USER) {
             const error = new Error(`每場最多代報 ${GUEST_SIGNUP_MAX_PER_USER} 人`);
@@ -1102,7 +1113,7 @@ window.dbAddGuestParticipant = async function dbAddGuestParticipant(activityId, 
             displayName,
             note,
             addedByUid: user.uid,
-            addedByRole: "host",
+            addedByRole: getGuestAddedByRole(activity, user),
             status: "reserved",
             createdAt: serverTimestamp()
         };
@@ -1146,16 +1157,17 @@ window.dbRemoveGuestParticipant = async function dbRemoveGuestParticipant(activi
         }
 
         const activity = activitySnap.data();
-        if (activity.hostUid !== user.uid) {
-            const error = new Error("只有場主可以移除代報名");
-            error.code = "guest/not-host";
+        const guests = getGuestParticipantsMap(activity);
+        const guest = guests[guestKey];
+        if (!guest) {
+            const error = new Error("找不到此代報名球友");
+            error.code = "guest/not-found";
             throw error;
         }
 
-        const guests = getGuestParticipantsMap(activity);
-        if (!guests[guestKey]) {
-            const error = new Error("找不到此代報名球友");
-            error.code = "guest/not-found";
+        if (activity.hostUid !== user.uid && guest.addedByUid !== user.uid) {
+            const error = new Error("你只能移除自己代報的球友");
+            error.code = "guest/not-owner";
             throw error;
         }
 
@@ -1754,6 +1766,7 @@ window.dbUpdateUserProfile = async function dbUpdateUserProfile(newName, imageFi
         await updateDoc(userRef, userUpdate);
 
         await syncHostPublicProfile(user.uid, { displayName, photoURL });
+        await syncUserDirectoryIfOptedIn(user.uid, { displayName, photoURL });
 
         window.firebaseAuthUser = {
             uid: user.uid,
@@ -2082,6 +2095,184 @@ window.dbDeleteCommunity = async function dbDeleteCommunity(communityId) {
         console.error("刪除社群失敗:", err);
         throw err;
     }
+};
+
+async function syncUserDirectoryIfOptedIn(uid, { displayName, photoURL } = {}) {
+    const userRef = doc(db, "users", uid);
+    const userSnap = await getDoc(userRef);
+    const optIn = userSnap.exists() && userSnap.data().directoryOptIn === true;
+    const directoryRef = doc(db, "userDirectory", uid);
+    if (!optIn) {
+        const directorySnap = await getDoc(directoryRef);
+        if (directorySnap.exists()) {
+            await deleteDoc(directoryRef);
+        }
+        return;
+    }
+    const name = String(displayName || userSnap.data()?.displayName || "").trim();
+    if (!name) return;
+    await setDoc(directoryRef, {
+        uid,
+        displayName: name,
+        displayNameLower: name.toLowerCase(),
+        photoURL: photoURL || userSnap.data()?.photoURL || null,
+        updatedAt: serverTimestamp()
+    }, { merge: true });
+}
+
+window.dbGetUserDirectoryOptIn = async function dbGetUserDirectoryOptIn() {
+    const user = auth.currentUser;
+    if (!user) return false;
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    return userSnap.exists() && userSnap.data().directoryOptIn === true;
+};
+
+window.dbSetUserDirectoryOptIn = async function dbSetUserDirectoryOptIn(optIn) {
+    const user = auth.currentUser;
+    if (!user) {
+        const error = new Error("請先登入");
+        error.code = "auth/not-signed-in";
+        throw error;
+    }
+    const enabled = optIn === true;
+    await setDoc(doc(db, "users", user.uid), {
+        directoryOptIn: enabled,
+        updatedAt: serverTimestamp()
+    }, { merge: true });
+    const displayName = user.displayName || user.email?.split("@")[0] || "波友";
+    await syncUserDirectoryIfOptedIn(user.uid, {
+        displayName,
+        photoURL: user.photoURL || null
+    });
+    return { directoryOptIn: enabled };
+};
+
+window.dbSearchUserDirectory = async function dbSearchUserDirectory(rawQuery, maxResults = 20) {
+    const user = auth.currentUser;
+    if (!user) {
+        const error = new Error("請先登入");
+        error.code = "auth/not-signed-in";
+        throw error;
+    }
+    const q = String(rawQuery || "").trim().toLowerCase();
+    if (q.length < 2) return [];
+
+    const snapshot = await getDocs(query(
+        collection(db, "userDirectory"),
+        where("displayNameLower", ">=", q),
+        where("displayNameLower", "<=", `${q}\uf8ff`),
+        limit(Math.min(maxResults, 20))
+    ));
+
+    return snapshot.docs
+        .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+        .filter(entry => entry.id !== user.uid);
+};
+
+window.dbSendCommunityInvite = async function dbSendCommunityInvite(communityId, targetUid) {
+    const user = auth.currentUser;
+    if (!user) {
+        const error = new Error("請先登入");
+        error.code = "auth/not-signed-in";
+        throw error;
+    }
+
+    const id = String(communityId || "").trim();
+    const target = String(targetUid || "").trim();
+    if (!id || !target) {
+        const error = new Error("缺少社群或邀請對象");
+        error.code = "community-invite/missing-target";
+        throw error;
+    }
+    if (target === user.uid) {
+        const error = new Error("不能邀請自己");
+        error.code = "community-invite/self";
+        throw error;
+    }
+
+    const communityRef = doc(db, "communities", id);
+    const communitySnap = await getDoc(communityRef);
+    if (!communitySnap.exists()) {
+        const error = new Error("社群不存在");
+        error.code = "community/not-found";
+        throw error;
+    }
+    const community = communitySnap.data();
+    if (community.ownerUid !== user.uid) {
+        const error = new Error("只有建立者可以搜尋邀請");
+        error.code = "community-invite/not-owner";
+        throw error;
+    }
+
+    const targetMemberSnap = await getDoc(doc(db, "communities", id, "members", target));
+    if (targetMemberSnap.exists()) {
+        const error = new Error("對方已是社群成員");
+        error.code = "community-invite/already-member";
+        throw error;
+    }
+
+    const targetDirectorySnap = await getDoc(doc(db, "userDirectory", target));
+    if (!targetDirectorySnap.exists()) {
+        const error = new Error("對方未開啟可被搜尋邀請");
+        error.code = "community-invite/not-searchable";
+        throw error;
+    }
+
+    const inviteRef = doc(db, "users", target, "communityInvites", id);
+    await setDoc(inviteRef, {
+        communityId: id,
+        communityName: community.name || "",
+        invitedByUid: user.uid,
+        invitedByName: user.displayName || user.email?.split("@")[0] || "波友",
+        createdAt: serverTimestamp()
+    });
+
+    return { invited: true, communityId: id, targetUid: target };
+};
+
+window.dbListMyCommunityInvites = async function dbListMyCommunityInvites() {
+    const user = auth.currentUser;
+    if (!user) return [];
+    const snap = await getDocs(collection(db, "users", user.uid, "communityInvites"));
+    return snap.docs
+        .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+        .sort((a, b) => {
+            const aMs = a.createdAt?.toMillis?.() || 0;
+            const bMs = b.createdAt?.toMillis?.() || 0;
+            return bMs - aMs;
+        });
+};
+
+window.dbAcceptCommunityInvite = async function dbAcceptCommunityInvite(communityId) {
+    const id = String(communityId || "").trim();
+    if (!id) {
+        const error = new Error("缺少社群 ID");
+        error.code = "community/missing-id";
+        throw error;
+    }
+    const result = await window.dbJoinCommunity(id);
+    const user = auth.currentUser;
+    if (user) {
+        await deleteDoc(doc(db, "users", user.uid, "communityInvites", id));
+    }
+    return result;
+};
+
+window.dbDeclineCommunityInvite = async function dbDeclineCommunityInvite(communityId) {
+    const user = auth.currentUser;
+    if (!user) {
+        const error = new Error("請先登入");
+        error.code = "auth/not-signed-in";
+        throw error;
+    }
+    const id = String(communityId || "").trim();
+    if (!id) {
+        const error = new Error("缺少社群 ID");
+        error.code = "community/missing-id";
+        throw error;
+    }
+    await deleteDoc(doc(db, "users", user.uid, "communityInvites", id));
+    return { declined: true };
 };
 
 window.firebaseDbBridgeReady = true;

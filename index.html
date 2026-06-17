@@ -316,6 +316,13 @@
 
             <section class="settings-card settings-card--general">
                 <div class="settings-language-block">
+                    <label class="settings-directory-opt-in" for="settings-directory-opt-in">
+                        <input type="checkbox" id="settings-directory-opt-in" class="settings-directory-opt-in-input">
+                        <span class="settings-directory-opt-in-label" data-i18n="directory.optInLabel">允許被搜尋邀請進社群</span>
+                    </label>
+                    <p class="profile-field-hint settings-language-hint" data-i18n="directory.optInHint">開啟後，社群建立者可搜尋你的名字並發送邀請</p>
+                </div>
+                <div class="settings-language-block">
                     <button type="button" id="settings-communities-btn" class="settings-about-btn settings-about-btn--single">
                         <span class="settings-about-btn-label" data-i18n="community.settingsEntry">我的社群</span>
                         <span id="settings-communities-label" class="settings-about-btn-value">—</span>
@@ -374,6 +381,8 @@
             </div>
             <p class="communities-page-subtitle" data-i18n="community.subtitle">建立球群、邀請波友加入</p>
 
+            <div id="community-invites-banner" class="community-invites-banner hidden" role="region" aria-live="polite"></div>
+
             <div id="communities-list-view">
                 <button type="button" id="create-community-btn" class="community-create-btn" data-i18n="community.create">
                     ＋ 建立社群
@@ -395,6 +404,15 @@
                         <button type="button" id="community-copy-invite-btn" class="community-copy-btn" data-i18n="community.copyLink">複製</button>
                     </div>
                     <p class="community-invite-hint" data-i18n="community.inviteHint">分享連結給波友，對方登入後即可加入。</p>
+                </div>
+                <div id="community-search-invite-block" class="community-search-invite-block hidden">
+                    <h3 class="community-search-title" data-i18n="directory.searchTitle">搜尋邀請</h3>
+                    <p class="community-search-hint" data-i18n="directory.searchHint">搜尋已開啟「可被邀請」的波友並發送社群邀請</p>
+                    <div class="community-search-row">
+                        <input type="search" id="community-user-search-input" class="community-search-input" data-i18n-placeholder="directory.searchPlaceholder" placeholder="輸入名稱（至少 2 字）" maxlength="40" autocomplete="off">
+                        <button type="button" id="community-user-search-btn" class="community-search-btn" data-i18n="directory.searchBtn">搜尋</button>
+                    </div>
+                    <div id="community-user-search-results" class="community-search-results" role="list"></div>
                 </div>
                 <div class="community-sessions-block">
                     <h3 class="community-sessions-title" data-i18n="community.sessions">社群場次</h3>
@@ -574,6 +592,16 @@
                         <span class="publish-guest-signup-label" data-i18n="publish.allowGuestSignup">允許代報名（幫無 App 波友留位）</span>
                         <span class="publish-guest-signup-desc" data-i18n="publish.allowGuestSignupDesc">場主可在場次管理為朋友留位，對方無需安裝 App</span>
                     </label>
+                    <div id="publish-guest-signup-mode-wrap" class="publish-guest-signup-modes hidden">
+                        <label class="publish-guest-signup-mode">
+                            <input type="radio" name="form-guest-signup-mode" value="host_only" class="publish-guest-signup-input" checked>
+                            <span data-i18n="publish.guestHostOnly">僅場主可代報</span>
+                        </label>
+                        <label class="publish-guest-signup-mode">
+                            <input type="radio" name="form-guest-signup-mode" value="host_and_participants" class="publish-guest-signup-input">
+                            <span data-i18n="publish.guestHostAndParticipants">場主與已批准參加者</span>
+                        </label>
+                    </div>
                     <button type="submit" class="publish-submit-btn">
                         確認發佈
                     </button>
