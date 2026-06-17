@@ -121,7 +121,7 @@ service cloud.firestore {
       return raw == null ? 0
         : raw is int ? raw
         : raw is float ? int(raw)
-        : raw is string ? int(raw)
+        : (raw is string && raw.size() > 0) ? int(raw)
         : 0;
     }
 
@@ -130,28 +130,34 @@ service cloud.firestore {
       return maxSlots >= 1 ? maxSlots : 50;
     }
 
-    // 場主批准：必須與 js/auth.js dbApproveParticipant 的 transaction.update 一致
-    function isValidHostApprove() {
+    function hostPendingListShrunk() {
       let oldPending = safeList(resource.data, 'pendingParticipantUids');
       let newPending = safeList(request.resource.data, 'pendingParticipantUids');
+      return oldPending.size() > newPending.size()
+        && oldPending.hasAll(newPending);
+    }
+
+    // 場主批准：對齊 js/auth.js dbApproveParticipant
+    function isValidHostApprove() {
       let oldUids = safeList(resource.data, 'participantUids');
       let newUids = safeList(request.resource.data, 'participantUids');
       let oldPlayers = safeInt(resource.data, 'currentPlayers');
       let newPlayers = safeInt(request.resource.data, 'currentPlayers');
       let maxSlots = effectiveMaxSlots(resource.data);
-      let playersIncreased = newPlayers == oldPlayers + 1 && newPlayers <= maxSlots;
-      let playersUnchanged = newPlayers == oldPlayers;
-      let affected = request.resource.data.diff(resource.data).affectedKeys();
 
       return isHost()
-        && hostCoreFieldsLocked()
-        && oldPending.hasAll(newPending)
-        && newPending.size() < oldPending.size()
+        && hostPendingListShrunk()
         && newUids.hasAll(oldUids)
         && (newUids.size() == oldUids.size() || newUids.size() == oldUids.size() + 1)
-        && (playersIncreased || playersUnchanged)
-        && affected.hasAll(['pendingParticipantUids'])
-        && noForbiddenHostFieldsInDiff();
+        && newPlayers >= oldPlayers
+        && newPlayers <= oldPlayers + 1
+        && newPlayers <= maxSlots;
+    }
+
+    // 場主拒絕：對齊 js/auth.js dbRejectParticipant
+    function isValidHostReject() {
+      return isHost()
+        && hostPendingListShrunk();
     }
 
     function participantListsEqual() {
@@ -379,24 +385,6 @@ service cloud.firestore {
         && waitlistAndGuestsUnchanged()
         && !(uid in request.resource.data.get('participants', {}))
         && activityUpdateKeysOnly(['pendingParticipantUids', 'participants', 'updatedAt']);
-    }
-
-    function isValidHostReject() {
-      let oldPending = safeList(resource.data, 'pendingParticipantUids');
-      let newPending = safeList(request.resource.data, 'pendingParticipantUids');
-      let oldUids = safeList(resource.data, 'participantUids');
-      let newUids = safeList(request.resource.data, 'participantUids');
-      let affected = request.resource.data.diff(resource.data).affectedKeys();
-
-      return isHost()
-        && hostCoreFieldsLocked()
-        && oldPending.hasAll(newPending)
-        && newPending.size() < oldPending.size()
-        && newUids.hasAll(oldUids)
-        && newUids.size() == oldUids.size()
-        && safeInt(request.resource.data, 'currentPlayers') == safeInt(resource.data, 'currentPlayers')
-        && affected.hasAll(['pendingParticipantUids'])
-        && noForbiddenHostFieldsInDiff();
     }
 
     function allowsGuestSignup(data) {

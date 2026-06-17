@@ -3090,23 +3090,33 @@
             const listEl = document.getElementById('host-manage-participants');
             if (!modal || !listEl) return;
 
-            currentHostManageActivityId = activityId;
+            currentHostManageActivityId = String(activityId || '').trim();
+            if (!currentHostManageActivityId) {
+                i18nAlert('alert.activityNotFound');
+                return;
+            }
 
             let activity = null;
             const bridgeReady = await waitForDbBridge();
             if (bridgeReady && typeof window.dbFetchActivityById === 'function') {
                 try {
-                    activity = await window.dbFetchActivityById(activityId);
+                    activity = await window.dbFetchActivityById(currentHostManageActivityId);
                 } catch (err) {
                     console.error('讀取場次失敗:', err);
                 }
             }
             if (!activity) {
-                activity = matches.find(m => String(m.firestoreId) === String(activityId) || String(m.id) === String(activityId)) || null;
+                activity = matches.find(
+                    m => String(m.firestoreId) === currentHostManageActivityId
+                        || String(m.id) === currentHostManageActivityId
+                ) || null;
             }
             if (!activity) {
                 i18nAlert('alert.activityNotFound');
                 return;
+            }
+            if (!activity.firestoreId) {
+                activity.firestoreId = currentHostManageActivityId;
             }
             if (activity.hostUid !== window.firebaseAuthUid) {
                 i18nAlert('alert.hostOnly');
@@ -3216,15 +3226,16 @@
         window.handleDeleteHostedActivity = handleDeleteHostedActivity;
 
         async function handleApproveParticipant(activityId, participantUid) {
-            if (!activityId || !participantUid) return;
+            const resolvedActivityId = currentHostManageActivityId || activityId;
+            if (!resolvedActivityId || !participantUid) return;
             try {
                 const bridgeReady = await waitForDbBridge();
                 if (!bridgeReady || typeof window.dbApproveParticipant !== 'function') {
                     throw new Error('雲端資料庫暫時未連線');
                 }
-                await window.dbApproveParticipant(activityId, participantUid);
+                await window.dbApproveParticipant(resolvedActivityId, participantUid);
                 await loadActivitiesFromCloud();
-                await openHostManageModal(activityId);
+                await openHostManageModal(resolvedActivityId);
                 await renderMyActivities();
                 await renderMatches();
                 renderInviteMatchSection();
@@ -3240,7 +3251,8 @@
         }
 
         async function handleRejectParticipant(activityId, participantUid) {
-            if (!activityId || !participantUid) return;
+            const resolvedActivityId = currentHostManageActivityId || activityId;
+            if (!resolvedActivityId || !participantUid) return;
             const confirmed = confirm('確定拒絕此球友的報名申請？');
             if (!confirmed) return;
             try {
@@ -3248,9 +3260,9 @@
                 if (!bridgeReady || typeof window.dbRejectParticipant !== 'function') {
                     throw new Error('雲端資料庫暫時未連線');
                 }
-                await window.dbRejectParticipant(activityId, participantUid);
+                await window.dbRejectParticipant(resolvedActivityId, participantUid);
                 await loadActivitiesFromCloud();
-                await openHostManageModal(activityId);
+                await openHostManageModal(resolvedActivityId);
                 await renderMyActivities();
                 await renderMatches();
                 renderInviteMatchSection();

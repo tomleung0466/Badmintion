@@ -1269,6 +1269,15 @@ window.dbApproveParticipant = async function dbApproveParticipant(activityId, pa
             }
 
             const activity = activitySnap.data();
+            console.info("[+1] dbApproveParticipant", {
+                activityId,
+                hostUid: activity.hostUid,
+                authUid: user.uid,
+                participantUid,
+                pending: activity.pendingParticipantUids,
+                currentPlayers: activity.currentPlayers,
+                maxSlots: activity.maxSlots
+            });
             if (activity.hostUid !== user.uid) {
                 const error = new Error("只有場主可以批准報名");
                 error.code = "activity/not-host";
@@ -1350,6 +1359,13 @@ window.dbRejectParticipant = async function dbRejectParticipant(activityId, part
             }
 
             const activity = activitySnap.data();
+            console.info("[+1] dbRejectParticipant", {
+                activityId,
+                hostUid: activity.hostUid,
+                authUid: user.uid,
+                participantUid,
+                pending: activity.pendingParticipantUids
+            });
             if (activity.hostUid !== user.uid) {
                 const error = new Error("只有場主可以拒絕報名");
                 error.code = "activity/not-host";
