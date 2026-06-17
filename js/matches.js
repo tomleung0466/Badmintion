@@ -1202,6 +1202,10 @@
             return document.querySelector('input[name="form-guest-signup-mode"]:checked')?.value || 'host_only';
         }
 
+        function getPublishHostParticipates() {
+            return document.querySelector('input[name="form-host-participates"]:checked')?.value !== 'no';
+        }
+
         function resetPublishForm() {
             formSelectedRegion = '';
             formSelectedVenue = '';
@@ -1214,8 +1218,8 @@
             document.getElementById('form-skill-level').value = DEFAULT_SKILL_LEVEL;
             const maxSlotsInput = document.getElementById('form-maxslots');
             if (maxSlotsInput) maxSlotsInput.value = '6';
-            const currentPlayersInput = document.getElementById('form-current-players');
-            if (currentPlayersInput) currentPlayersInput.value = '1';
+            const hostParticipatesYes = document.querySelector('input[name="form-host-participates"][value="yes"]');
+            if (hostParticipatesYes) hostParticipatesYes.checked = true;
             document.getElementById('form-region-text').textContent = '請滾動選擇分區';
             document.getElementById('form-venue-text').textContent = '請先選擇分區';
             document.getElementById('form-skill-level-text').textContent = getSkillLevelShortLabel(DEFAULT_SKILL_LEVEL);
@@ -3606,13 +3610,8 @@
             const venueValue = document.getElementById('form-venue').value;
             const venueNoteInput = document.getElementById('form-venue-note');
             const maxSlots = parseInt(document.getElementById('form-maxslots').value) || 6;
-            const currentPlayersRaw = parseInt(document.getElementById('form-current-players').value, 10);
-            const currentPlayers = Number.isNaN(currentPlayersRaw) ? 0 : Math.max(0, currentPlayersRaw);
-
-            if (currentPlayers > maxSlots) {
-                i18nAlert('alert.playersOverMax');
-                return;
-            }
+            const hostParticipates = getPublishHostParticipates();
+            const currentPlayers = hostParticipates ? 1 : 0;
 
             if (!region || !HONG_KONG_18_DISTRICTS.includes(region)) {
                 i18nAlert('alert.pickDistrict');
@@ -3700,6 +3699,7 @@
                 communityId: isCommunity ? formSelectedCommunityId : '',
                 communityName: isCommunity ? formSelectedCommunityName : '',
                 allowGuestSignupBy: getPublishGuestSignupMode(),
+                hostParticipates,
                 guestParticipants: {},
                 region,
                 venue: finalVenue,
@@ -3721,12 +3721,23 @@
                 shuttleBrand: '',
                 shuttleModel: '',
                 skillLevel: document.getElementById('form-skill-level').value || DEFAULT_SKILL_LEVEL,
-                joined: false,
+                joined: hostParticipates,
                 maxSlots,
                 currentPlayers,
+                participantUids: hostParticipates && window.firebaseAuthUid ? [window.firebaseAuthUid] : [],
+                participants: hostParticipates && window.firebaseAuthUid ? {
+                    [window.firebaseAuthUid]: {
+                        uid: window.firebaseAuthUid,
+                        displayName: hostName,
+                        email: window.firebaseAuthUser?.email || null,
+                        photoURL: window.firebaseAuthUser?.photoURL || null,
+                        status: 'reserved'
+                    }
+                } : {},
+                pendingParticipantUids: [],
                 waitingList: [],
                 paymentStatus: null,
-                userStatus: 'none',
+                userStatus: hostParticipates ? 'approved' : 'none',
                 applicantName: null,
                 applicantUid: null,
                 applicantEmail: null,

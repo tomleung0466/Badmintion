@@ -195,14 +195,25 @@ function buildActivityPublishPayload(activityData = {}, user) {
     }
 
     const maxSlots = Math.trunc(Number(activityData.maxSlots) || 6);
-    const currentPlayers = Math.trunc(Number(activityData.currentPlayers) || 0);
-    if (currentPlayers > maxSlots) {
-        const error = new Error("現時人數不能超過總名額");
-        error.code = "activity/invalid-current-players";
-        throw error;
-    }
+    const hostParticipates = activityData.hostParticipates !== false;
+    const hostProfile = {
+        uid: user.uid,
+        displayName: String(
+            activityData.hostDisplayName
+            || user.displayName
+            || user.email?.split("@")[0]
+            || "波友"
+        ),
+        status: "reserved",
+        joinedAt: serverTimestamp(),
+        approvedAt: serverTimestamp()
+    };
+    const hostEmail = activityData.hostEmail || user.email || null;
+    const hostPhotoURL = activityData.hostPhotoURL || user.photoURL || null;
+    if (hostEmail) hostProfile.email = hostEmail;
+    if (hostPhotoURL) hostProfile.photoURL = hostPhotoURL;
 
-    return {
+    const payload = {
         hostUid: user.uid,
         hostEmail: activityData.hostEmail || user.email || null,
         hostDisplayName: String(
@@ -232,9 +243,9 @@ function buildActivityPublishPayload(activityData = {}, user) {
         skillLevel: String(activityData.skillLevel || ""),
         contact: String(activityData.contact || ""),
         maxSlots,
-        currentPlayers,
-        participants: {},
-        participantUids: [],
+        currentPlayers: hostParticipates ? 1 : 0,
+        participants: hostParticipates ? { [user.uid]: hostProfile } : {},
+        participantUids: hostParticipates ? [user.uid] : [],
         pendingParticipantUids: [],
         waitlist: [],
         guestParticipants: {},
@@ -242,6 +253,8 @@ function buildActivityPublishPayload(activityData = {}, user) {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
     };
+
+    return payload;
 }
 
 const GUEST_SIGNUP_MAX_PER_USER = 2;

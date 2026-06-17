@@ -545,16 +545,25 @@
                         </button>
                         <input type="hidden" id="form-skill-level" required>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-gray-500 mb-1 font-medium">現時人數 (已有幾人)</label>
-                            <input type="text" id="form-current-players" min="0" step="1" inputmode="numeric" pattern="[0-9]*" value="1" class="publish-number-input" required>
-                        </div>
-                        <div>
-                            <label class="block text-gray-500 mb-1 font-medium">總名額 (上限人數)</label>
-                            <input type="text" id="form-maxslots" min="1" step="1" inputmode="numeric" pattern="[0-9]*" value="6" class="publish-number-input" required>
-                        </div>
+                    <div>
+                        <label class="block text-gray-500 mb-1 font-medium" data-i18n="publish.maxSlots">總名額 (上限人數)</label>
+                        <input type="text" id="form-maxslots" min="1" step="1" inputmode="numeric" pattern="[0-9]*" value="6" class="publish-number-input" required>
                     </div>
+                    <fieldset class="session-visibility-field publish-host-participate-field">
+                        <legend class="session-visibility-legend" data-i18n="publish.hostParticipateLegend">場主參與</legend>
+                        <div class="session-visibility-options">
+                            <label class="session-visibility-option">
+                                <input type="radio" name="form-host-participates" value="yes" class="session-visibility-input" checked>
+                                <span class="session-visibility-label" data-i18n="publish.hostParticipatesYes">我會參加（佔 1 位）</span>
+                                <span class="session-visibility-desc" data-i18n="publish.hostParticipatesYesDesc">發佈後你會自動計入已批准名單</span>
+                            </label>
+                            <label class="session-visibility-option">
+                                <input type="radio" name="form-host-participates" value="no" class="session-visibility-input">
+                                <span class="session-visibility-label" data-i18n="publish.hostParticipatesNo">我只約球，不參加</span>
+                                <span class="session-visibility-desc" data-i18n="publish.hostParticipatesNoDesc">不佔名額，只負責組織</span>
+                            </label>
+                        </div>
+                    </fieldset>
                     <div>
                         <label class="block text-gray-500 mb-1 font-medium">每人費用 (HK$)</label>
                         <input type="text" id="form-fee" min="0" step="1" inputmode="numeric" pattern="[0-9]*" class="publish-number-input" required>

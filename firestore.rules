@@ -246,6 +246,36 @@ service cloud.firestore {
         && safeMapSize(request.resource.data, 'participants') == 0;
     }
 
+    // 發佈時場主自報：佔 1 位，寫入 participantUids / participants
+    function isValidHostSelfJoinOnCreate() {
+      let uid = request.auth.uid;
+      let uids = safeList(request.resource.data, 'participantUids');
+      let participants = request.resource.data.get('participants', {});
+      let profile = participants.get(uid, {});
+
+      return safeInt(request.resource.data, 'currentPlayers') == 1
+        && uids.size() == 1
+        && uid in uids
+        && safeMapSize(request.resource.data, 'participants') == 1
+        && participants.keys().hasOnly([uid])
+        && safeListSize(request.resource.data, 'pendingParticipantUids') == 0
+        && safeListSize(request.resource.data, 'waitlist') == 0
+        && profile.get('uid', '') == uid
+        && profile.get('status', '') == 'reserved'
+        && profile.get('displayName', '') is string
+        && profile.get('displayName', '').size() >= 1;
+    }
+
+    function isValidActivityPlayersOnCreate() {
+      let currentPlayers = safeInt(request.resource.data, 'currentPlayers');
+      let maxSlots = safeInt(request.resource.data, 'maxSlots');
+      return currentPlayers <= maxSlots
+        && (
+          (currentPlayers == 0 && activityListsEmptyOnCreate())
+          || (currentPlayers == 1 && isValidHostSelfJoinOnCreate())
+        );
+    }
+
     function activityHasPendingSlot(data) {
       return data.currentPlayers + safeListSize(data, 'pendingParticipantUids') < data.maxSlots;
     }
@@ -514,11 +544,10 @@ service cloud.firestore {
     function isValidActivityCreate() {
       return request.resource.data.hostUid == request.auth.uid
         && request.resource.data.keys().hasOnly(activityAllowedCreateKeys())
-        && activityListsEmptyOnCreate()
+        && isValidActivityPlayersOnCreate()
         && request.resource.data.maxSlots is number
         && request.resource.data.maxSlots >= 1
         && request.resource.data.maxSlots <= 50
-        && request.resource.data.currentPlayers == 0
         && request.resource.data.playDate is string
         && request.resource.data.region is string
         && request.resource.data.venue is string

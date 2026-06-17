@@ -4,9 +4,25 @@
  * changelog 的 date 請填實際發佈日（YYYY-MM-DD），勿用固定佔位日期
  */
 window.APP_VERSION = {
-    version: '1.32.9',
-    build: 46,
+    version: '1.33.1',
+    build: 48,
     changelog: [
+        {
+            version: '1.33.1',
+            date: '2026-06-04',
+            items: [
+                '發佈場次預設場主參加（佔 1 位），可選「我只約球，不參加」',
+                'Firestore 規則支援發佈時場主自報名'
+            ]
+        },
+        {
+            version: '1.33.0',
+            date: '2026-06-04',
+            items: [
+                '修正發佈場次 permission-denied（新建場次 currentPlayers 固定為 0，符合 Firestore 規則）',
+                '發佈表單移除「現時人數」欄位，新場次一律從 0 人開始'
+            ]
+        },
         {
             version: '1.32.9',
             date: '2026-06-04',
