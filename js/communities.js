@@ -150,6 +150,44 @@
         `;
     }
 
+    async function renderCommunitySessions(communityId) {
+        const listEl = document.getElementById('community-sessions-list');
+        const emptyEl = document.getElementById('community-sessions-empty');
+        if (!listEl) return;
+
+        listEl.innerHTML = '';
+        emptyEl?.classList.add('hidden');
+
+        if (typeof window.dbFetchCommunityActivities !== 'function') {
+            emptyEl?.classList.remove('hidden');
+            return;
+        }
+
+        try {
+            const activities = await window.dbFetchCommunityActivities(communityId);
+            if (!activities.length) {
+                emptyEl?.classList.remove('hidden');
+                return;
+            }
+
+            if (typeof window.buildMatchCardHtml === 'function') {
+                listEl.innerHTML = activities.map(activity => window.buildMatchCardHtml(activity)).join('');
+            } else {
+                listEl.innerHTML = activities.map(activity => `
+                    <div class="community-session-fallback">
+                        <span>${escapeHtml(activity.playDate || '')} · ${escapeHtml(activity.venue || '')}</span>
+                    </div>
+                `).join('');
+            }
+        } catch (err) {
+            console.error('載入社群場次失敗:', err);
+            if (emptyEl) {
+                emptyEl.textContent = i18n('community.sessionsLoadFailed');
+                emptyEl.classList.remove('hidden');
+            }
+        }
+    }
+
     async function openCommunityDetail(communityId) {
         const id = String(communityId || '').trim();
         if (!id) return;
@@ -213,6 +251,8 @@
             const soloOwner = isOwner && members.length <= 1;
             leaveBtn?.classList.toggle('hidden', isOwner);
             deleteBtn?.classList.toggle('hidden', !soloOwner);
+
+            await renderCommunitySessions(id);
         } catch (err) {
             console.error('載入社群詳情失敗:', err);
             alert(i18n('community.loadFailed'));
@@ -487,4 +527,5 @@
 
     window.onCommunitiesPageOpen = onCommunitiesPageOpen;
     window.refreshMyCommunities = refreshMyCommunities;
+    window.openCommunityDetail = openCommunityDetail;
 })();

@@ -3,9 +3,18 @@
  * 每次發佈請同步更新：version、build、changelog 第一筆，以及 sw.js 的 CACHE_NAME
  */
 window.APP_VERSION = {
-    version: '1.27.1',
-    build: 31,
+    version: '1.28.0',
+    build: 32,
     changelog: [
+        {
+            version: '1.28.0',
+            date: '2026-06-04',
+            items: [
+                '發佈場次可設為「社群限定」，僅成員可見與報名',
+                '社群頁面顯示該社群的進行中場次',
+                '大廳不再顯示社群限定場次'
+            ]
+        },
         {
             version: '1.27.1',
             date: '2026-06-17',

@@ -396,6 +396,11 @@
                     </div>
                     <p class="community-invite-hint" data-i18n="community.inviteHint">分享連結給波友，對方登入後即可加入。</p>
                 </div>
+                <div class="community-sessions-block">
+                    <h3 class="community-sessions-title" data-i18n="community.sessions">社群場次</h3>
+                    <p id="community-sessions-empty" class="community-sessions-empty hidden" data-i18n="community.sessionsEmpty">此社群暫無進行中的場次。</p>
+                    <div id="community-sessions-list" class="community-sessions-list"></div>
+                </div>
                 <div class="community-members-block">
                     <h3 class="community-members-title" data-i18n="community.members">成員</h3>
                     <div id="community-members-list" class="community-members-list" role="list"></div>
@@ -549,6 +554,19 @@
                                 <span class="session-visibility-label">私人球局</span>
                                 <span class="session-visibility-desc">首頁隱形，僅限專屬連結</span>
                             </label>
+                            <label class="session-visibility-option">
+                                <input type="radio" name="form-visibility" value="community" class="session-visibility-input">
+                                <span class="session-visibility-label" data-i18n="publish.communityLabel">社群限定</span>
+                                <span class="session-visibility-desc" data-i18n="publish.communityDesc">僅社群成員可見與報名</span>
+                            </label>
+                        </div>
+                        <div id="publish-community-wrap" class="publish-community-wrap hidden">
+                            <label class="block text-gray-500 mb-1 font-medium" data-i18n="publish.communityPickerLabel">選擇社群</label>
+                            <button type="button" id="form-community-btn" class="publish-picker-btn w-full">
+                                <span id="form-community-text" data-i18n="publish.pickCommunity">請選擇社群</span>
+                            </button>
+                            <input type="hidden" id="form-community" value="">
+                            <p class="publish-community-hint" data-i18n="publish.communityHint">此場次只會顯示在社群頁面，大廳不會出現。</p>
                         </div>
                     </fieldset>
                     <button type="submit" class="publish-submit-btn">

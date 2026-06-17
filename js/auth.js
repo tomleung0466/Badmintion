@@ -212,6 +212,9 @@ function buildActivityPublishPayload(activityData = {}, user) {
         ),
         hostPhotoURL: activityData.hostPhotoURL || user.photoURL || null,
         isPrivate: activityData.isPrivate === true,
+        audience: String(activityData.audience || (activityData.isPrivate ? "private" : "public")),
+        communityId: String(activityData.communityId || ""),
+        communityName: String(activityData.communityName || ""),
         region: String(activityData.region || ""),
         venue: String(activityData.venue || ""),
         playDate: String(activityData.playDate || ""),
@@ -737,7 +740,8 @@ window.dbFetchActivities = async function dbFetchActivities() {
                 firestoreId: docSnap.id
             }))
             .filter(activity => activity.playDate && activity.playDate >= todayISO)
-            .filter(activity => !activity.isPrivate);
+            .filter(activity => !activity.isPrivate)
+            .filter(activity => activity.audience !== "community" && !activity.communityId);
         const active = filterActiveActivities(mapped);
         if (mapped.length > 0 && active.length === 0) {
             console.info(
@@ -750,6 +754,30 @@ window.dbFetchActivities = async function dbFetchActivities() {
         throw err;
     }
 };
+
+function isCommunityRestrictedActivityData(activity = {}) {
+    if (activity.audience === "community") return true;
+    return Boolean(String(activity.communityId || "").trim());
+}
+
+async function assertUserCanJoinCommunityActivity(user, activity = {}) {
+    if (!isCommunityRestrictedActivityData(activity)) return;
+    const communityId = String(activity.communityId || "").trim();
+    if (!communityId) {
+        const error = new Error("此場次僅限社群成員參加");
+        error.code = "activity/community-only";
+        throw error;
+    }
+    const memberSnap = await getDoc(doc(db, "communities", communityId, "members", user.uid));
+    if (!memberSnap.exists()) {
+        const error = new Error("此場次僅限社群成員參加，請先加入該社群");
+        error.code = "activity/community-only";
+        throw error;
+    }
+}
+
+window.isCommunityRestrictedActivityData = isCommunityRestrictedActivityData;
+window.assertUserCanJoinCommunityActivity = assertUserCanJoinCommunityActivity;
 
 window.dbReserveActivity = async function dbReserveActivity(activityData) {
     try {
@@ -766,16 +794,23 @@ window.dbReserveActivity = async function dbReserveActivity(activityData) {
         }
 
         const activityRef = doc(db, "activities", activityData.firestoreId);
+        const activitySnap = await getDoc(activityRef);
+        if (!activitySnap.exists()) {
+            const error = new Error("場次不存在");
+            error.code = "activity/not-found";
+            throw error;
+        }
+        await assertUserCanJoinCommunityActivity(user, activitySnap.data());
 
         return await runTransaction(db, async transaction => {
-            const activitySnap = await transaction.get(activityRef);
-            if (!activitySnap.exists()) {
+            const freshSnap = await transaction.get(activityRef);
+            if (!freshSnap.exists()) {
                 const error = new Error("場次不存在");
                 error.code = "activity/not-found";
                 throw error;
             }
 
-            const activity = activitySnap.data();
+            const activity = freshSnap.data();
             assertActivityNotEnded(activity);
 
             const participantUids = Array.isArray(activity.participantUids) ? activity.participantUids : [];
@@ -881,16 +916,23 @@ window.dbJoinWaitlist = async function dbJoinWaitlist(activityData) {
         }
 
         const activityRef = doc(db, "activities", activityData.firestoreId);
+        const activitySnap = await getDoc(activityRef);
+        if (!activitySnap.exists()) {
+            const error = new Error("場次不存在");
+            error.code = "activity/not-found";
+            throw error;
+        }
+        await assertUserCanJoinCommunityActivity(user, activitySnap.data());
 
         return await runTransaction(db, async transaction => {
-            const activitySnap = await transaction.get(activityRef);
-            if (!activitySnap.exists()) {
+            const freshSnap = await transaction.get(activityRef);
+            if (!freshSnap.exists()) {
                 const error = new Error("場次不存在");
                 error.code = "activity/not-found";
                 throw error;
             }
 
-            const activity = activitySnap.data();
+            const activity = freshSnap.data();
             assertActivityNotEnded(activity);
 
             const participantUids = Array.isArray(activity.participantUids) ? activity.participantUids : [];
@@ -1685,6 +1727,34 @@ window.dbFetchCommunityMembers = async function dbFetchCommunityMembers(communit
         });
     } catch (err) {
         console.error("讀取社群成員失敗:", err);
+        throw err;
+    }
+};
+
+window.dbFetchCommunityActivities = async function dbFetchCommunityActivities(communityId) {
+    try {
+        const id = String(communityId || "").trim();
+        if (!id) return [];
+
+        const todayISO = getTodayISO();
+        const snapshot = await getDocs(query(
+            collection(db, "activities"),
+            where("communityId", "==", id)
+        ));
+        const mapped = snapshot.docs
+            .map(docSnap => ({
+                ...docSnap.data(),
+                firestoreId: docSnap.id
+            }))
+            .filter(activity => activity.playDate && activity.playDate >= todayISO);
+
+        return filterActiveActivities(mapped).sort((a, b) => {
+            const dateCompare = String(a.playDate || "").localeCompare(String(b.playDate || ""));
+            if (dateCompare !== 0) return dateCompare;
+            return String(a.startTime || "").localeCompare(String(b.startTime || ""));
+        });
+    } catch (err) {
+        console.error("讀取社群場次失敗:", err);
         throw err;
     }
 };

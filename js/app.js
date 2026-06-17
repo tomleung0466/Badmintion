@@ -1478,6 +1478,9 @@ async function openPublishPage() {
     if (typeof window.resetPublishForm === 'function') {
         window.resetPublishForm();
     }
+    if (typeof window.refreshPublishCommunities === 'function') {
+        await window.refreshPublishCommunities();
+    }
 
     publishTransitionLock = true;
     publishOpen = true;

@@ -161,6 +161,9 @@
         let formSelectedVenue = '';
         let formSelectedBrand = '';
         let formSelectedSkillLevel = DEFAULT_SKILL_LEVEL;
+        let publishCommunities = [];
+        let formSelectedCommunityId = '';
+        let formSelectedCommunityName = '';
         let pendingPaymentMatchId = null;
         let pendingPaymeLink = '';
         let inviteActivityId = null;
@@ -810,6 +813,12 @@
             if (mode === 'endTime') {
                 return buildEndTimeSlotOptions();
             }
+            if (mode === 'community') {
+                return publishCommunities.map(item => ({
+                    val: item.communityId || item.id,
+                    label: item.name || item.communityId || item.id
+                }));
+            }
             return SHUTTLE_BRANDS.map(b => ({ val: b, label: b }));
         }
 
@@ -1069,6 +1078,64 @@
             document.getElementById('form-court-count')?.addEventListener('input', updateTimePreview);
             document.getElementById('form-court-count')?.addEventListener('change', updateTimePreview);
             updateTimePreview();
+            bindPublishVisibilityUI();
+        }
+
+        function getPublishVisibility() {
+            return document.querySelector('input[name="form-visibility"]:checked')?.value || 'public';
+        }
+
+        function updatePublishVisibilityUI() {
+            const visibility = getPublishVisibility();
+            const wrap = document.getElementById('publish-community-wrap');
+            wrap?.classList.toggle('hidden', visibility !== 'community');
+
+            if (visibility !== 'community') return;
+
+            const communityText = document.getElementById('form-community-text');
+            const communityInput = document.getElementById('form-community');
+            if (!communityText) return;
+
+            if (!publishCommunities.length) {
+                communityText.textContent = i18n('publish.pickCommunityNone');
+                formSelectedCommunityId = '';
+                formSelectedCommunityName = '';
+                if (communityInput) communityInput.value = '';
+                return;
+            }
+
+            const hasSelection = formSelectedCommunityId
+                && publishCommunities.some(item => (item.communityId || item.id) === formSelectedCommunityId);
+            if (!hasSelection) {
+                const first = publishCommunities[0];
+                formSelectedCommunityId = first.communityId || first.id || '';
+                formSelectedCommunityName = first.name || '';
+            }
+
+            if (communityInput) communityInput.value = formSelectedCommunityId;
+            communityText.textContent = formSelectedCommunityName || i18n('publish.pickCommunity');
+        }
+
+        async function refreshPublishCommunities() {
+            publishCommunities = [];
+            if (!window.firebaseAuthUid || typeof window.dbListMyCommunities !== 'function') {
+                updatePublishVisibilityUI();
+                return;
+            }
+
+            try {
+                publishCommunities = await window.dbListMyCommunities();
+            } catch (err) {
+                console.error('讀取社群列表失敗:', err);
+            }
+            updatePublishVisibilityUI();
+        }
+
+        function bindPublishVisibilityUI() {
+            document.querySelectorAll('input[name="form-visibility"]').forEach(input => {
+                input.addEventListener('change', updatePublishVisibilityUI);
+            });
+            document.getElementById('form-community-btn')?.addEventListener('click', () => openFormPicker('community'));
         }
 
         function resetPublishForm() {
@@ -1076,6 +1143,8 @@
             formSelectedVenue = '';
             formSelectedBrand = '';
             formSelectedSkillLevel = DEFAULT_SKILL_LEVEL;
+            formSelectedCommunityId = '';
+            formSelectedCommunityName = '';
             document.getElementById('form-region').value = '';
             document.getElementById('form-venue').value = '';
             document.getElementById('form-skill-level').value = DEFAULT_SKILL_LEVEL;
@@ -1104,6 +1173,11 @@
             updateVenueFieldState();
             const publicVisibility = document.querySelector('input[name="form-visibility"][value="public"]');
             if (publicVisibility) publicVisibility.checked = true;
+            const communityInput = document.getElementById('form-community');
+            if (communityInput) communityInput.value = '';
+            const communityText = document.getElementById('form-community-text');
+            if (communityText) communityText.textContent = i18n('publish.pickCommunity');
+            updatePublishVisibilityUI();
         }
 
         function openFormPicker(mode) {
@@ -1115,6 +1189,10 @@
                 i18nAlert('alert.pickStartTimeFirst');
                 return;
             }
+            if (mode === 'community' && !publishCommunities.length) {
+                i18nAlert('alert.noCommunityForPublish');
+                return;
+            }
 
             formPickerMode = mode;
             const titleKeys = {
@@ -1123,7 +1201,8 @@
                 brand: 'picker.selectBrand',
                 skill: 'picker.selectSkill',
                 startTime: 'picker.startTime',
-                endTime: 'picker.endTime'
+                endTime: 'picker.endTime',
+                community: 'picker.selectCommunity'
             };
             document.getElementById('form-picker-title').textContent = i18n(titleKeys[mode] || 'common.done');
 
@@ -1137,7 +1216,9 @@
                         ? (getPublishStartTimeValue() || '09:00')
                         : mode === 'endTime'
                             ? (getPublishEndTimeValue() || formatMinutesToTimeValue(getDefaultEndTimeMinutes(parseTimeToMinutes(getPublishStartTimeValue()) || TIME_SLOT_DAY_START_MINUTES)))
-                            : (formSelectedSkillLevel || DEFAULT_SKILL_LEVEL);
+                            : mode === 'community'
+                                ? (formSelectedCommunityId || publishCommunities[0]?.communityId || publishCommunities[0]?.id || '')
+                                : (formSelectedSkillLevel || DEFAULT_SKILL_LEVEL);
 
             renderFormPickerScroller(mode, scrollTo);
             toggleFormPicker(true);
@@ -1203,6 +1284,13 @@
             } else if (formPickerMode === 'endTime') {
                 setPublishEndTimeValue(selected);
                 updateTimePreview();
+            } else if (formPickerMode === 'community') {
+                formSelectedCommunityId = selected;
+                const found = publishCommunities.find(item => (item.communityId || item.id) === selected);
+                formSelectedCommunityName = found?.name || '';
+                document.getElementById('form-community').value = selected;
+                document.getElementById('form-community-text').textContent =
+                    formSelectedCommunityName || i18n('publish.pickCommunity');
             }
 
             toggleFormPicker(false);
@@ -1251,12 +1339,20 @@
             return match?.isPrivate === true || match?.isPrivate === 'private';
         }
 
+        function isCommunityMatch(match) {
+            if (typeof window.isCommunityRestrictedActivityData === 'function') {
+                return window.isCommunityRestrictedActivityData(match);
+            }
+            return match?.audience === 'community' || Boolean(String(match?.communityId || '').trim());
+        }
+
         function isOwnHostedMatch(match) {
             const uid = window.firebaseAuthUid;
             return !!(uid && match?.hostUid === uid);
         }
 
         function canShowMatchInLobby(match) {
+            if (isCommunityMatch(match)) return false;
             if (isOwnHostedMatch(match)) return true;
             return !isPrivateMatch(match);
         }
@@ -1339,11 +1435,16 @@
             const { showPrivateBadge = false } = options;
             let cardBadges = '';
             const isOwnHosted = isOwnHostedMatch(match);
+            const communityName = String(match?.communityName || '').trim();
             if (isOwnHosted) {
                 cardBadges += `<span class="match-host-owned-badge">${i18n('match.yourPublished')}</span>`;
-                if (isPrivateMatch(match)) {
+                if (isCommunityMatch(match)) {
+                    cardBadges += `<span class="session-community-badge">${escapeHtml(communityName || i18n('match.communityTag'))}</span>`;
+                } else if (isPrivateMatch(match)) {
                     cardBadges += `<span class="session-private-badge">${i18n('match.privateTag')}</span>`;
                 }
+            } else if (isCommunityMatch(match)) {
+                cardBadges += `<span class="session-community-badge">${escapeHtml(communityName || i18n('match.communityTag'))}</span>`;
             } else if (showPrivateBadge || isPrivateMatch(match)) {
                 cardBadges += `<span class="session-private-badge">${i18n('match.privateInvite')}</span>`;
             }
@@ -1754,6 +1855,7 @@
 
             bindContainer(document.getElementById('matches-list'));
             bindContainer(document.getElementById('invite-match-section'));
+            bindContainer(document.getElementById('community-sessions-list'));
         }
 
         function loadMoreLobbyMatches() {
@@ -2031,6 +2133,18 @@
                 return;
             }
 
+            if (isCommunityMatch(match) && typeof window.assertUserCanJoinCommunityActivity === 'function') {
+                try {
+                    await window.assertUserCanJoinCommunityActivity(window.firebaseAuthUser, match);
+                } catch (err) {
+                    if (err?.code === 'activity/community-only') {
+                        i18nAlert('alert.communityOnly');
+                        return;
+                    }
+                    throw err;
+                }
+            }
+
             const maxSlots = Number(match.maxSlots ?? 6);
             match.currentPlayers = Number(match.currentPlayers ?? 0);
             if (!Array.isArray(match.waitlist)) match.waitlist = [];
@@ -2091,6 +2205,10 @@
                     i18nAlert('alert.sessionEndedWaitlist');
                     await renderMatches();
                     renderInviteMatchSection();
+                    return;
+                }
+                if (err?.code === 'activity/community-only') {
+                    i18nAlert('alert.communityOnly');
                     return;
                 }
                 const code = err?.code ? `（${err.code}）` : '';
@@ -2382,6 +2500,19 @@
                 return;
             }
 
+            if (isCommunityMatch(match) && typeof window.assertUserCanJoinCommunityActivity === 'function') {
+                try {
+                    await window.assertUserCanJoinCommunityActivity(window.firebaseAuthUser, match);
+                } catch (err) {
+                    if (err?.code === 'activity/community-only') {
+                        togglePaymentSheet(false);
+                        i18nAlert('alert.communityOnly');
+                        return;
+                    }
+                    throw err;
+                }
+            }
+
             const authUid = window.firebaseAuthUid;
             const currentUserName = getCurrentUserName();
             const authEmail = window.firebaseAuthUser?.email || null;
@@ -2423,6 +2554,11 @@
                     i18nAlert('alert.sessionEnded');
                     await renderMatches();
                     renderInviteMatchSection();
+                    return;
+                }
+                if (err?.code === 'activity/community-only') {
+                    togglePaymentSheet(false);
+                    i18nAlert('alert.communityOnly');
                     return;
                 }
                 const code = err?.code ? `（${err.code}）` : '';
@@ -3029,7 +3165,15 @@
         }
 
         async function executePublishSubmission(submission) {
-            const { newMatch, formEvent, isPrivate, playDate, region } = submission;
+            const {
+                newMatch,
+                formEvent,
+                isPrivate,
+                isCommunity,
+                communityId,
+                playDate,
+                region
+            } = submission;
             let publishedFirestoreId = null;
             try {
                 publishedFirestoreId = await window.dbPublishActivity(newMatch);
@@ -3061,12 +3205,23 @@
             if (typeof window.closePublishPage === 'function') {
                 await window.closePublishPage();
             }
+            formEvent.target.reset();
+            resetPublishForm();
+
+            if (isCommunity && communityId) {
+                if (typeof window.switchPage === 'function') {
+                    await window.switchPage('communities');
+                }
+                if (typeof window.openCommunityDetail === 'function') {
+                    await window.openCommunityDetail(communityId);
+                }
+                return;
+            }
+
             if (typeof window.alignLobbyRegionFilter === 'function') {
                 window.alignLobbyRegionFilter(region);
             }
             syncHomeLobbyAfterPublish(playDate);
-            formEvent.target.reset();
-            resetPublishForm();
             if (typeof window.switchPage === 'function') {
                 await window.switchPage('match');
             }
@@ -3157,6 +3312,26 @@
 
             const visibility = document.querySelector('input[name="form-visibility"]:checked')?.value || 'public';
             const isPrivate = visibility === 'private';
+            const isCommunity = visibility === 'community';
+
+            if (isCommunity) {
+                if (!publishCommunities.length) {
+                    i18nAlert('alert.noCommunityForPublish');
+                    return;
+                }
+                if (!formSelectedCommunityId) {
+                    i18nAlert('alert.pickCommunity');
+                    return;
+                }
+                const selectedCommunity = publishCommunities.find(
+                    item => (item.communityId || item.id) === formSelectedCommunityId
+                );
+                if (!selectedCommunity) {
+                    i18nAlert('alert.pickCommunity');
+                    return;
+                }
+                formSelectedCommunityName = selectedCommunity.name || formSelectedCommunityName;
+            }
 
             if (getEarliestPublishStartMinutes(playDate) > TIME_SLOT_START_MAX_MINUTES) {
                 i18nAlert('alert.noFutureTimeToday');
@@ -3182,7 +3357,10 @@
 
             const newMatch = {
                 id: Date.now(),
-                isPrivate,
+                isPrivate: isCommunity ? false : isPrivate,
+                audience: isCommunity ? 'community' : (isPrivate ? 'private' : 'public'),
+                communityId: isCommunity ? formSelectedCommunityId : '',
+                communityName: isCommunity ? formSelectedCommunityName : '',
                 region,
                 venue: finalVenue,
                 playDate,
@@ -3239,6 +3417,8 @@
                     newMatch,
                     formEvent: event,
                     isPrivate,
+                    isCommunity,
+                    communityId: isCommunity ? formSelectedCommunityId : '',
                     playDate,
                     region,
                     skillLevelLabel,
@@ -3254,6 +3434,8 @@
                     newMatch,
                     formEvent: event,
                     isPrivate,
+                    isCommunity,
+                    communityId: isCommunity ? formSelectedCommunityId : '',
                     playDate,
                     region,
                     skillLevelLabel,
@@ -3267,6 +3449,8 @@
                 newMatch,
                 formEvent: event,
                 isPrivate,
+                isCommunity,
+                communityId: isCommunity ? formSelectedCommunityId : '',
                 playDate,
                 region,
                 skillLevelLabel,
@@ -3291,6 +3475,7 @@
             saveMatches();
             initCalendars();
             resetPublishForm();
+            await refreshPublishCommunities();
             await renderMatches();
             if (typeof updateProfileUI === 'function') updateProfileUI();
         }
@@ -3310,6 +3495,8 @@
         window.renderMatches = renderMatches;
         window.cancelReservation = cancelReservation;
         window.resetPublishForm = resetPublishForm;
+        window.refreshPublishCommunities = refreshPublishCommunities;
+        window.buildMatchCardHtml = buildMatchCardHtml;
         window.invalidateHostProfileCache = function invalidateHostProfileCache(uid) {
             if (uid) hostProfileCache.delete(uid);
         };

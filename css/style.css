@@ -2245,8 +2245,26 @@ button:hover {
 
 .session-visibility-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
+}
+
+@media (max-width: 420px) {
+  .session-visibility-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+.publish-community-wrap {
+  margin-top: 0.75rem;
+}
+
+.publish-community-hint {
+  margin-top: 0.35rem;
+  font-size: 9px;
+  line-height: 1.45;
+  letter-spacing: 0.03em;
+  color: var(--muji-muted);
 }
 
 .session-visibility-option {
@@ -2287,7 +2305,8 @@ button:hover {
 }
 
 .match-host-owned-badge,
-.session-private-badge {
+.session-private-badge,
+.session-community-badge {
   display: inline-block;
   margin-left: 0.25rem;
   padding: 0.1rem 0.4rem;
@@ -3591,6 +3610,31 @@ html[data-appearance="dark"] .payment-new-host-tip {
   font-size: 10px;
   letter-spacing: 0.06em;
   color: var(--muji-muted);
+}
+
+.community-sessions-block {
+  margin-bottom: 1.25rem;
+}
+
+.community-sessions-title {
+  margin: 0 0 0.5rem;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--muji-muted);
+}
+
+.community-sessions-empty {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muji-muted);
+}
+
+.community-sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .community-invite-block {

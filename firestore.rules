@@ -55,8 +55,45 @@ service cloud.firestore {
         && request.resource.data.playTime == resource.data.playTime
         && request.resource.data.fee == resource.data.fee
         && request.resource.data.isPrivate == resource.data.isPrivate
+        && request.resource.data.get('audience', resource.data.isPrivate ? 'private' : 'public')
+          == resource.data.get('audience', resource.data.isPrivate ? 'private' : 'public')
+        && request.resource.data.get('communityId', '') == resource.data.get('communityId', '')
+        && request.resource.data.get('communityName', '') == resource.data.get('communityName', '')
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.sessionEndsAt == resource.data.sessionEndsAt;
+    }
+
+    function activityAudience(data) {
+      return data.get('audience', data.isPrivate == true ? 'private' : 'public');
+    }
+
+    function isCommunityRestrictedActivity(data) {
+      return activityAudience(data) == 'community'
+        || (data.get('communityId', '') is string && data.get('communityId', '').size() > 0);
+    }
+
+    function canJoinActivityAudience(data) {
+      return !isCommunityRestrictedActivity(data)
+        || isCommunityMember(data.get('communityId', ''));
+    }
+
+    function isValidActivityAudienceOnCreate() {
+      let data = request.resource.data;
+      let aud = activityAudience(data);
+      let communityId = data.get('communityId', '');
+      if (aud == 'public') {
+        return data.isPrivate == false && communityId == '';
+      }
+      if (aud == 'private') {
+        return data.isPrivate == true && communityId == '';
+      }
+      if (aud == 'community') {
+        return data.isPrivate == false
+          && communityId is string
+          && communityId.size() > 0
+          && isCommunityMember(communityId);
+      }
+      return false;
     }
 
     function activityNotEnded() {
@@ -92,6 +129,7 @@ service cloud.firestore {
 
       return activityHostFieldsUnchanged()
         && activityNotEnded()
+        && canJoinActivityAudience(resource.data)
         && !(uid in oldUids)
         && !(uid in oldPending)
         && uid in newPending
@@ -110,6 +148,7 @@ service cloud.firestore {
 
       return activityHostFieldsUnchanged()
         && activityNotEnded()
+        && canJoinActivityAudience(resource.data)
         && resource.data.currentPlayers >= resource.data.maxSlots
         && !(uid in resource.data.get('participantUids', []))
         && !(uid in resource.data.get('pendingParticipantUids', []))
@@ -196,7 +235,8 @@ service cloud.firestore {
         && request.resource.data.sessionStartsAt is timestamp
         && request.resource.data.sessionStartsAt > request.time
         && request.resource.data.sessionEndsAt is timestamp
-        && request.resource.data.sessionEndsAt > request.time;
+        && request.resource.data.sessionEndsAt > request.time
+        && isValidActivityAudienceOnCreate();
     }
 
     function isCommunityMember(communityId) {
