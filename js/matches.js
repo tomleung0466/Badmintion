@@ -2216,8 +2216,11 @@
         }
 
         async function bookMatch(id, btn) {
-            const match = findMatchByBookId(id) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(id) ? inviteMatch : null);
-            if (!match) return;
+            const match = await resolveMatchByBookId(id);
+            if (!match) {
+                i18nAlert('alert.activityNotFound');
+                return;
+            }
 
             if (isMatchEnded(match)) {
                 i18nAlert('alert.sessionEnded');
@@ -2296,6 +2299,9 @@
                 await loadActivitiesFromCloud();
                 await renderMatches();
                 renderInviteMatchSection();
+                if (typeof window.refreshCommunitySessionsIfVisible === 'function') {
+                    await window.refreshCommunitySessionsIfVisible();
+                }
                 i18nAlert(result?.alreadyWaitlisted ? 'alert.waitlistAlready' : 'alert.waitlistSuccess');
             } catch (err) {
                 console.error('加入後補失敗:', err);
@@ -2344,8 +2350,11 @@
         }
 
         async function openPaymentPanel(matchId) {
-            const match = findMatchByBookId(matchId) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(matchId) ? inviteMatch : null);
-            if (!match) return;
+            const match = await resolveMatchByBookId(matchId);
+            if (!match) {
+                i18nAlert('alert.activityNotFound');
+                return;
+            }
 
             if (isMatchEnded(match)) {
                 i18nAlert('alert.sessionEnded');
@@ -2583,7 +2592,9 @@
         async function confirmBooking() {
             if (!pendingPaymentMatchId) return;
 
-            const match = findMatchByBookId(pendingPaymentMatchId) || (inviteMatch && String(getMatchBookId(inviteMatch)) === String(pendingPaymentMatchId) ? inviteMatch : null);
+            const match = pendingPaymentMatchId
+                ? await resolveMatchByBookId(pendingPaymentMatchId)
+                : null;
             if (!match) {
                 togglePaymentSheet(false);
                 return;
@@ -2644,6 +2655,9 @@
                 await renderMatches();
                 renderInviteMatchSection();
                 await renderMyActivities();
+                if (typeof window.refreshCommunitySessionsIfVisible === 'function') {
+                    await window.refreshCommunitySessionsIfVisible();
+                }
                 i18nAlert(result?.alreadyJoined ? 'alert.bookingAlready' : 'alert.bookingSuccess');
             } catch (err) {
                 console.error('提交報名失敗:', err);
@@ -3366,6 +3380,9 @@
                 await renderMatches();
                 renderInviteMatchSection();
                 await renderMyActivities();
+                if (typeof window.refreshCommunitySessionsIfVisible === 'function') {
+                    await window.refreshCommunitySessionsIfVisible();
+                }
                 i18nAlert(isPending ? 'alert.cancelPendingSuccess' : 'alert.cancelApprovedSuccess');
             } catch (err) {
                 console.error('取消預約失敗:', err);

@@ -4,9 +4,16 @@
  * changelog 的 date 請填實際發佈日（YYYY-MM-DD），勿用固定佔位日期
  */
 window.APP_VERSION = {
-    version: '1.31.0',
-    build: 35,
+    version: '1.31.1',
+    build: 36,
     changelog: [
+        {
+            version: '1.31.1',
+            date: '2026-06-17',
+            items: [
+                '修正社群成員在社群頁無法報名場次的問題'
+            ]
+        },
         {
             version: '1.31.0',
             date: '2026-06-17',

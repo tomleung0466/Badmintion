@@ -730,4 +730,9 @@
     window.onCommunitiesPageOpen = onCommunitiesPageOpen;
     window.refreshMyCommunities = refreshMyCommunities;
     window.openCommunityDetail = openCommunityDetail;
+    window.refreshCommunitySessionsIfVisible = async function refreshCommunitySessionsIfVisible() {
+        if (activeCommunityId) {
+            await renderCommunitySessions(activeCommunityId);
+        }
+    };
 })();
