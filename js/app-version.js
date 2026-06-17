@@ -4,9 +4,16 @@
  * changelog 的 date 請填實際發佈日（YYYY-MM-DD），勿用固定佔位日期
  */
 window.APP_VERSION = {
-    version: '1.32.5',
-    build: 42,
+    version: '1.32.6',
+    build: 43,
     changelog: [
+        {
+            version: '1.32.6',
+            date: '2026-06-04',
+            items: [
+                '修正 v1.32.0 規則加固後場主批准 permission-denied（規則與 dbApproveParticipant 對齊）'
+            ]
+        },
         {
             version: '1.32.5',
             date: '2026-06-04',

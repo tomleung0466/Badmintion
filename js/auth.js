@@ -1297,12 +1297,12 @@ window.dbApproveParticipant = async function dbApproveParticipant(activityId, pa
             const approvedProfile = {
                 uid: participantUid,
                 displayName: profile.displayName || "波友",
-                email: profile.email || null,
-                photoURL: profile.photoURL || null,
                 status: "reserved",
                 joinedAt: profile.joinedAt || serverTimestamp(),
                 approvedAt: serverTimestamp()
             };
+            if (profile.email) approvedProfile.email = profile.email;
+            if (profile.photoURL) approvedProfile.photoURL = profile.photoURL;
 
             const updatePayload = {
                 pendingParticipantUids: arrayRemove(participantUid),
