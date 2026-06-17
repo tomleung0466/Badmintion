@@ -19,10 +19,17 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-
-      - name: Deploy Firestore rules and Hosting
-        run: firebase deploy --only firestore:rules,hosting --project badminton-app-b08cc --non-interactive
+      - name: Check FIREBASE_TOKEN secret
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "::error::GitHub Secret FIREBASE_TOKEN 未設定。請在本機執行 npx firebase-tools login:ci，把 token 加到 Repo → Settings → Secrets → Actions。"
+            exit 1
+          fi
+          echo "FIREBASE_TOKEN is set."
+
+      - name: Deploy Firestore rules and Hosting
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: npx firebase-tools@15.20.0 deploy --only firestore:rules,hosting --project badminton-app-b08cc --non-interactive --token "$FIREBASE_TOKEN"
