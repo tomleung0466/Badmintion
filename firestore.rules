@@ -101,15 +101,30 @@ service cloud.firestore {
       return resource.data.get('sessionEndsAt', timestamp.date(2099, 12, 31)) > request.time;
     }
 
+    function safeList(data, field) {
+      let raw = data.get(field, []);
+      return raw == null ? [] : raw;
+    }
+
+    function safeListSize(data, field) {
+      let raw = data.get(field, []);
+      return raw == null ? 0 : raw.size();
+    }
+
+    function safeMapSize(data, field) {
+      let raw = data.get(field, {});
+      return raw == null ? 0 : raw.size();
+    }
+
     function participantListsEqual() {
-      let oldUids = resource.data.get('participantUids', []);
-      let newUids = request.resource.data.get('participantUids', []);
+      let oldUids = safeList(resource.data, 'participantUids');
+      let newUids = safeList(request.resource.data, 'participantUids');
       return newUids.hasAll(oldUids) && newUids.size() == oldUids.size();
     }
 
     function pendingListsEqual() {
-      let oldPending = resource.data.get('pendingParticipantUids', []);
-      let newPending = request.resource.data.get('pendingParticipantUids', []);
+      let oldPending = safeList(resource.data, 'pendingParticipantUids');
+      let newPending = safeList(request.resource.data, 'pendingParticipantUids');
       return newPending.hasAll(oldPending) && newPending.size() == oldPending.size();
     }
 
@@ -171,46 +186,49 @@ service cloud.firestore {
     }
 
     function activityHasPendingSlot(data) {
-      return data.currentPlayers + data.get('pendingParticipantUids', []).size() < data.maxSlots;
+      return data.currentPlayers + safeListSize(data, 'pendingParticipantUids') < data.maxSlots;
+    }
+
+    function activityHostLockedForHostManage() {
+      return request.resource.data.hostUid == resource.data.hostUid
+        && request.resource.data.maxSlots == resource.data.maxSlots
+        && request.resource.data.createdAt == resource.data.createdAt;
     }
 
     function participantListsGrowByOne() {
-      let oldUids = resource.data.get('participantUids', []);
-      let newUids = request.resource.data.get('participantUids', []);
+      let oldUids = safeList(resource.data, 'participantUids');
+      let newUids = safeList(request.resource.data, 'participantUids');
       return newUids.hasAll(oldUids) && newUids.size() == oldUids.size() + 1;
     }
 
     function pendingListsShrinkByOne() {
-      let oldPending = resource.data.get('pendingParticipantUids', []);
-      let newPending = request.resource.data.get('pendingParticipantUids', []);
+      let oldPending = safeList(resource.data, 'pendingParticipantUids');
+      let newPending = safeList(request.resource.data, 'pendingParticipantUids');
       return oldPending.hasAll(newPending) && newPending.size() == oldPending.size() - 1;
     }
 
     function participantsMapValidForApprove() {
-      let oldParts = resource.data.get('participants', {});
-      let newParts = request.resource.data.get('participants', {});
-      return newParts.keys().hasAll(oldParts.keys())
-        && (
-          newParts.size() == oldParts.size()
-          || newParts.size() == oldParts.size() + 1
-        );
+      let oldSize = safeMapSize(resource.data, 'participants');
+      let newSize = safeMapSize(request.resource.data, 'participants');
+      return newSize == oldSize || newSize == oldSize + 1;
     }
 
     function participantsMapValidForReject() {
-      let oldParts = resource.data.get('participants', {});
-      let newParts = request.resource.data.get('participants', {});
-      return oldParts.keys().hasAll(newParts.keys())
-        && (
-          newParts.size() == oldParts.size()
-          || newParts.size() == oldParts.size() - 1
-        );
+      let oldSize = safeMapSize(resource.data, 'participants');
+      let newSize = safeMapSize(request.resource.data, 'participants');
+      return newSize == oldSize || newSize == oldSize - 1;
     }
 
     function waitlistAndGuestsUnchanged() {
-      return request.resource.data.get('guestParticipants', {})
-          == resource.data.get('guestParticipants', {})
-        && request.resource.data.get('waitlist', [])
-          == resource.data.get('waitlist', []);
+      let oldGuests = resource.data.get('guestParticipants', {});
+      let newGuests = request.resource.data.get('guestParticipants', {});
+      let oldWait = safeList(resource.data, 'waitlist');
+      let newWait = safeList(request.resource.data, 'waitlist');
+      let guestsOk = (oldGuests == null && newGuests == null)
+        || (oldGuests == null && newGuests == {})
+        || (oldGuests == {} && newGuests == null)
+        || oldGuests == newGuests;
+      return guestsOk && oldWait == newWait;
     }
 
     function isValidPendingParticipantProfile(uid) {
@@ -304,23 +322,21 @@ service cloud.firestore {
     function isValidHostApprove() {
       return isHost()
         && activityNotEnded()
-        && activityHostFieldsUnchanged()
+        && activityHostLockedForHostManage()
         && request.resource.data.currentPlayers == resource.data.currentPlayers + 1
         && request.resource.data.currentPlayers <= request.resource.data.maxSlots
         && participantListsGrowByOne()
         && pendingListsShrinkByOne()
-        && waitlistAndGuestsUnchanged()
         && participantsMapValidForApprove()
         && activityUpdateKeysOnly(['participantUids', 'pendingParticipantUids', 'participants', 'currentPlayers', 'updatedAt']);
     }
 
     function isValidHostReject() {
       return isHost()
-        && activityHostFieldsUnchanged()
+        && activityHostLockedForHostManage()
         && request.resource.data.currentPlayers == resource.data.currentPlayers
         && participantListsEqual()
         && pendingListsShrinkByOne()
-        && waitlistAndGuestsUnchanged()
         && participantsMapValidForReject()
         && activityUpdateKeysOnly(['pendingParticipantUids', 'participants', 'updatedAt']);
     }
