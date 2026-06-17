@@ -426,7 +426,7 @@ window.I18N_ZH_HANS = {
     'alert.deleteDenied': '删除被拒绝：请确认你是此场次的场主，并已登录。',
     'alert.deleteFailed': '删除场次失败{{code}}，请稍后再试。',
     'alert.approveFailed': '批准失败{{code}}，请稍后再试。',
-    'alert.approveDeniedRules': '批准失败：Firestore 规则未允许此操作。请确认已部署最新 firestore.rules，或稍后再试。',
+    'alert.approveDeniedRules': '批准失败：Firestore 规则未允许此操作。可先试「拒绝」是否成功以判断是否为规则问题；若拒绝成功但批准失败，请强制刷新后再试。',
     'alert.rejectFailed': '拒绝失败{{code}}，请稍后再试。',
     'alert.cancelOffline': '此场次尚未连接云端，暂时无法取消预约。',
     'alert.cancelFailed': '取消预约失败{{code}}，请稍后再试或联络场主。',

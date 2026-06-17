@@ -426,7 +426,7 @@ window.I18N_ZH_HANT = {
     'alert.deleteDenied': '刪除被拒絕：請確認你是此場次的場主，並已登入。',
     'alert.deleteFailed': '刪除場次失敗{{code}}，請稍後再試。',
     'alert.approveFailed': '批准失敗{{code}}，請稍後再試。',
-    'alert.approveDeniedRules': '批准失敗：Firestore 規則未允許此操作。請確認已部署最新 firestore.rules，或稍後再試。',
+    'alert.approveDeniedRules': '批准失敗：Firestore 規則未允許此操作。可先試「拒絕」是否成功以判斷是否為規則問題；若拒絕成功但批准失敗，請強制重新整理後再試。',
     'alert.rejectFailed': '拒絕失敗{{code}}，請稍後再試。',
     'alert.cancelOffline': '此場次尚未連接雲端，暫時無法取消預約。',
     'alert.cancelFailed': '取消預約失敗{{code}}，請稍後再試或聯絡場主。',

@@ -4,9 +4,17 @@
  * changelog 的 date 請填實際發佈日（YYYY-MM-DD），勿用固定佔位日期
  */
 window.APP_VERSION = {
-    version: '1.32.4',
-    build: 41,
+    version: '1.32.5',
+    build: 42,
     changelog: [
+        {
+            version: '1.32.5',
+            date: '2026-06-04',
+            items: [
+                '放寬場主批准 Firestore 規則（移除已結束場次限制、修正數值比對）',
+                '合併批准／清理重複資料為同一規則路徑，與拒絕邏輯對齊'
+            ]
+        },
         {
             version: '1.32.4',
             date: '2026-06-17',
