@@ -35,6 +35,7 @@ import {
     updateDoc,
     deleteDoc,
     increment,
+    writeBatch,
     getCountFromServer,
     serverTimestamp,
     Timestamp
@@ -1567,13 +1568,16 @@ window.dbSubmitFeedback = async function dbSubmitFeedback(payload = {}) {
 };
 
 function buildCommunityMemberProfile(user, role = "member") {
-    return {
+    const profile = {
         uid: user.uid,
         displayName: user.displayName || user.email?.split("@")[0] || "波友",
-        photoURL: user.photoURL || null,
         role,
         joinedAt: serverTimestamp()
     };
+    if (user.photoURL) {
+        profile.photoURL = user.photoURL;
+    }
+    return profile;
 }
 
 window.dbCreateCommunity = async function dbCreateCommunity(payload = {}) {
@@ -1595,22 +1599,25 @@ window.dbCreateCommunity = async function dbCreateCommunity(payload = {}) {
 
         await ensureUserProfileAndAttendance(user);
 
-        const communityRef = await addDoc(collection(db, "communities"), {
+        const communityRef = doc(collection(db, "communities"));
+        const memberProfile = buildCommunityMemberProfile(user, "owner");
+        const batch = writeBatch(db);
+
+        batch.set(communityRef, {
             name,
             description,
             ownerUid: user.uid,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
-
-        const memberProfile = buildCommunityMemberProfile(user, "owner");
-        await setDoc(doc(db, "communities", communityRef.id, "members", user.uid), memberProfile);
-        await setDoc(doc(db, "users", user.uid, "communityMemberships", communityRef.id), {
+        batch.set(doc(db, "communities", communityRef.id, "members", user.uid), memberProfile);
+        batch.set(doc(db, "users", user.uid, "communityMemberships", communityRef.id), {
             communityId: communityRef.id,
             name,
             role: "owner",
             joinedAt: serverTimestamp()
         });
+        await batch.commit();
 
         return {
             communityId: communityRef.id,

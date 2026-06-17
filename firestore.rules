@@ -207,14 +207,14 @@ service cloud.firestore {
     }
 
     function isValidCommunityCreate() {
-      return request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.name is string
-        && request.resource.data.name.size() >= 1
-        && request.resource.data.name.size() <= 40
-        && (!('description' in request.resource.data)
-          || (request.resource.data.description is string
-            && request.resource.data.description.size() <= 200))
-        && request.resource.data.keys().hasOnly(communityAllowedKeys());
+      let data = request.resource.data;
+      return data.ownerUid == request.auth.uid
+        && data.name is string
+        && data.name.size() >= 1
+        && data.name.size() <= 40
+        && data.description is string
+        && data.description.size() <= 200
+        && data.keys().hasAll(['name', 'description', 'ownerUid', 'createdAt', 'updatedAt']);
     }
 
     function isValidCommunityOwnerUpdate() {
@@ -232,6 +232,27 @@ service cloud.firestore {
 
     function communityMemberAllowedKeys() {
       return ['uid', 'displayName', 'photoURL', 'role', 'joinedAt'];
+    }
+
+    function isValidCommunityMemberCreate(communityId, memberUid) {
+      let data = request.resource.data;
+
+      return memberUid == request.auth.uid
+        && data.uid == request.auth.uid
+        && data.role in ['owner', 'member']
+        && data.displayName is string
+        && data.displayName.size() >= 1
+        && data.displayName.size() <= 40
+        && data.keys().hasAll(['uid', 'displayName', 'role', 'joinedAt'])
+        && (!('photoURL' in data) || data.photoURL is string)
+        && (
+          data.role == 'member'
+          || get(/databases/$(database)/documents/communities/$(communityId)).data.ownerUid == request.auth.uid
+        );
+    }
+
+    function communityMembershipAllowedKeys() {
+      return ['communityId', 'name', 'role', 'joinedAt'];
     }
 
     function hostPublicPaymentAllowedKeys() {
@@ -291,7 +312,7 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId)
           && request.resource.data.communityId == communityId
-          && request.resource.data.keys().hasAll(['communityId', 'name', 'role', 'joinedAt'])
+          && request.resource.data.keys().hasOnly(communityMembershipAllowedKeys())
           && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(userId));
         allow update: if false;
         allow delete: if isOwner(userId);
@@ -338,14 +359,7 @@ service cloud.firestore {
           || isCommunityMember(communityId)
         );
         allow create: if isSignedIn()
-          && memberUid == request.auth.uid
-          && request.resource.data.uid == request.auth.uid
-          && request.resource.data.role in ['owner', 'member']
-          && request.resource.data.keys().hasOnly(communityMemberAllowedKeys())
-          && (
-            request.resource.data.role == 'member'
-            || get(/databases/$(database)/documents/communities/$(communityId)).data.ownerUid == request.auth.uid
-          );
+          && isValidCommunityMemberCreate(communityId, memberUid);
         allow update: if false;
         allow delete: if isSignedIn()
           && memberUid == request.auth.uid

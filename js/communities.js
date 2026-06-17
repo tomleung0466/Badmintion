@@ -312,9 +312,11 @@
             }
         } catch (err) {
             console.error('建立社群失敗:', err);
-            const message = err?.code === 'community/invalid-name'
-                ? i18n('community.nameInvalid')
-                : (err?.message || i18n('community.createFailed'));
+            const message = err?.code === 'permission-denied'
+                ? i18n('community.rulesNotDeployed')
+                : err?.code === 'community/invalid-name'
+                    ? i18n('community.nameInvalid')
+                    : (err?.message || i18n('community.createFailed'));
             if (statusEl) {
                 statusEl.textContent = message;
                 statusEl.classList.remove('hidden');
