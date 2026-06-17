@@ -64,6 +64,7 @@ service cloud.firestore {
           == resource.data.get('allowGuestSignupBy', 'none')
         && request.resource.data.get('guestParticipants', {}) == resource.data.get('guestParticipants', {})
         && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.sessionStartsAt == resource.data.sessionStartsAt
         && request.resource.data.sessionEndsAt == resource.data.sessionEndsAt;
     }
 
@@ -122,6 +123,83 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
     }
 
+    function activityAllowedCreateKeys() {
+      return [
+        'hostUid',
+        'hostEmail',
+        'hostDisplayName',
+        'hostPhotoURL',
+        'isPrivate',
+        'audience',
+        'communityId',
+        'communityName',
+        'region',
+        'venue',
+        'playDate',
+        'playTime',
+        'startTime',
+        'endTime',
+        'sessionStartsAt',
+        'sessionEndsAt',
+        'duration',
+        'courtCount',
+        'displayTimeSlot',
+        'fee',
+        'shuttleInfo',
+        'skillLevel',
+        'contact',
+        'maxSlots',
+        'currentPlayers',
+        'participants',
+        'participantUids',
+        'pendingParticipantUids',
+        'waitlist',
+        'guestParticipants',
+        'allowGuestSignupBy',
+        'createdAt',
+        'updatedAt'
+      ];
+    }
+
+    function activityListsEmptyOnCreate() {
+      return request.resource.data.get('participantUids', []).size() == 0
+        && request.resource.data.get('pendingParticipantUids', []).size() == 0
+        && request.resource.data.get('waitlist', []).size() == 0
+        && request.resource.data.get('participants', {}).size() == 0;
+    }
+
+    function activityHasPendingSlot(data) {
+      return data.currentPlayers + data.get('pendingParticipantUids', []).size() < data.maxSlots;
+    }
+
+    function participantListsGrowByOne() {
+      let oldUids = resource.data.get('participantUids', []);
+      let newUids = request.resource.data.get('participantUids', []);
+      return newUids.hasAll(oldUids) && newUids.size() == oldUids.size() + 1;
+    }
+
+    function pendingListsShrinkByOne() {
+      let oldPending = resource.data.get('pendingParticipantUids', []);
+      let newPending = request.resource.data.get('pendingParticipantUids', []);
+      return oldPending.hasAll(newPending) && newPending.size() == oldPending.size() - 1;
+    }
+
+    function waitlistAndGuestsUnchanged() {
+      return request.resource.data.get('guestParticipants', {})
+          == resource.data.get('guestParticipants', {})
+        && request.resource.data.get('waitlist', [])
+          == resource.data.get('waitlist', []);
+    }
+
+    function isValidPendingParticipantProfile(uid) {
+      let profile = request.resource.data.get('participants', {})[uid];
+      return profile.uid == uid
+        && profile.status == 'pending'
+        && profile.displayName is string
+        && profile.displayName.size() >= 1
+        && profile.displayName.size() <= 64;
+    }
+
     // 報名申請：加入 pendingParticipantUids，待場主批准
     function isValidPendingJoin() {
       let uid = request.auth.uid;
@@ -136,13 +214,14 @@ service cloud.firestore {
       return activityHostFieldsUnchanged()
         && activityNotEnded()
         && canJoinActivityAudience(resource.data)
+        && activityHasPendingSlot(resource.data)
         && !(uid in oldUids)
         && !(uid in oldPending)
         && uid in newPending
         && newPending.size() == oldPending.size() + 1
         && request.resource.data.currentPlayers == resource.data.currentPlayers
         && participantListsEqual()
-        && uid in request.resource.data.get('participants', {})
+        && isValidPendingParticipantProfile(uid)
         && waitlistShrunkOk
         && activityUpdateKeysOnly(['pendingParticipantUids', 'participants', 'waitlist', 'waitlistProfiles', 'updatedAt']);
     }
@@ -178,6 +257,7 @@ service cloud.firestore {
         && request.resource.data.currentPlayers == resource.data.currentPlayers - 1
         && request.resource.data.currentPlayers >= 0
         && pendingListsEqual()
+        && waitlistAndGuestsUnchanged()
         && !(uid in request.resource.data.get('participants', {}))
         && activityUpdateKeysOnly(['participantUids', 'participants', 'currentPlayers', 'updatedAt']);
     }
@@ -194,39 +274,34 @@ service cloud.firestore {
         && newPending.size() == oldPending.size() - 1
         && request.resource.data.currentPlayers == resource.data.currentPlayers
         && participantListsEqual()
+        && waitlistAndGuestsUnchanged()
         && !(uid in request.resource.data.get('participants', {}))
         && activityUpdateKeysOnly(['pendingParticipantUids', 'participants', 'updatedAt']);
     }
 
     function isValidHostApprove() {
-      let oldPending = resource.data.get('pendingParticipantUids', []);
-      let newPending = request.resource.data.get('pendingParticipantUids', []);
-      let oldUids = resource.data.get('participantUids', []);
-      let newUids = request.resource.data.get('participantUids', []);
-
       return isHost()
         && activityNotEnded()
-        && request.resource.data.hostUid == resource.data.hostUid
-        && request.resource.data.maxSlots == resource.data.maxSlots
+        && activityHostFieldsUnchanged()
         && request.resource.data.currentPlayers == resource.data.currentPlayers + 1
         && request.resource.data.currentPlayers <= request.resource.data.maxSlots
-        && newUids.size() == oldUids.size() + 1
-        && newPending.size() == oldPending.size() - 1
+        && participantListsGrowByOne()
+        && pendingListsShrinkByOne()
+        && waitlistAndGuestsUnchanged()
+        && request.resource.data.get('participants', {}).size()
+          == resource.data.get('participants', {}).size()
         && activityUpdateKeysOnly(['participantUids', 'pendingParticipantUids', 'participants', 'currentPlayers', 'updatedAt']);
     }
 
     function isValidHostReject() {
-      let oldPending = resource.data.get('pendingParticipantUids', []);
-      let newPending = request.resource.data.get('pendingParticipantUids', []);
-      let oldUids = resource.data.get('participantUids', []);
-      let newUids = request.resource.data.get('participantUids', []);
-
       return isHost()
-        && request.resource.data.hostUid == resource.data.hostUid
-        && request.resource.data.maxSlots == resource.data.maxSlots
+        && activityHostFieldsUnchanged()
         && request.resource.data.currentPlayers == resource.data.currentPlayers
-        && newUids.size() == oldUids.size()
-        && newPending.size() == oldPending.size() - 1
+        && participantListsEqual()
+        && pendingListsShrinkByOne()
+        && waitlistAndGuestsUnchanged()
+        && request.resource.data.get('participants', {}).size()
+          == resource.data.get('participants', {}).size() - 1
         && activityUpdateKeysOnly(['pendingParticipantUids', 'participants', 'updatedAt']);
     }
 
@@ -252,6 +327,7 @@ service cloud.firestore {
         && request.resource.data.get('allowGuestSignupBy', 'none')
           == resource.data.get('allowGuestSignupBy', 'none')
         && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.sessionStartsAt == resource.data.sessionStartsAt
         && request.resource.data.sessionEndsAt == resource.data.sessionEndsAt;
     }
 
@@ -267,6 +343,7 @@ service cloud.firestore {
         && guestDiff.addedKeys().size() == 1
         && guestDiff.removedKeys().size() == 0
         && guestDiff.changedKeys().size() == 0
+        && resource.data.currentPlayers < resource.data.maxSlots
         && request.resource.data.currentPlayers == resource.data.currentPlayers + 1
         && request.resource.data.currentPlayers <= request.resource.data.maxSlots
         && participantListsEqual()
@@ -290,6 +367,7 @@ service cloud.firestore {
         && guestDiff.addedKeys().size() == 1
         && guestDiff.removedKeys().size() == 0
         && guestDiff.changedKeys().size() == 0
+        && resource.data.currentPlayers < resource.data.maxSlots
         && request.resource.data.currentPlayers == resource.data.currentPlayers + 1
         && request.resource.data.currentPlayers <= request.resource.data.maxSlots
         && participantListsEqual()
@@ -351,12 +429,12 @@ service cloud.firestore {
 
     function isValidActivityCreate() {
       return request.resource.data.hostUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(activityAllowedCreateKeys())
+        && activityListsEmptyOnCreate()
         && request.resource.data.maxSlots is number
         && request.resource.data.maxSlots >= 1
         && request.resource.data.maxSlots <= 50
-        && request.resource.data.currentPlayers is number
-        && request.resource.data.currentPlayers >= 0
-        && request.resource.data.currentPlayers <= request.resource.data.maxSlots
+        && request.resource.data.currentPlayers == 0
         && request.resource.data.playDate is string
         && request.resource.data.region is string
         && request.resource.data.venue is string
@@ -365,6 +443,7 @@ service cloud.firestore {
         && request.resource.data.sessionStartsAt > request.time
         && request.resource.data.sessionEndsAt is timestamp
         && request.resource.data.sessionEndsAt > request.time
+        && request.resource.data.sessionEndsAt > request.resource.data.sessionStartsAt
         && isValidActivityAudienceOnCreate()
         && request.resource.data.get('guestParticipants', {}).size() == 0
         && (
