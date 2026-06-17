@@ -1318,7 +1318,7 @@ function initRegionFilter() {
 }
 
 /* ---------- 分頁與啟動畫面（MUJI 毛玻璃路由過渡） ---------- */
-const PAGE_IDS = ['match', 'market', 'coach', 'profile', 'settings'];
+const PAGE_IDS = ['match', 'market', 'coach', 'profile', 'settings', 'communities'];
 let currentPageId = 'match';
 
 function getCurrentAppPageId() {
@@ -1407,6 +1407,9 @@ async function switchPage(pageId, options = {}) {
         }
         if (pageId === 'settings' && typeof window.refreshHostPaymentSettings === 'function') {
             window.refreshHostPaymentSettings();
+        }
+        if (pageId === 'communities' && typeof window.onCommunitiesPageOpen === 'function') {
+            window.onCommunitiesPageOpen();
         }
     } finally {
         pageTransitionLock = false;
@@ -1740,6 +1743,9 @@ function initApp() {
     window.addEventListener('localechange', handleLocaleChange);
     if (typeof initMatchesApp === 'function') {
         initMatchesApp();
+    }
+    if (typeof initCommunitiesApp === 'function') {
+        initCommunitiesApp();
     }
 }
 

@@ -316,6 +316,13 @@
 
             <section class="settings-card settings-card--general">
                 <div class="settings-language-block">
+                    <button type="button" id="settings-communities-btn" class="settings-about-btn settings-about-btn--single">
+                        <span class="settings-about-btn-label" data-i18n="community.settingsEntry">我的社群</span>
+                        <span id="settings-communities-label" class="settings-about-btn-value">—</span>
+                    </button>
+                    <p class="profile-field-hint settings-language-hint" data-i18n="community.settingsHint">建立球群並邀請波友加入</p>
+                </div>
+                <div class="settings-language-block">
                     <button type="button" id="settings-language-btn" class="settings-about-btn settings-about-btn--single">
                         <span class="settings-about-btn-label" data-i18n="settings.language">語言</span>
                         <span id="settings-language-label" class="settings-about-btn-value">繁體</span>
@@ -356,9 +363,51 @@
             </div>
         </div>
 
-        </div><!-- /page-transition-root -->
+        <!-- ==================== 頁面 6：我的社群 ==================== -->
+        <div id="page-communities" class="app-page hidden flex-1 p-5 pb-24">
+            <div class="communities-page-header">
+                <button type="button" id="communities-back-btn" class="communities-back-btn" aria-label="返回">
+                    <span aria-hidden="true">‹</span>
+                    <span data-i18n="common.back">返回</span>
+                </button>
+                <h1 class="communities-page-title" data-i18n="community.title">我的社群</h1>
+            </div>
+            <p class="communities-page-subtitle" data-i18n="community.subtitle">建立球群、邀請波友加入</p>
 
-        <!-- PWA 加入主畫面提示 -->
+            <div id="communities-list-view">
+                <button type="button" id="create-community-btn" class="community-create-btn" data-i18n="community.create">
+                    ＋ 建立社群
+                </button>
+                <div id="communities-list" class="communities-list" role="list"></div>
+                <p id="communities-empty" class="communities-empty hidden" data-i18n="community.empty">登入後可建立社群，或透過邀請連結加入。</p>
+            </div>
+
+            <div id="community-detail-view" class="community-detail-view hidden">
+                <div class="community-detail-card">
+                    <h2 id="community-detail-name" class="community-detail-name"></h2>
+                    <p id="community-detail-desc" class="community-detail-desc hidden"></p>
+                    <p id="community-detail-role" class="community-detail-role"></p>
+                </div>
+                <div class="community-invite-block">
+                    <label for="community-invite-url" class="community-invite-label" data-i18n="community.inviteLink">邀請連結</label>
+                    <div class="community-invite-row">
+                        <input type="text" id="community-invite-url" readonly class="community-invite-input">
+                        <button type="button" id="community-copy-invite-btn" class="community-copy-btn" data-i18n="community.copyLink">複製</button>
+                    </div>
+                    <p class="community-invite-hint" data-i18n="community.inviteHint">分享連結給波友，對方登入後即可加入。</p>
+                </div>
+                <div class="community-members-block">
+                    <h3 class="community-members-title" data-i18n="community.members">成員</h3>
+                    <div id="community-members-list" class="community-members-list" role="list"></div>
+                </div>
+                <div class="community-detail-actions">
+                    <button type="button" id="community-leave-btn" class="community-leave-btn hidden" data-i18n="community.leave">離開社群</button>
+                    <button type="button" id="community-delete-btn" class="community-delete-btn hidden" data-i18n="community.delete">刪除社群</button>
+                </div>
+            </div>
+        </div>
+
+        </div><!-- /page-transition-root -->
         <div id="pwa-install-hint" class="pwa-install-hint hidden" role="status" aria-live="polite">
             <p id="pwa-install-hint-text" class="pwa-install-hint-text"></p>
             <div class="pwa-install-hint-actions">
@@ -703,6 +752,21 @@
         </div>
     </div>
 
+    <!-- 建立社群 -->
+    <div id="create-community-modal" class="hidden fixed inset-0 z-[92] flex items-end justify-center bg-black/45 p-4 sm:items-center">
+        <div class="confirm-dialog-panel w-full max-w-sm rounded-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl">
+            <h4 class="confirm-dialog-title" data-i18n="community.createTitle">建立社群</h4>
+            <p class="confirm-dialog-text" data-i18n="community.createDesc">為固定球群建立專屬社群，之後可邀請波友加入。</p>
+            <label for="create-community-name" class="feedback-field-label" data-i18n="community.nameLabel">社群名稱</label>
+            <input type="text" id="create-community-name" maxlength="40" class="profile-field-input mb-3" data-i18n-placeholder="community.namePlaceholder" placeholder="例如：週五羽會">
+            <label for="create-community-desc" class="feedback-field-label" data-i18n="community.descLabel">簡介（選填）</label>
+            <textarea id="create-community-desc" rows="2" maxlength="200" class="publish-note-input feedback-message-input mb-3" data-i18n-placeholder="community.descPlaceholder" placeholder="例如：每週五晚上打波"></textarea>
+            <p id="create-community-status" class="feedback-status hidden" aria-live="polite"></p>
+            <button type="button" id="create-community-submit-btn" class="confirm-dialog-primary-btn" data-i18n="community.createSubmit">建立</button>
+            <button type="button" id="create-community-cancel-btn" class="confirm-dialog-cancel-btn" data-i18n="common.cancel">取消</button>
+        </div>
+    </div>
+
     <!-- 刪除場次確認 -->
     <div id="delete-activity-confirm-modal" class="hidden fixed inset-0 z-[92] flex items-end justify-center bg-black/45 p-4 sm:items-center">
         <div class="confirm-dialog-panel w-full max-w-sm rounded-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl">
@@ -834,6 +898,7 @@
     <script src="js/host-qr-crop.js"></script>
     <script src="js/app.js"></script>
     <script src="js/matches.js"></script>
+    <script src="js/communities.js"></script>
     <script src="js/pull-refresh.js"></script>
     <script type="module" src="js/auth.js"></script>
 </body>

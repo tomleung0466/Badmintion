@@ -187,6 +187,8 @@
         ['label[for="host-fps-id-input"]', 'settings.whatsapp'],
         ['#save-host-payment-btn', 'settings.saveHostPayment'],
         ['#settings-language-btn .settings-about-btn-label', 'settings.language'],
+        ['#settings-communities-btn .settings-about-btn-label', 'community.settingsEntry'],
+        ['#settings-communities-btn + .settings-language-hint', 'community.settingsHint'],
         ['#settings-appearance-btn .settings-about-btn-label', 'settings.appearance'],
         ['#settings-font-size-btn .settings-about-btn-label', 'settings.fontSize'],
         ['#font-size-modal-close', 'common.close', 'aria'],

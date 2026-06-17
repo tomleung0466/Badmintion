@@ -198,6 +198,42 @@ service cloud.firestore {
         && request.resource.data.sessionEndsAt > request.time;
     }
 
+    function isCommunityMember(communityId) {
+      return exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+    }
+
+    function communityAllowedKeys() {
+      return ['name', 'description', 'ownerUid', 'createdAt', 'updatedAt'];
+    }
+
+    function isValidCommunityCreate() {
+      return request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 40
+        && (!('description' in request.resource.data)
+          || (request.resource.data.description is string
+            && request.resource.data.description.size() <= 200))
+        && request.resource.data.keys().hasOnly(communityAllowedKeys());
+    }
+
+    function isValidCommunityOwnerUpdate() {
+      return resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 40
+        && (!('description' in request.resource.data)
+          || (request.resource.data.description is string
+            && request.resource.data.description.size() <= 200))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'description', 'updatedAt']);
+    }
+
+    function communityMemberAllowedKeys() {
+      return ['uid', 'displayName', 'photoURL', 'role', 'joinedAt'];
+    }
+
     function hostPublicPaymentAllowedKeys() {
       return [
         'hostUid',
@@ -249,6 +285,17 @@ service cloud.firestore {
         allow create, update: if isOwner(userId);
         allow delete: if isOwner(userId);
       }
+
+      // 社群成員索引（僅本人可讀寫自己的清單）
+      match /communityMemberships/{communityId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && request.resource.data.communityId == communityId
+          && request.resource.data.keys().hasAll(['communityId', 'name', 'role', 'joinedAt'])
+          && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(userId));
+        allow update: if false;
+        allow delete: if isOwner(userId);
+      }
     }
 
     function feedbackAllowedKeys() {
@@ -275,6 +322,35 @@ service cloud.firestore {
         && request.resource.data.message.size() >= 5
         && request.resource.data.message.size() <= 1000
         && request.resource.data.keys().hasOnly(feedbackAllowedKeys());
+    }
+
+    // ── communities：社群（Phase 1）────────────────────────
+    match /communities/{communityId} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn() && isValidCommunityCreate();
+      allow update: if isSignedIn() && isValidCommunityOwnerUpdate();
+      allow delete: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+
+      match /members/{memberUid} {
+        allow read: if isSignedIn() && (
+          memberUid == request.auth.uid
+          || isCommunityMember(communityId)
+        );
+        allow create: if isSignedIn()
+          && memberUid == request.auth.uid
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.keys().hasOnly(communityMemberAllowedKeys())
+          && (
+            request.resource.data.role == 'member'
+            || get(/databases/$(database)/documents/communities/$(communityId)).data.ownerUid == request.auth.uid
+          );
+        allow update: if false;
+        allow delete: if isSignedIn()
+          && memberUid == request.auth.uid
+          && resource.data.role != 'owner';
+      }
     }
 
     // ── activities：發佈 / 報名 / 後補 / 取消 ────────────────

@@ -20,6 +20,7 @@
         'font-size-modal': 'modal',
         'appearance-modal': 'modal',
         'feedback-modal': 'modal',
+        'create-community-modal': 'modal',
         'private-share-modal': 'modal',
         'host-qr-crop-modal': 'modal',
         'avatar-crop-modal': 'modal',

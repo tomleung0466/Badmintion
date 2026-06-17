@@ -3,9 +3,17 @@
  * 每次發佈請同步更新：version、build、changelog 第一筆，以及 sw.js 的 CACHE_NAME
  */
 window.APP_VERSION = {
-    version: '1.26.1',
-    build: 29,
+    version: '1.27.0',
+    build: 30,
     changelog: [
+        {
+            version: '1.27.0',
+            date: '2026-06-04',
+            items: [
+                '新增社群功能：建立球群、邀請連結加入、成員列表',
+                '設定頁可進入「我的社群」'
+            ]
+        },
         {
             version: '1.26.1',
             date: '2026-06-04',

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'plus1-pwa-v38';
+const CACHE_NAME = 'plus1-pwa-v39';
 const PRECACHE_ASSETS = [
     './',
     './index.html',
@@ -14,6 +14,7 @@ const PRECACHE_ASSETS = [
     './js/pwa.js',
     './js/app.js',
     './js/matches.js',
+    './js/communities.js',
     './js/pull-refresh.js',
     './js/image-preview.js',
     './js/profile-avatar-crop.js',

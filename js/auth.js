@@ -1566,5 +1566,241 @@ window.dbSubmitFeedback = async function dbSubmitFeedback(payload = {}) {
     }
 };
 
+function buildCommunityMemberProfile(user, role = "member") {
+    return {
+        uid: user.uid,
+        displayName: user.displayName || user.email?.split("@")[0] || "波友",
+        photoURL: user.photoURL || null,
+        role,
+        joinedAt: serverTimestamp()
+    };
+}
+
+window.dbCreateCommunity = async function dbCreateCommunity(payload = {}) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入後再建立社群");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+
+        const name = String(payload.name || "").trim();
+        const description = String(payload.description || "").trim().slice(0, 200);
+        if (name.length < 1 || name.length > 40) {
+            const error = new Error("社群名稱須為 1 至 40 字");
+            error.code = "community/invalid-name";
+            throw error;
+        }
+
+        await ensureUserProfileAndAttendance(user);
+
+        const communityRef = await addDoc(collection(db, "communities"), {
+            name,
+            description,
+            ownerUid: user.uid,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+
+        const memberProfile = buildCommunityMemberProfile(user, "owner");
+        await setDoc(doc(db, "communities", communityRef.id, "members", user.uid), memberProfile);
+        await setDoc(doc(db, "users", user.uid, "communityMemberships", communityRef.id), {
+            communityId: communityRef.id,
+            name,
+            role: "owner",
+            joinedAt: serverTimestamp()
+        });
+
+        return {
+            communityId: communityRef.id,
+            name,
+            description,
+            role: "owner"
+        };
+    } catch (err) {
+        console.error("建立社群失敗:", err);
+        throw err;
+    }
+};
+
+window.dbFetchCommunityById = async function dbFetchCommunityById(communityId) {
+    try {
+        const id = String(communityId || "").trim();
+        if (!id) return null;
+        const snap = await getDoc(doc(db, "communities", id));
+        if (!snap.exists()) return null;
+        return { id: snap.id, ...snap.data() };
+    } catch (err) {
+        console.error("讀取社群失敗:", err);
+        throw err;
+    }
+};
+
+window.dbListMyCommunities = async function dbListMyCommunities() {
+    try {
+        const user = auth.currentUser;
+        if (!user) return [];
+
+        const snap = await getDocs(collection(db, "users", user.uid, "communityMemberships"));
+        return snap.docs
+            .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+            .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "zh-HK"));
+    } catch (err) {
+        console.error("讀取我的社群失敗:", err);
+        throw err;
+    }
+};
+
+window.dbFetchCommunityMembers = async function dbFetchCommunityMembers(communityId) {
+    try {
+        const id = String(communityId || "").trim();
+        if (!id) return [];
+        const snap = await getDocs(collection(db, "communities", id, "members"));
+        const members = snap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+        const roleOrder = { owner: 0, admin: 1, member: 2 };
+        return members.sort((a, b) => {
+            const roleDiff = (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9);
+            if (roleDiff !== 0) return roleDiff;
+            return String(a.displayName || "").localeCompare(String(b.displayName || ""), "zh-HK");
+        });
+    } catch (err) {
+        console.error("讀取社群成員失敗:", err);
+        throw err;
+    }
+};
+
+window.dbJoinCommunity = async function dbJoinCommunity(communityId) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入後再加入社群");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+
+        const id = String(communityId || "").trim();
+        if (!id) {
+            const error = new Error("缺少社群 ID");
+            error.code = "community/missing-id";
+            throw error;
+        }
+
+        await ensureUserProfileAndAttendance(user);
+
+        const communityRef = doc(db, "communities", id);
+        const memberRef = doc(db, "communities", id, "members", user.uid);
+        const membershipRef = doc(db, "users", user.uid, "communityMemberships", id);
+
+        return await runTransaction(db, async transaction => {
+            const communitySnap = await transaction.get(communityRef);
+            if (!communitySnap.exists()) {
+                const error = new Error("社群不存在或連結已失效");
+                error.code = "community/not-found";
+                throw error;
+            }
+
+            const community = communitySnap.data();
+            const memberSnap = await transaction.get(memberRef);
+            if (memberSnap.exists()) {
+                return { alreadyMember: true, communityId: id, name: community.name };
+            }
+
+            const memberProfile = buildCommunityMemberProfile(user, "member");
+            transaction.set(memberRef, memberProfile);
+            transaction.set(membershipRef, {
+                communityId: id,
+                name: community.name,
+                role: "member",
+                joinedAt: serverTimestamp()
+            });
+
+            return { joined: true, communityId: id, name: community.name };
+        });
+    } catch (err) {
+        console.error("加入社群失敗:", err);
+        throw err;
+    }
+};
+
+window.dbLeaveCommunity = async function dbLeaveCommunity(communityId) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+
+        const id = String(communityId || "").trim();
+        if (!id) {
+            const error = new Error("缺少社群 ID");
+            error.code = "community/missing-id";
+            throw error;
+        }
+
+        const memberRef = doc(db, "communities", id, "members", user.uid);
+        const membershipRef = doc(db, "users", user.uid, "communityMemberships", id);
+        const memberSnap = await getDoc(memberRef);
+        if (!memberSnap.exists()) {
+            const error = new Error("你尚未加入此社群");
+            error.code = "community/not-member";
+            throw error;
+        }
+        if (memberSnap.data().role === "owner") {
+            const error = new Error("建立者請先轉移或刪除社群後再離開");
+            error.code = "community/owner-cannot-leave";
+            throw error;
+        }
+
+        await deleteDoc(memberRef);
+        await deleteDoc(membershipRef);
+        return { left: true };
+    } catch (err) {
+        console.error("離開社群失敗:", err);
+        throw err;
+    }
+};
+
+window.dbDeleteCommunity = async function dbDeleteCommunity(communityId) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+
+        const id = String(communityId || "").trim();
+        const communityRef = doc(db, "communities", id);
+        const communitySnap = await getDoc(communityRef);
+        if (!communitySnap.exists()) {
+            const error = new Error("社群不存在");
+            error.code = "community/not-found";
+            throw error;
+        }
+        if (communitySnap.data().ownerUid !== user.uid) {
+            const error = new Error("只有建立者可以刪除社群");
+            error.code = "community/not-owner";
+            throw error;
+        }
+
+        const membersSnap = await getDocs(collection(db, "communities", id, "members"));
+        if (membersSnap.size > 1) {
+            const error = new Error("社群仍有其他成員，請先請成員離開後再刪除");
+            error.code = "community/has-members";
+            throw error;
+        }
+
+        await deleteDoc(doc(db, "communities", id, "members", user.uid));
+        await deleteDoc(doc(db, "users", user.uid, "communityMemberships", id));
+        await deleteDoc(communityRef);
+        return { deleted: true };
+    } catch (err) {
+        console.error("刪除社群失敗:", err);
+        throw err;
+    }
+};
+
 window.firebaseDbBridgeReady = true;
 window.dispatchEvent(new CustomEvent("firebase-db-bridge-ready"));
