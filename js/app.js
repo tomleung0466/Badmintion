@@ -897,6 +897,7 @@ async function submitFeedback() {
 
 function bindSettingsPageUI() {
     updateSettingsVersionLabel();
+    renderVersionChangelog();
     if (typeof window.updateSettingsLanguageLabel === 'function') {
         window.updateSettingsLanguageLabel();
     }
@@ -941,6 +942,10 @@ function bindSettingsPageUI() {
         if (event.target.id === 'feedback-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
             closeFeedbackModal();
         }
+    });
+    window.addEventListener('localechange', () => {
+        updateSettingsVersionLabel();
+        renderVersionChangelog();
     });
 }
 

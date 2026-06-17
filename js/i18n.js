@@ -252,6 +252,7 @@
         ['#publish-duplicate-cancel-btn', 'modal.duplicateBack'],
         ['#version-modal .confirm-dialog-title', 'settings.version'],
         ['#version-modal-close', 'common.close', 'aria'],
+        ['#appearance-modal-close', 'common.close', 'aria'],
         ['#pwa-install-action-btn', 'pwa.install'],
         ['#pwa-install-dismiss-btn', 'common.close', 'aria'],
         ['#picker-scroller-title', 'picker.selectDistrict'],

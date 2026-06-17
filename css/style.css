@@ -644,7 +644,7 @@ body.muji-overlay-open {
 
 .version-changelog-entry.is-current {
   border-color: var(--muji-text);
-  background: #fff;
+  background: var(--muji-card);
 }
 
 .version-changelog-head {
