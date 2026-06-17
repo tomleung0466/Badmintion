@@ -2338,6 +2338,241 @@ button:hover {
   background: var(--muji-soft);
 }
 
+/* ── 場次卡片精簡列 + 展開詳情 ── */
+.match-card {
+  overflow: hidden;
+}
+
+.match-card-compact {
+  padding: 0.9rem 1rem 0.85rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.match-card-compact-top,
+.match-card-compact-bottom {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.match-card-compact-bottom {
+  align-items: center;
+  margin-top: 0.55rem;
+}
+
+.match-card-compact-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.match-card-compact-date {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--muji-text);
+  line-height: 1.4;
+}
+
+.match-card-compact-venue {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--muji-text);
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match-card-compact-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+  min-width: 0;
+  flex: 1;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--muji-muted);
+}
+
+.match-card-compact-time,
+.match-card-compact-skill,
+.match-card-compact-fee {
+  white-space: nowrap;
+}
+
+.match-card-compact-action {
+  flex-shrink: 0;
+}
+
+.match-book-btn--compact {
+  min-width: 4.25rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.match-book-btn--compact.match-book-btn-waitlist {
+  min-width: 5.5rem;
+  padding-left: 0.55rem;
+  padding-right: 0.55rem;
+}
+
+.match-compact-status {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--muji-muted);
+  white-space: nowrap;
+}
+
+.match-compact-status--pending {
+  color: #9a6700;
+}
+
+.match-card-expand-chevron {
+  flex-shrink: 0;
+  font-size: 9px;
+  color: var(--muji-muted);
+  transition: transform 180ms ease;
+}
+
+.match-card--expanded .match-card-expand-chevron {
+  transform: rotate(180deg);
+}
+
+.match-card-badges--compact {
+  margin-top: 0.5rem;
+}
+
+.match-card-details-inner {
+  padding: 0.85rem 1rem 1rem;
+}
+
+.match-card-details-rows {
+  margin-top: 0.85rem;
+}
+
+.match-expanded-cancel {
+  margin-top: 0.85rem;
+  text-align: center;
+}
+
+.participants-stack {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+}
+
+.participants-stack-avatars {
+  display: inline-flex;
+  align-items: center;
+}
+
+.participants-stack-item {
+  width: 20px;
+  height: 20px;
+  margin-left: calc(var(--stack-index, 0) * -6px);
+  border-radius: 9999px;
+  border: 1px solid var(--muji-card);
+  background: var(--muji-soft);
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.participants-stack-item:first-child {
+  margin-left: 0;
+}
+
+.participants-stack-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.participants-stack-initial {
+  font-size: 8px;
+  font-weight: 500;
+  color: var(--muji-text);
+  line-height: 1;
+}
+
+.participants-stack-more {
+  margin-left: 0.15rem;
+  font-size: 9px;
+  color: var(--muji-muted);
+}
+
+.participants-stack-count {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--muji-muted);
+  white-space: nowrap;
+}
+
+.match-date-group {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0.15rem 0.15rem;
+}
+
+.match-date-group__title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--muji-text);
+}
+
+.match-date-group__count {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--muji-muted);
+  white-space: nowrap;
+}
+
+.matches-load-more-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0 0.25rem;
+}
+
+.matches-load-more-btn {
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 9999px;
+  background: var(--muji-soft);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--muji-text);
+}
+
+.matches-load-more-btn:hover {
+  background: var(--muji-hover);
+}
+
+.matches-load-more-hint {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--muji-muted);
+}
+
 .session-private-badge {
   color: var(--muji-muted);
 }

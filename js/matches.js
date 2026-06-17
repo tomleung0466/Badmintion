@@ -143,7 +143,10 @@
             localStorage.setItem('uber_badminton_matches', JSON.stringify(matches));
         }
 
-        let homeSelectedDate = null;
+        const LOBBY_MATCHES_PAGE_SIZE = 15;
+        let homeSelectedDate = todayISO;
+        let lobbyMatchesDisplayLimit = LOBBY_MATCHES_PAGE_SIZE;
+        let expandedLobbyMatchBookId = null;
         let homeCalendarExpanded = false;
         let formCalendarExpanded = false;
         const now = new Date();
@@ -468,6 +471,77 @@
             });
         }
 
+        function getActivityTimeCompactLabel(match) {
+            if (match?.startTime && match?.endTime) {
+                return `${formatTimeCompact(match.startTime)}-${formatTimeCompact(match.endTime)}`;
+            }
+            const raw = match?.displayTimeSlot || match?.playTime || '';
+            const slotMatch = String(raw).match(/^(\d{3,4})\s*-\s*(\d{3,4})/);
+            if (slotMatch) {
+                return `${slotMatch[1]}-${slotMatch[2]}`;
+            }
+            return getActivityTimeLabel(match);
+        }
+
+        function getWeekdayLabel(iso) {
+            if (!iso) return '';
+            const day = parseDateISO(iso).getDay();
+            const keys = ['date.sun', 'date.mon', 'date.tue', 'date.wed', 'date.thu', 'date.fri', 'date.sat'];
+            return i18n(keys[day] || 'date.sun');
+        }
+
+        function resetLobbyMatchesDisplayLimit() {
+            lobbyMatchesDisplayLimit = LOBBY_MATCHES_PAGE_SIZE;
+        }
+
+        function sortLobbyMatches(list) {
+            const toMinutes = (match) => {
+                const raw = match.startTime || extractStartTimeFromPlayTime(match.playTime);
+                const normalized = String(raw || '').includes(':')
+                    ? raw
+                    : (/^\d{3,4}$/.test(String(raw || ''))
+                        ? `${String(raw).padStart(4, '0').slice(0, 2)}:${String(raw).padStart(4, '0').slice(2, 4)}`
+                        : '');
+                return parseTimeToMinutes(normalized) ?? 0;
+            };
+
+            return [...list].sort((a, b) => {
+                const dateCompare = (a.playDate || '').localeCompare(b.playDate || '');
+                if (dateCompare !== 0) return dateCompare;
+                return toMinutes(a) - toMinutes(b);
+            });
+        }
+
+        function extractStartTimeFromPlayTime(playTime) {
+            const match = String(playTime || '').match(/^(\d{3,4})/);
+            return match ? match[1] : '';
+        }
+
+        function renderParticipantsCompact(match) {
+            const participants = getActivityParticipants(match);
+            if (!participants.length) return '';
+
+            const maxShow = 3;
+            const shown = participants.slice(0, maxShow);
+            const stacks = shown.map((participant, index) => {
+                const src = safePhotoSrc(participant.photoURL);
+                const avatarHtml = src
+                    ? `<img src="${src}" alt="" class="participants-stack-image" referrerpolicy="no-referrer" loading="lazy">`
+                    : `<span class="participants-stack-initial">${escapeHtml(participant.initial)}</span>`;
+                return `<span class="participants-stack-item" style="--stack-index:${index}">${avatarHtml}</span>`;
+            }).join('');
+            const extra = participants.length > maxShow
+                ? `<span class="participants-stack-more">+${participants.length - maxShow}</span>`
+                : '';
+
+            return `
+                <div class="participants-stack" aria-label="${escapeHtml(i18n('match.participantCount', { n: participants.length }))}">
+                    <span class="participants-stack-avatars">${stacks}${extra}</span>
+                    <span class="participants-stack-count">${i18n('match.participantCount', { n: participants.length })}</span>
+                </div>
+            `;
+        }
+
         function renderParticipantsBlock(match) {
             const participants = getActivityParticipants(match);
             if (!participants.length) return '';
@@ -605,6 +679,7 @@
 
             if (mode === 'home') {
                 homeSelectedDate = iso;
+                resetLobbyMatchesDisplayLimit();
             } else {
                 formSelectedDate = iso;
                 document.getElementById('form-play-date').value = iso;
@@ -618,6 +693,7 @@
 
         function clearHomeDateFilter() {
             homeSelectedDate = null;
+            resetLobbyMatchesDisplayLimit();
             updateCalendarCollapsedText('home');
             renderCalendar('home');
             collapseCalendar('home');
@@ -1423,91 +1499,165 @@
             return url.toString();
         }
 
-        function buildMatchCardHtml(match, options = {}) {
-            const { showPrivateBadge = false } = options;
+        function buildMatchActionHtml(match, { compact = false } = {}) {
             const maxSlots = Number(match.maxSlots ?? 6);
             const currentPlayers = Number(match.currentPlayers ?? 0);
             const isFull = currentPlayers >= maxSlots;
-            const remainingSlots = Math.max(0, maxSlots - currentPlayers);
             const isOnWaitlist = isUserOnWaitlist(match);
             const joinStatus = getUserJoinStatus(match);
             const bookId = getMatchBookId(match);
-            const isOwnHosted = isOwnHostedMatch(match);
+            const btnClass = compact ? 'match-book-btn match-book-btn--compact' : 'match-book-btn';
+            const wrapClass = compact ? 'match-card-compact-action' : 'match-book-actions';
 
-            let actionHtml = '';
             if (joinStatus === 'approved') {
-                actionHtml = `
-                    <div class="match-book-actions">
+                if (compact) {
+                    return `<div class="${wrapClass}"><span class="match-compact-status">${i18n('match.reserved')}</span></div>`;
+                }
+                return `
+                    <div class="${wrapClass}">
                         <button type="button" class="match-book-btn match-book-btn-reserved" disabled>${i18n('match.reserved')}</button>
                         <button type="button" class="match-cancel-link" onclick="cancelReservation('${bookId}')">${i18n('match.cancelBooking')}</button>
                     </div>
                 `;
-            } else if (joinStatus === 'pending') {
-                actionHtml = `
-                    <div class="match-book-actions">
+            }
+            if (joinStatus === 'pending') {
+                if (compact) {
+                    return `<div class="${wrapClass}"><span class="match-compact-status match-compact-status--pending">${i18n('match.pendingHost')}</span></div>`;
+                }
+                return `
+                    <div class="${wrapClass}">
                         <button type="button" class="match-book-btn match-book-btn-pending" disabled>${i18n('match.pendingHost')}</button>
                         <button type="button" class="match-cancel-link" onclick="cancelReservation('${bookId}')">${i18n('match.cancelApplication')}</button>
                     </div>
                 `;
-            } else if (isFull) {
-                actionHtml = `
-                    <div class="match-book-actions">
+            }
+            if (isFull) {
+                return `
+                    <div class="${wrapClass}">
                         <button
                             type="button"
                             onclick="bookMatch('${bookId}', this)"
-                            class="match-book-btn match-book-btn-waitlist${isOnWaitlist ? ' is-active' : ''}"
+                            class="${btnClass} match-book-btn-waitlist${isOnWaitlist ? ' is-active' : ''}"
                             ${isOnWaitlist ? 'disabled' : ''}
                         >
                             ${isOnWaitlist ? i18n('match.waitlistedBtn') : i18n('match.waitlistBtn')}
                         </button>
                     </div>
                 `;
-            } else {
-                actionHtml = `
-                    <div class="match-book-actions">
-                        <button type="button" onclick="bookMatch('${bookId}', this)" class="match-book-btn">${i18n('match.bookBtn')}</button>
+            }
+            return `
+                <div class="${wrapClass}">
+                    <button type="button" onclick="bookMatch('${bookId}', this)" class="${btnClass}">${i18n('match.bookBtn')}</button>
+                </div>
+            `;
+        }
+
+        function buildMatchExpandedCancelHtml(match) {
+            const joinStatus = getUserJoinStatus(match);
+            const bookId = getMatchBookId(match);
+            if (joinStatus === 'approved') {
+                return `
+                    <div class="match-expanded-cancel">
+                        <button type="button" class="match-cancel-link" onclick="cancelReservation('${bookId}')">${i18n('match.cancelBooking')}</button>
                     </div>
                 `;
             }
+            if (joinStatus === 'pending') {
+                return `
+                    <div class="match-expanded-cancel">
+                        <button type="button" class="match-cancel-link" onclick="cancelReservation('${bookId}')">${i18n('match.cancelApplication')}</button>
+                    </div>
+                `;
+            }
+            return '';
+        }
 
+        function renderDateGroupHeader(playDate, count) {
+            return `
+                <div class="match-date-group" data-play-date="${escapeHtml(playDate)}">
+                    <h3 class="match-date-group__title">${escapeHtml(formatDateDisplay(playDate))}（${escapeHtml(getWeekdayLabel(playDate))}）</h3>
+                    <span class="match-date-group__count">${i18n('match.dateGroupCount', { n: count })}</span>
+                </div>
+            `;
+        }
+
+        function buildMatchCardHtml(match, options = {}) {
+            const { showPrivateBadge = false } = options;
+            const maxSlots = Number(match.maxSlots ?? 6);
+            const currentPlayers = Number(match.currentPlayers ?? 0);
+            const isFull = currentPlayers >= maxSlots;
+            const remainingSlots = Math.max(0, maxSlots - currentPlayers);
+            const bookId = getMatchBookId(match);
+            const isOwnHosted = isOwnHostedMatch(match);
             const district = match.region || '';
             const macroRegion = typeof getMatchMacroRegion === 'function' ? getMatchMacroRegion(match) : '';
             const hostOwnAttr = isOwnHosted ? ' data-host-own="true"' : '';
+            const cardBadges = getMatchCardBadges(match, options);
+            const badgesHtml = cardBadges
+                ? `<div class="match-card-badges match-card-badges--compact">${cardBadges}</div>`
+                : '';
+            const venueLabel = txPlace(match.venue) || txPlace(match.region) || '';
+            const regionVenue = [txPlace(match.region), txPlace(match.venue)].filter(Boolean).join(' · ');
+            const isExpanded = expandedLobbyMatchBookId && String(expandedLobbyMatchBookId) === String(bookId);
 
             return `
-                <div data-macro-region="${escapeHtml(macroRegion)}" data-district="${escapeHtml(district)}"${hostOwnAttr} class="match-card bg-white rounded-xl p-5 border border-[#E5E5E5] flex flex-col justify-between relative transition-colors hover:bg-[#FCFCFC]">
-                    <div class="match-card-header">
-                        <div class="match-card-head">
-                            ${renderMatchDateTimeCapsules(match, options)}
+                <div
+                    data-macro-region="${escapeHtml(macroRegion)}"
+                    data-district="${escapeHtml(district)}"
+                    data-book-id="${escapeHtml(String(bookId))}"
+                    data-play-date="${escapeHtml(match.playDate || '')}"
+                    ${hostOwnAttr}
+                    class="match-card bg-white rounded-xl border border-[#E5E5E5] relative transition-colors hover:bg-[#FCFCFC]${isExpanded ? ' match-card--expanded' : ''}"
+                >
+                    <div class="match-card-compact" role="button" tabindex="0" aria-expanded="${isExpanded ? 'true' : 'false'}">
+                        <div class="match-card-compact-top">
+                            <div class="match-card-compact-main">
+                                <span class="match-card-compact-date">${escapeHtml(getActivityDateLabel(match))}</span>
+                                <span class="match-card-compact-venue">${escapeHtml(venueLabel)}</span>
+                            </div>
+                            <span class="match-slots-pill">
+                                ${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}
+                            </span>
+                        </div>
+                        <div class="match-card-compact-bottom">
+                            <div class="match-card-compact-meta">
+                                <span class="match-card-compact-time">${escapeHtml(getActivityTimeCompactLabel(match))}</span>
+                                <span class="match-card-compact-skill">${escapeHtml(getSkillLevelShortLabel(match.skillLevel))}</span>
+                                <span class="match-card-compact-fee">${i18n('match.feePerPerson', { fee: match.fee || 0 })}</span>
+                                ${renderParticipantsCompact(match)}
+                            </div>
+                            ${buildMatchActionHtml(match, { compact: true })}
+                            <span class="match-card-expand-chevron" aria-hidden="true">▼</span>
+                        </div>
+                        ${badgesHtml}
+                    </div>
+
+                    <div class="match-card-details${isExpanded ? '' : ' hidden'}">
+                        <div class="match-card-details-inner border-t border-[#E5E5E5]">
                             ${renderHostPublisherBlock(match)}
+                            <div class="match-card-details-rows space-y-3 text-sm tracking-[0.05em] leading-relaxed">
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-[#777777]">${i18n('match.location')}</span>
+                                    <span class="text-right font-medium text-[#333333]">${escapeHtml(regionVenue)}</span>
+                                </div>
+                                ${renderHostNoteRow(match)}
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-[#777777]">${i18n('match.fee')}</span>
+                                    <span class="font-medium text-[#333333]">${i18n('match.feePerPerson', { fee: match.fee })}</span>
+                                </div>
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-[#777777]">${i18n('match.skill')}</span>
+                                    <span class="text-right font-medium text-[#333333]">${escapeHtml(getSkillLevelShortLabel(match.skillLevel))}</span>
+                                </div>
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-[#777777]">${i18n('match.slotsLabel')}</span>
+                                    <span class="font-medium text-[#333333]">${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}</span>
+                                </div>
+                                ${renderParticipantsBlock(match)}
+                            </div>
+                            ${buildMatchExpandedCancelHtml(match)}
                         </div>
-                        <span class="match-slots-pill">
-                            ${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}
-                        </span>
                     </div>
-
-                    <div class="border-y border-[#E5E5E5] py-4 space-y-3 text-sm tracking-[0.05em] leading-relaxed">
-                        <div class="flex justify-between gap-4">
-                            <span class="text-[#777777]">${i18n('match.location')}</span>
-                            <span class="text-right font-medium text-[#333333]">${txPlace(match.region)} · ${txPlace(match.venue)}</span>
-                        </div>
-                        ${renderHostNoteRow(match)}
-                        <div class="flex justify-between gap-4">
-                            <span class="text-[#777777]">${i18n('match.fee')}</span>
-                            <span class="font-medium text-[#333333]">${i18n('match.feePerPerson', { fee: match.fee })}</span>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <span class="text-[#777777]">${i18n('match.skill')}</span>
-                            <span class="text-right font-medium text-[#333333]">${escapeHtml(getSkillLevelShortLabel(match.skillLevel))}</span>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <span class="text-[#777777]">${i18n('match.slotsLabel')}</span>
-                            <span class="font-medium text-[#333333]">${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}</span>
-                        </div>
-                        ${renderParticipantsBlock(match)}
-                    </div>
-
-                    <div class="pt-5">${actionHtml}</div>
                 </div>
             `;
         }
@@ -1544,6 +1694,98 @@
                 inviteCard.classList.add('match-card--mount-enter');
                 bindMatchCardEnterAnimation(inviteCard);
             }
+        }
+
+        function collapseMatchCard(card) {
+            if (!card) return;
+            card.classList.remove('match-card--expanded');
+            const compact = card.querySelector('.match-card-compact');
+            const details = card.querySelector('.match-card-details');
+            if (compact) compact.setAttribute('aria-expanded', 'false');
+            if (details) details.classList.add('hidden');
+        }
+
+        function expandMatchCard(card) {
+            if (!card) return;
+            card.classList.add('match-card--expanded');
+            const compact = card.querySelector('.match-card-compact');
+            const details = card.querySelector('.match-card-details');
+            if (compact) compact.setAttribute('aria-expanded', 'true');
+            if (details) details.classList.remove('hidden');
+            expandedLobbyMatchBookId = card.dataset.bookId || null;
+        }
+
+        function toggleMatchCardExpand(card) {
+            if (!card) return;
+            const isExpanded = card.classList.contains('match-card--expanded');
+            document.querySelectorAll('#matches-list .match-card--expanded, #invite-match-section .match-card--expanded')
+                .forEach(other => {
+                    if (other !== card) collapseMatchCard(other);
+                });
+
+            if (isExpanded) {
+                collapseMatchCard(card);
+                expandedLobbyMatchBookId = null;
+                return;
+            }
+            expandMatchCard(card);
+        }
+
+        function bindLobbyMatchCardInteractions() {
+            const bindContainer = container => {
+                if (!container || container.dataset.lobbyInteractionsBound === '1') return;
+                container.dataset.lobbyInteractionsBound = '1';
+
+                container.addEventListener('click', event => {
+                    const compact = event.target.closest('.match-card-compact');
+                    if (!compact) return;
+                    if (event.target.closest('.match-card-compact-action, .match-cancel-link, button, a')) return;
+                    const card = compact.closest('.match-card');
+                    if (card) toggleMatchCardExpand(card);
+                });
+
+                container.addEventListener('keydown', event => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    const compact = event.target.closest('.match-card-compact');
+                    if (!compact || !compact.contains(event.target)) return;
+                    event.preventDefault();
+                    const card = compact.closest('.match-card');
+                    if (card) toggleMatchCardExpand(card);
+                });
+            };
+
+            bindContainer(document.getElementById('matches-list'));
+            bindContainer(document.getElementById('invite-match-section'));
+        }
+
+        function loadMoreLobbyMatches() {
+            lobbyMatchesDisplayLimit += LOBBY_MATCHES_PAGE_SIZE;
+            renderMatches();
+        }
+
+        function renderLobbyLoadMoreFooter(shownCount, totalCount) {
+            if (homeSelectedDate || shownCount >= totalCount) return '';
+
+            const remaining = totalCount - shownCount;
+            const nextCount = Math.min(LOBBY_MATCHES_PAGE_SIZE, remaining);
+            return `
+                <div id="matches-load-more-wrap" class="matches-load-more-wrap">
+                    <button type="button" id="matches-load-more-btn" class="matches-load-more-btn" onclick="loadMoreLobbyMatches()">
+                        ${i18n('match.loadMore', { n: nextCount })}
+                    </button>
+                    <p class="matches-load-more-hint">${i18n('match.showingCount', { shown: shownCount, total: totalCount })}</p>
+                </div>
+            `;
+        }
+
+        function appendLobbyMatchCard(listContainer, match, index) {
+            const card = document.createElement('div');
+            card.innerHTML = buildMatchCardHtml(match);
+            const el = card.firstElementChild || card;
+            el.style.setProperty('--card-enter-delay', `${Math.min(index * 40, 240)}ms`);
+            el.classList.add('match-card--mount-enter');
+            bindMatchCardEnterAnimation(el);
+            listContainer.appendChild(el);
         }
 
         function bindMatchCardEnterAnimation(card) {
@@ -1739,15 +1981,37 @@
 
             renderInviteMatchSection();
 
-            filtered.forEach((match, index) => {
-                const card = document.createElement('div');
-                card.innerHTML = buildMatchCardHtml(match);
-                const el = card.firstElementChild || card;
-                el.style.setProperty('--card-enter-delay', `${Math.min(index * 40, 240)}ms`);
-                el.classList.add('match-card--mount-enter');
-                bindMatchCardEnterAnimation(el);
-                listContainer.appendChild(el);
+            const sorted = sortLobbyMatches(filtered);
+            const totalCount = sorted.length;
+            const displayLimit = homeSelectedDate ? totalCount : Math.min(lobbyMatchesDisplayLimit, totalCount);
+            const visibleMatches = sorted.slice(0, displayLimit);
+            const dateCounts = !homeSelectedDate
+                ? sorted.reduce((acc, match) => {
+                    const key = match.playDate || '';
+                    if (key) acc[key] = (acc[key] || 0) + 1;
+                    return acc;
+                }, {})
+                : {};
+
+            let lastGroupDate = null;
+            visibleMatches.forEach((match, index) => {
+                if (!homeSelectedDate && match.playDate && match.playDate !== lastGroupDate) {
+                    lastGroupDate = match.playDate;
+                    const header = document.createElement('div');
+                    header.innerHTML = renderDateGroupHeader(lastGroupDate, dateCounts[lastGroupDate] || 0);
+                    const headerEl = header.firstElementChild;
+                    if (headerEl) listContainer.appendChild(headerEl);
+                }
+                appendLobbyMatchCard(listContainer, match, index);
             });
+
+            if (!homeSelectedDate && displayLimit < totalCount) {
+                const footer = document.createElement('div');
+                footer.innerHTML = renderLobbyLoadMoreFooter(displayLimit, totalCount);
+                const footerEl = footer.firstElementChild;
+                if (footerEl) listContainer.appendChild(footerEl);
+            }
+
             saveMatches();
             renderCalendar('home');
             if (typeof applyRegionFilter === 'function') applyRegionFilter();
@@ -3022,6 +3286,7 @@
             refreshHostPaymentSettings();
             bindPrivateShareUI();
             bindSessionModals();
+            bindLobbyMatchCardInteractions();
             inviteActivityId = getInviteIdFromUrl();
             await waitForFirebaseAuth();
             await loadActivitiesFromCloud();
@@ -3040,6 +3305,7 @@
         window.handleFormSubmit = handleFormSubmit;
         window.confirmBooking = confirmBooking;
         window.clearHomeDateFilter = clearHomeDateFilter;
+        window.loadMoreLobbyMatches = loadMoreLobbyMatches;
         window.toggleCalendarExpand = toggleCalendarExpand;
         window.changeCalendarMonth = changeCalendarMonth;
         window.renderMyActivities = renderMyActivities;

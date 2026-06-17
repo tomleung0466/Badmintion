@@ -1160,6 +1160,22 @@ function applyRegionFilter() {
             : `${getActiveFilterLabel()}暫時沒有開場。`;
         emptyEl.classList.toggle('hidden', !showEmpty);
     }
+
+    document.querySelectorAll('.match-date-group').forEach(group => {
+        let sibling = group.nextElementSibling;
+        let hasVisibleCard = false;
+        while (sibling) {
+            if (sibling.classList.contains('match-date-group')) break;
+            if (sibling.classList.contains('match-card')
+                && !sibling.classList.contains('is-filter-collapsed')
+                && !sibling.classList.contains('hidden')) {
+                hasVisibleCard = true;
+                break;
+            }
+            sibling = sibling.nextElementSibling;
+        }
+        group.classList.toggle('hidden', !hasVisibleCard);
+    });
 }
 
 function getPickerScrollerTitle() {
