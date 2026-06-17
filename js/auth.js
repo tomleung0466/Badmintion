@@ -2057,6 +2057,76 @@ window.dbLeaveCommunity = async function dbLeaveCommunity(communityId) {
     }
 };
 
+window.dbKickCommunityMember = async function dbKickCommunityMember(communityId, targetUid) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+
+        const id = String(communityId || "").trim();
+        const target = String(targetUid || "").trim();
+        if (!id || !target) {
+            const error = new Error("缺少社群或成員資訊");
+            error.code = "community/missing-id";
+            throw error;
+        }
+        if (target === user.uid) {
+            const error = new Error("無法移除自己，請使用離開社群");
+            error.code = "community/cannot-kick-self";
+            throw error;
+        }
+
+        const communityRef = doc(db, "communities", id);
+        const communitySnap = await getDoc(communityRef);
+        if (!communitySnap.exists()) {
+            const error = new Error("社群不存在");
+            error.code = "community/not-found";
+            throw error;
+        }
+        if (communitySnap.data().ownerUid !== user.uid) {
+            const error = new Error("只有建立者可以移除成員");
+            error.code = "community/not-owner";
+            throw error;
+        }
+
+        const memberRef = doc(db, "communities", id, "members", target);
+        const memberSnap = await getDoc(memberRef);
+        if (!memberSnap.exists()) {
+            const error = new Error("對方不是此社群的成員");
+            error.code = "community/not-member";
+            throw error;
+        }
+        if (memberSnap.data().role === "owner") {
+            const error = new Error("無法移除社群建立者");
+            error.code = "community/cannot-kick-owner";
+            throw error;
+        }
+
+        const membershipRef = doc(db, "users", target, "communityMemberships", id);
+        const inviteRef = doc(db, "users", target, "communityInvites", id);
+
+        await deleteDoc(memberRef);
+        try {
+            await deleteDoc(membershipRef);
+        } catch (membershipErr) {
+            console.warn("移除成員索引失敗（可能已不存在）:", membershipErr);
+        }
+        try {
+            await deleteDoc(inviteRef);
+        } catch (inviteErr) {
+            console.warn("清除待處理邀請失敗（可能已不存在）:", inviteErr);
+        }
+
+        return { kicked: true, displayName: memberSnap.data().displayName || "" };
+    } catch (err) {
+        console.error("移除成員失敗:", err);
+        throw err;
+    }
+};
+
 window.dbDeleteCommunity = async function dbDeleteCommunity(communityId) {
     try {
         const user = auth.currentUser;

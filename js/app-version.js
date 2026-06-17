@@ -3,9 +3,18 @@
  * 每次發佈請同步更新：version、build、changelog 第一筆，以及 sw.js 的 CACHE_NAME
  */
 window.APP_VERSION = {
-    version: '1.30.0',
-    build: 34,
+    version: '1.31.0',
+    build: 35,
     changelog: [
+        {
+            version: '1.31.0',
+            date: '2026-06-04',
+            items: [
+                '社群建立者可移除成員',
+                '成員可離開社群（建立者需先移除其他人或刪除社群）',
+                '更新 README：說明 GitHub Actions 自動部署流程'
+            ]
+        },
         {
             version: '1.30.0',
             date: '2026-06-04',

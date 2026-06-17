@@ -11,7 +11,8 @@
 | 角色 | 功能 |
 |------|------|
 | 球友 | 依地區／日期篩選場次、報名／後補、查看場主資料與付款 QR |
-| 場主 | 發佈場次（時段、球技、公開／私人）、管理待批准名單、收款設定 |
+| 場主 | 發佈場次（時段、球技、公開／私人／社群限定）、管理待批准名單、收款設定 |
+| 社群 | 建立球群、邀請連結加入、搜尋邀請、成員離開／建立者移除成員 |
 | 共用 | Google 登入、個人資料、我的場次、設定頁版本紀錄與意見回饋 |
 
 ---
@@ -22,7 +23,7 @@
 |------|------|
 | 前端 | 靜態 HTML + JavaScript（PWA，MUJI 極簡風格） |
 | 後端 | Firebase Authentication、Cloud Firestore、Storage |
-| 部署 | GitHub Pages（靜態檔）；Firestore 規則須在 Firebase Console 手動發佈 |
+| 部署 | Firebase Hosting + Firestore 規則；push 到 `main` 由 GitHub Actions 自動部署 |
 
 > 專案根目錄的 `index.html` + `js/` 為**正式使用版本**。  
 > `app/`、`components/` 為早期 Next.js 原型，目前不作主要部署。
@@ -38,12 +39,15 @@ badminton/
 ├── js/
 │   ├── app.js          # 分頁、設定、地區篩選
 │   ├── matches.js      # 場次、報名、發佈表單
+│   ├── communities.js  # 社群建立、邀請、成員管理
 │   ├── auth.js         # Firebase 登入與 Firestore 橋接（ES Module）
 │   ├── app-version.js  # 版本號與更新紀錄
 │   ├── pwa.js          # PWA / Service Worker 註冊
 │   └── overlay-transition.js
 ├── sw.js               # Service Worker 快取
-├── firestore.rules     # Firestore 安全規則（需手動發佈）
+├── firestore.rules     # Firestore 安全規則
+├── firebase.json       # Firebase Hosting + Firestore 設定
+├── .github/workflows/  # CI/CD（push main → 自動部署）
 ├── manifest.webmanifest
 └── icons/
 ```
@@ -69,21 +73,39 @@ Firebase 登入在 `localhost` 需在 Firebase Console → Authentication → �
 
 ## 部署
 
-### 1. 前端（GitHub Pages）
+### 1. 自動部署（推薦）
 
-Push 到 GitHub 後，Pages 會從倉庫根目錄提供靜態檔。  
+Push 到 GitHub `main` 分支後，[`.github/workflows/firebase-deploy.yml`](.github/workflows/firebase-deploy.yml) 會自動部署：
+
+- Firestore 規則（`firestore.rules`）
+- Firebase Hosting（靜態網站）
+
+**首次設定：** 在 GitHub Repo → Settings → Secrets → Actions 新增 `FIREBASE_TOKEN`：
+
+```bash
+npx firebase-tools login:ci
+```
+
+把輸出的 token 貼到 Secret 即可。
+
+可在 GitHub → Actions 查看每次部署狀態。
+
+### 2. 手動部署（備用）
+
+```bash
+npx firebase-tools deploy --only firestore:rules,hosting --project badminton-app-b08cc
+```
+
+### 3. PWA 快取
+
 用戶若已安裝 PWA，更新後需重載 App 以取得新版 Service Worker（`sw.js` 內 `CACHE_NAME` 會遞增）。
 
-### 2. Firestore 規則
-
-修改 `firestore.rules` 後，**必須**到 [Firebase Console](https://console.firebase.google.com) → Firestore → **Rules** → 貼上並**發佈**，否則線上權限不會更新。
-
-### 3. 版本號
+### 4. 版本號
 
 每次對外更新建議同步修改：
 
 1. `js/app-version.js` — `version`、`build`、`changelog`
-2. `sw.js` — `CACHE_NAME`（例如 `plus1-pwa-v27` → `v28`）
+2. `sw.js` — `CACHE_NAME`（例如 `plus1-pwa-v45` → `v46`）
 
 用戶可在 App **設定 → 版本與更新** 查看紀錄。
 
@@ -95,6 +117,8 @@ Push 到 GitHub 後，Pages 會從倉庫根目錄提供靜態檔。
 |------|------|
 | `activities` | 場次資料 |
 | `users` | 個人資料、頭像冷卻時間等 |
+| `communities` | 社群與成員 |
+| `userDirectory` | 可被搜尋邀請的公開索引 |
 | `hostPublicProfile` | 場主公開名字與頭像（大廳卡片顯示） |
 | `hostPublicPayment` | 場主收款 QR（報名頁顯示） |
 | `feedback` | 用戶意見（僅後台 Console 查看） |

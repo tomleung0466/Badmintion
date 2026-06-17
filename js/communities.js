@@ -132,7 +132,8 @@
         updateSettingsCommunitiesLabel();
     }
 
-    function renderMemberRow(member) {
+    function renderMemberRow(member, { canKick = false, currentUid = '' } = {}) {
+        const memberUid = member.uid || member.id || '';
         const initial = (member.displayName || '?').trim().charAt(0) || '?';
         const roleBadge = member.role === 'owner'
             ? `<span class="community-member-role">${escapeHtml(i18n('community.roleOwner'))}</span>`
@@ -140,12 +141,20 @@
         const avatar = member.photoURL
             ? `<img src="${escapeHtml(member.photoURL)}" alt="" class="community-member-avatar">`
             : `<span class="community-member-avatar community-member-avatar--initial">${escapeHtml(initial)}</span>`;
+        const showKick = canKick
+            && member.role !== 'owner'
+            && memberUid
+            && memberUid !== currentUid;
+        const kickBtn = showKick
+            ? `<button type="button" class="community-member-kick-btn" data-member-uid="${escapeHtml(memberUid)}" data-member-name="${escapeHtml(member.displayName || i18n('community.unknownMember'))}">${escapeHtml(i18n('community.kick'))}</button>`
+            : '';
 
         return `
             <div class="community-member-row" role="listitem">
                 ${avatar}
                 <span class="community-member-name">${escapeHtml(member.displayName || i18n('community.unknownMember'))}</span>
                 ${roleBadge}
+                ${kickBtn}
             </div>
         `;
     }
@@ -243,11 +252,24 @@
                     : i18n('community.youAreMember');
             }
             if (inviteInput) inviteInput.value = buildCommunityInviteUrl(id);
-            if (membersList) {
-                membersList.innerHTML = members.map(renderMemberRow).join('');
-            }
 
             const isOwner = membership.role === 'owner';
+            if (membersList) {
+                const currentUid = window.firebaseAuthUid || '';
+                membersList.innerHTML = members.map(member => renderMemberRow(member, {
+                    canKick: isOwner,
+                    currentUid
+                })).join('');
+                membersList.querySelectorAll('.community-member-kick-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        handleKickCommunityMember(
+                            btn.getAttribute('data-member-uid'),
+                            btn.getAttribute('data-member-name')
+                        );
+                    });
+                });
+            }
+
             const soloOwner = isOwner && members.length <= 1;
             leaveBtn?.classList.toggle('hidden', isOwner);
             deleteBtn?.classList.toggle('hidden', !soloOwner);
@@ -546,7 +568,36 @@
             alert(i18n('community.left'));
         } catch (err) {
             console.error('離開社群失敗:', err);
-            alert(err?.message || i18n('community.leaveFailed'));
+            let message = i18n('community.leaveFailed');
+            if (err?.code === 'community/owner-cannot-leave') {
+                message = i18n('community.ownerCannotLeave');
+            }
+            alert(err?.message || message);
+        }
+    }
+
+    async function handleKickCommunityMember(targetUid, displayName) {
+        if (!activeCommunityId || !targetUid) return;
+        const name = String(displayName || '').trim() || i18n('community.unknownMember');
+        if (!confirm(i18n('community.kickConfirm', { name }))) return;
+
+        const bridgeReady = await waitForDbBridge();
+        if (!bridgeReady || typeof window.dbKickCommunityMember !== 'function') {
+            alert(i18n('community.dbOffline'));
+            return;
+        }
+
+        try {
+            await window.dbKickCommunityMember(activeCommunityId, targetUid);
+            await openCommunityDetail(activeCommunityId);
+            alert(i18n('community.kicked', { name }));
+        } catch (err) {
+            console.error('移除成員失敗:', err);
+            let message = i18n('community.kickFailed');
+            if (err?.code === 'community/not-owner') message = i18n('community.kickNotOwner');
+            else if (err?.code === 'community/cannot-kick-owner') message = i18n('community.kickCannotOwner');
+            else if (err?.code === 'community/not-member') message = i18n('community.kickNotMember');
+            alert(err?.message || message);
         }
     }
 

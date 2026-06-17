@@ -3974,6 +3974,32 @@ html[data-appearance="dark"] .payment-new-host-tip {
   color: var(--muji-muted);
 }
 
+.community-member-kick-btn {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0.25rem 0.5rem;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--muji-muted);
+  background: var(--muji-card);
+  border: 1px solid var(--muji-border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.community-member-kick-btn:hover {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+html[data-appearance="dark"] .community-member-kick-btn:hover {
+  color: #fca5a5;
+  border-color: #7f1d1d;
+  background: #450a0a;
+}
+
 .community-detail-actions {
   display: flex;
   flex-direction: column;
