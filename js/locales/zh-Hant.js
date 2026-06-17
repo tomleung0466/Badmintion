@@ -163,6 +163,7 @@ window.I18N_ZH_HANT = {
     'match.location': '地點',
     'match.fee': '費用',
     'match.feePerPerson': 'HK$ {{fee}} / 人',
+    'match.skill': '球技要求',
     'match.slotsLabel': '名額',
     'match.fullLabel': '已滿額',
     'match.remaining': '剩餘 {{n}} 位',

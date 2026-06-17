@@ -1497,6 +1497,10 @@
                             <span class="font-medium text-[#333333]">${i18n('match.feePerPerson', { fee: match.fee })}</span>
                         </div>
                         <div class="flex justify-between gap-4">
+                            <span class="text-[#777777]">${i18n('match.skill')}</span>
+                            <span class="text-right font-medium text-[#333333]">${escapeHtml(getSkillLevelShortLabel(match.skillLevel))}</span>
+                        </div>
+                        <div class="flex justify-between gap-4">
                             <span class="text-[#777777]">${i18n('match.slotsLabel')}</span>
                             <span class="font-medium text-[#333333]">${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}</span>
                         </div>
