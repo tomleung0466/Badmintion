@@ -64,8 +64,10 @@ service cloud.firestore {
           == resource.data.get('allowGuestSignupBy', 'none')
         && request.resource.data.get('guestParticipants', {}) == resource.data.get('guestParticipants', {})
         && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.sessionStartsAt == resource.data.sessionStartsAt
-        && request.resource.data.sessionEndsAt == resource.data.sessionEndsAt;
+        && request.resource.data.get('sessionStartsAt', null)
+          == resource.data.get('sessionStartsAt', null)
+        && request.resource.data.get('sessionEndsAt', null)
+          == resource.data.get('sessionEndsAt', null);
     }
 
     function activityAudience(data) {
@@ -184,6 +186,26 @@ service cloud.firestore {
       return oldPending.hasAll(newPending) && newPending.size() == oldPending.size() - 1;
     }
 
+    function participantsMapValidForApprove() {
+      let oldParts = resource.data.get('participants', {});
+      let newParts = request.resource.data.get('participants', {});
+      return newParts.keys().hasAll(oldParts.keys())
+        && (
+          newParts.size() == oldParts.size()
+          || newParts.size() == oldParts.size() + 1
+        );
+    }
+
+    function participantsMapValidForReject() {
+      let oldParts = resource.data.get('participants', {});
+      let newParts = request.resource.data.get('participants', {});
+      return oldParts.keys().hasAll(newParts.keys())
+        && (
+          newParts.size() == oldParts.size()
+          || newParts.size() == oldParts.size() - 1
+        );
+    }
+
     function waitlistAndGuestsUnchanged() {
       return request.resource.data.get('guestParticipants', {})
           == resource.data.get('guestParticipants', {})
@@ -288,8 +310,7 @@ service cloud.firestore {
         && participantListsGrowByOne()
         && pendingListsShrinkByOne()
         && waitlistAndGuestsUnchanged()
-        && request.resource.data.get('participants', {}).size()
-          == resource.data.get('participants', {}).size()
+        && participantsMapValidForApprove()
         && activityUpdateKeysOnly(['participantUids', 'pendingParticipantUids', 'participants', 'currentPlayers', 'updatedAt']);
     }
 
@@ -300,8 +321,7 @@ service cloud.firestore {
         && participantListsEqual()
         && pendingListsShrinkByOne()
         && waitlistAndGuestsUnchanged()
-        && request.resource.data.get('participants', {}).size()
-          == resource.data.get('participants', {}).size() - 1
+        && participantsMapValidForReject()
         && activityUpdateKeysOnly(['pendingParticipantUids', 'participants', 'updatedAt']);
     }
 

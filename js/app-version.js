@@ -4,9 +4,16 @@
  * changelog 的 date 請填實際發佈日（YYYY-MM-DD），勿用固定佔位日期
  */
 window.APP_VERSION = {
-    version: '1.32.1',
-    build: 38,
+    version: '1.32.2',
+    build: 39,
     changelog: [
+        {
+            version: '1.32.2',
+            date: '2026-06-17',
+            items: [
+                '修正場主批准報名時 Firestore permission-denied 的問題'
+            ]
+        },
         {
             version: '1.32.1',
             date: '2026-06-17',
