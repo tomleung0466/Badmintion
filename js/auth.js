@@ -1282,31 +1282,40 @@ window.dbApproveParticipant = async function dbApproveParticipant(activityId, pa
                 throw error;
             }
 
+            const participantUids = Array.isArray(activity.participantUids) ? activity.participantUids : [];
+            const alreadyApproved = participantUids.includes(participantUid);
+
             const maxSlots = Number(activity.maxSlots ?? 6);
-            const currentPlayers = Number(activity.currentPlayers ?? 0);
-            if (currentPlayers >= maxSlots) {
+            const currentPlayers = Math.trunc(Number(activity.currentPlayers ?? 0));
+            if (!alreadyApproved && currentPlayers >= maxSlots) {
                 const error = new Error("名額已滿，無法批准");
                 error.code = "activity/full";
                 throw error;
             }
 
             const profile = activity.participants?.[participantUid] || {};
+            const approvedProfile = {
+                uid: participantUid,
+                displayName: profile.displayName || "波友",
+                email: profile.email || null,
+                photoURL: profile.photoURL || null,
+                status: "reserved",
+                joinedAt: profile.joinedAt || serverTimestamp(),
+                approvedAt: serverTimestamp()
+            };
 
-            transaction.update(activityRef, {
-                currentPlayers: currentPlayers + 1,
-                participantUids: arrayUnion(participantUid),
+            const updatePayload = {
                 pendingParticipantUids: arrayRemove(participantUid),
-                [`participants.${participantUid}`]: {
-                    uid: participantUid,
-                    displayName: profile.displayName || "波友",
-                    email: profile.email || null,
-                    photoURL: profile.photoURL || null,
-                    status: "reserved",
-                    joinedAt: profile.joinedAt || serverTimestamp(),
-                    approvedAt: serverTimestamp()
-                },
+                [`participants.${participantUid}`]: approvedProfile,
                 updatedAt: serverTimestamp()
-            });
+            };
+
+            if (!alreadyApproved) {
+                updatePayload.currentPlayers = currentPlayers + 1;
+                updatePayload.participantUids = arrayUnion(participantUid);
+            }
+
+            transaction.update(activityRef, updatePayload);
 
             return { approved: true };
         });

@@ -3225,6 +3225,10 @@
                 renderInviteMatchSection();
             } catch (err) {
                 console.error('批准報名失敗:', err);
+                if (err?.code === 'permission-denied') {
+                    i18nAlert('alert.approveDeniedRules');
+                    return;
+                }
                 const code = err?.code ? `（${err.code}）` : '';
                 i18nAlert('alert.approveFailed', { code });
             }

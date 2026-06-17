@@ -116,6 +116,11 @@ service cloud.firestore {
       return raw == null ? 0 : raw.size();
     }
 
+    function safeNumber(data, field) {
+      let raw = data.get(field, 0);
+      return raw == null ? 0 : raw;
+    }
+
     function participantListsEqual() {
       let oldUids = safeList(resource.data, 'participantUids');
       let newUids = safeList(request.resource.data, 'participantUids');
@@ -191,14 +196,15 @@ service cloud.firestore {
 
     function activityHostLockedForHostManage() {
       return request.resource.data.hostUid == resource.data.hostUid
-        && request.resource.data.maxSlots == resource.data.maxSlots
-        && request.resource.data.createdAt == resource.data.createdAt;
+        && request.resource.data.maxSlots == resource.data.maxSlots;
     }
 
-    function participantListsGrowByOne() {
+    function participantUidsValidForApprove() {
       let oldUids = safeList(resource.data, 'participantUids');
       let newUids = safeList(request.resource.data, 'participantUids');
-      return newUids.hasAll(oldUids) && newUids.size() == oldUids.size() + 1;
+      let oldSize = oldUids.size();
+      let newSize = newUids.size();
+      return newUids.hasAll(oldUids) && (newSize == oldSize || newSize == oldSize + 1);
     }
 
     function pendingListsShrinkByOne() {
@@ -320,15 +326,31 @@ service cloud.firestore {
     }
 
     function isValidHostApprove() {
+      let oldPlayers = safeNumber(resource.data, 'currentPlayers');
+      let newPlayers = safeNumber(request.resource.data, 'currentPlayers');
+      let maxSlots = safeNumber(resource.data, 'maxSlots');
+
       return isHost()
         && activityNotEnded()
         && activityHostLockedForHostManage()
-        && request.resource.data.currentPlayers == resource.data.currentPlayers + 1
-        && request.resource.data.currentPlayers <= request.resource.data.maxSlots
-        && participantListsGrowByOne()
+        && maxSlots >= 1
+        && newPlayers == oldPlayers + 1
+        && newPlayers <= maxSlots
+        && participantUidsValidForApprove()
         && pendingListsShrinkByOne()
         && participantsMapValidForApprove()
         && activityUpdateKeysOnly(['participantUids', 'pendingParticipantUids', 'participants', 'currentPlayers', 'updatedAt']);
+    }
+
+    function isValidHostApprovePendingCleanup() {
+      return isHost()
+        && activityNotEnded()
+        && activityHostLockedForHostManage()
+        && participantListsEqual()
+        && pendingListsShrinkByOne()
+        && safeNumber(request.resource.data, 'currentPlayers') == safeNumber(resource.data, 'currentPlayers')
+        && participantsMapValidForApprove()
+        && activityUpdateKeysOnly(['pendingParticipantUids', 'participants', 'updatedAt']);
     }
 
     function isValidHostReject() {
@@ -714,6 +736,7 @@ service cloud.firestore {
         || isValidCancelApproved()
         || isValidCancelPending()
         || isValidHostApprove()
+        || isValidHostApprovePendingCleanup()
         || isValidHostReject()
         || isValidGuestAdd()
         || isValidGuestRemove()
