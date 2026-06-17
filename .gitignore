@@ -1,0 +1,33 @@
+# Dependencies (reinstall locally with npm/pnpm install — do not commit)
+node_modules/
+
+# macOS
+.DS_Store
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Firebase local cache
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Logs
+*.log
+npm-debug.log*
+
+# Optional: local HTML backups (not needed on GitHub)
+index_backup*.html
+
+# Next.js build output (if you ever run next build)
+.next/
+out/
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*~

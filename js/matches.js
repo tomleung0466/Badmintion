@@ -1626,7 +1626,8 @@
         }
 
         function renderHostedActivitySummary(activity) {
-            const activityId = activity.firestoreId || activity.id;
+            const activityId = activity.firestoreId;
+            if (!activityId) return '';
             const pendingCount = getMatchPendingUids(activity).length;
             const pendingBadge = pendingCount > 0
                 ? `<span class="session-status-badge session-status-badge--pending">${pendingCount} 待批准</span>`
@@ -2831,7 +2832,11 @@
         }
 
         function renderHostManageContent(activity) {
-            const activityId = activity.firestoreId || activity.id;
+            const activityId = activity.firestoreId;
+            if (!activityId) {
+                i18nAlert('alert.activityNotFound');
+                return;
+            }
             const modal = document.getElementById('host-manage-modal');
             const subtitle = document.getElementById('host-manage-subtitle');
             const slotsEl = document.getElementById('host-manage-slots');
@@ -3251,6 +3256,10 @@
                 renderInviteMatchSection();
             } catch (err) {
                 console.error('拒絕報名失敗:', err);
+                if (err?.code === 'permission-denied') {
+                    i18nAlert('alert.approveDeniedRules');
+                    return;
+                }
                 const code = err?.code ? `（${err.code}）` : '';
                 i18nAlert('alert.rejectFailed', { code });
             }
