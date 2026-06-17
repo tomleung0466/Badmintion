@@ -177,7 +177,7 @@ service cloud.firestore {
     }
 
     function isApprovedParticipant() {
-      return request.auth.uid in resource.data.get('participantUids', []);
+      return request.auth.uid in safeList(resource.data, 'participantUids');
     }
 
     function activityUpdateKeysOnly(allowed) {
@@ -240,10 +240,10 @@ service cloud.firestore {
     }
 
     function activityListsEmptyOnCreate() {
-      return request.resource.data.get('participantUids', []).size() == 0
-        && request.resource.data.get('pendingParticipantUids', []).size() == 0
-        && request.resource.data.get('waitlist', []).size() == 0
-        && request.resource.data.get('participants', {}).size() == 0;
+      return safeListSize(request.resource.data, 'participantUids') == 0
+        && safeListSize(request.resource.data, 'pendingParticipantUids') == 0
+        && safeListSize(request.resource.data, 'waitlist') == 0
+        && safeMapSize(request.resource.data, 'participants') == 0;
     }
 
     function activityHasPendingSlot(data) {
@@ -311,11 +311,11 @@ service cloud.firestore {
     // 報名申請：加入 pendingParticipantUids，待場主批准
     function isValidPendingJoin() {
       let uid = request.auth.uid;
-      let oldUids = resource.data.get('participantUids', []);
-      let oldPending = resource.data.get('pendingParticipantUids', []);
-      let newPending = request.resource.data.get('pendingParticipantUids', []);
-      let oldWait = resource.data.get('waitlist', []);
-      let newWait = request.resource.data.get('waitlist', []);
+      let oldUids = safeList(resource.data, 'participantUids');
+      let oldPending = safeList(resource.data, 'pendingParticipantUids');
+      let newPending = safeList(request.resource.data, 'pendingParticipantUids');
+      let oldWait = safeList(resource.data, 'waitlist');
+      let newWait = safeList(request.resource.data, 'waitlist');
       let waitlistShrunkOk = newWait.size() == oldWait.size()
         || (uid in oldWait && newWait.size() == oldWait.size() - 1);
 
@@ -337,15 +337,17 @@ service cloud.firestore {
     // 後補：滿額後把自己的 uid 加入 waitlist
     function isValidWaitlistJoin() {
       let uid = request.auth.uid;
-      let oldWait = resource.data.get('waitlist', []);
-      let newWait = request.resource.data.get('waitlist', []);
+      let oldWait = safeList(resource.data, 'waitlist');
+      let newWait = safeList(request.resource.data, 'waitlist');
+      let oldUids = safeList(resource.data, 'participantUids');
+      let oldPending = safeList(resource.data, 'pendingParticipantUids');
 
       return activityHostFieldsUnchanged()
         && activityNotEnded()
         && canJoinActivityAudience(resource.data)
         && resource.data.currentPlayers >= resource.data.maxSlots
-        && !(uid in resource.data.get('participantUids', []))
-        && !(uid in resource.data.get('pendingParticipantUids', []))
+        && !(uid in oldUids)
+        && !(uid in oldPending)
         && !(uid in oldWait)
         && uid in newWait
         && newWait.size() == oldWait.size() + 1
@@ -355,8 +357,8 @@ service cloud.firestore {
     }
     function isValidCancelApproved() {
       let uid = request.auth.uid;
-      let oldUids = resource.data.get('participantUids', []);
-      let newUids = request.resource.data.get('participantUids', []);
+      let oldUids = safeList(resource.data, 'participantUids');
+      let newUids = safeList(request.resource.data, 'participantUids');
 
       return activityHostFieldsUnchanged()
         && uid in oldUids
@@ -373,8 +375,8 @@ service cloud.firestore {
     // 取消待批准申請
     function isValidCancelPending() {
       let uid = request.auth.uid;
-      let oldPending = resource.data.get('pendingParticipantUids', []);
-      let newPending = request.resource.data.get('pendingParticipantUids', []);
+      let oldPending = safeList(resource.data, 'pendingParticipantUids');
+      let newPending = safeList(request.resource.data, 'pendingParticipantUids');
 
       return activityHostFieldsUnchanged()
         && uid in oldPending
@@ -754,13 +756,14 @@ service cloud.firestore {
     match /activities/{activityId} {
       allow read: if true;
       allow create: if isSignedIn() && isValidActivityCreate();
+      // 場主批准/拒絕獨立 allow，避免與報名/取消規則混在同一 OR 鏈
+      allow update: if isSignedIn() && isValidHostReject();
+      allow update: if isSignedIn() && isValidHostApprove();
       allow update: if isSignedIn() && (
         isValidPendingJoin()
         || isValidWaitlistJoin()
         || isValidCancelApproved()
         || isValidCancelPending()
-        || isValidHostApprove()
-        || isValidHostReject()
         || isValidGuestAdd()
         || isValidGuestRemove()
       );

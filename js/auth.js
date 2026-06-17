@@ -1313,15 +1313,18 @@ window.dbApproveParticipant = async function dbApproveParticipant(activityId, pa
             if (profile.email) approvedProfile.email = profile.email;
             if (profile.photoURL) approvedProfile.photoURL = profile.photoURL;
 
+            const nextPendingUids = pendingUids.filter(uid => uid !== participantUid);
             const updatePayload = {
-                pendingParticipantUids: arrayRemove(participantUid),
+                pendingParticipantUids: nextPendingUids,
                 [`participants.${participantUid}`]: approvedProfile,
                 updatedAt: serverTimestamp()
             };
 
             if (!alreadyApproved) {
                 updatePayload.currentPlayers = currentPlayers + 1;
-                updatePayload.participantUids = arrayUnion(participantUid);
+                updatePayload.participantUids = [...participantUids, participantUid];
+            } else if (!Array.isArray(activity.participantUids)) {
+                updatePayload.participantUids = participantUids;
             }
 
             transaction.update(activityRef, updatePayload);
@@ -1379,8 +1382,9 @@ window.dbRejectParticipant = async function dbRejectParticipant(activityId, part
                 throw error;
             }
 
+            const nextPendingUids = pendingUids.filter(uid => uid !== participantUid);
             transaction.update(activityRef, {
-                pendingParticipantUids: arrayRemove(participantUid),
+                pendingParticipantUids: nextPendingUids,
                 [`participants.${participantUid}`]: deleteField(),
                 updatedAt: serverTimestamp()
             });
