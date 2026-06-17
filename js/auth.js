@@ -97,6 +97,24 @@ function assertActivityNotEnded(activity) {
     }
 }
 
+function resolveSessionStartsAtTimestamp(activityData = {}) {
+    const raw = activityData.sessionStartsAt;
+    if (raw && typeof raw.toDate === "function") return raw;
+    if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
+        return Timestamp.fromDate(raw);
+    }
+    if (typeof window.buildActivityStartAtDate === "function") {
+        const startsAt = window.buildActivityStartAtDate(
+            activityData.playDate,
+            activityData.startTime || activityData.startTimeValue
+        );
+        if (startsAt && !Number.isNaN(startsAt.getTime())) {
+            return Timestamp.fromDate(startsAt);
+        }
+    }
+    return null;
+}
+
 function resolveSessionEndsAtTimestamp(activityData = {}) {
     const raw = activityData.sessionEndsAt;
     if (raw && typeof raw.toDate === "function") return raw;
@@ -152,6 +170,22 @@ async function syncHostPublicProfile(uid, profile = {}) {
 }
 
 function buildActivityPublishPayload(activityData = {}, user) {
+    const sessionStartsAt = resolveSessionStartsAtTimestamp(activityData);
+    if (!sessionStartsAt) {
+        const error = new Error("無法計算場次開始時間，請重新選擇開場日期與時間");
+        error.code = "activity/missing-session-starts-at";
+        throw error;
+    }
+    if (typeof window.isActivityStartInPast === "function"
+        && window.isActivityStartInPast({
+            playDate: activityData.playDate,
+            startTime: activityData.startTime || activityData.startTimeValue
+        })) {
+        const error = new Error("不能發佈已過去的時段");
+        error.code = "activity/start-in-past";
+        throw error;
+    }
+
     const sessionEndsAt = resolveSessionEndsAtTimestamp(activityData);
     if (!sessionEndsAt) {
         const error = new Error("無法計算場次截止時間，請重新選擇開場日期與時間");
@@ -184,6 +218,7 @@ function buildActivityPublishPayload(activityData = {}, user) {
         playTime: String(activityData.playTime || ""),
         startTime: String(activityData.startTime || ""),
         endTime: String(activityData.endTime || ""),
+        sessionStartsAt,
         sessionEndsAt,
         duration: Number(activityData.duration) || 0,
         courtCount: Math.trunc(Number(activityData.courtCount) || 1),

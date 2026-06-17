@@ -191,7 +191,9 @@ service cloud.firestore {
         && request.resource.data.playDate is string
         && request.resource.data.region is string
         && request.resource.data.venue is string
-        && request.resource.data.keys().hasAll(['sessionEndsAt'])
+        && request.resource.data.keys().hasAll(['sessionStartsAt', 'sessionEndsAt'])
+        && request.resource.data.sessionStartsAt is timestamp
+        && request.resource.data.sessionStartsAt > request.time
         && request.resource.data.sessionEndsAt is timestamp
         && request.resource.data.sessionEndsAt > request.time;
     }

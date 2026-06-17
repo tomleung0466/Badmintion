@@ -308,6 +308,8 @@ window.I18N_ZH_HANT = {
     'alert.pickPlayDate': '請選擇開場日期',
     'alert.pickTimeRange': '請選擇開始與結束時間',
     'alert.endAfterStart': '結束時間須晚於開始時間',
+    'alert.startInPast': '不能發佈已過去的時段，請選擇較晚的開始時間。',
+    'alert.noFutureTimeToday': '今日的打球時段已全部過去，請選擇其他日期。',
     'alert.startTooSoon': '開場已逾半小時，請選擇較晚的時段。',
     'alert.dbOffline': '雲端資料庫暫時未連線，請稍後再試。',
     'alert.imageOnly': '請選擇圖片檔案（JPG、PNG 等）。',
@@ -323,5 +325,9 @@ window.I18N_ZH_HANT = {
     'alert.bookingAlready': '你已提交報名申請。',
     'alert.bookingSuccess': '報名申請已提交，待場主批准後才會確認名額。',
     'alert.cancelPendingSuccess': '已取消報名申請。',
-    'alert.cancelApprovedSuccess': '已取消預約，名額已釋放。\n如已付款，請私訊場主安排退款。'
+    'alert.cancelApprovedSuccess': '已取消預約，名額已釋放。\n如已付款，請私訊場主安排退款。',
+
+    'refresh.pulling': '下拉更新',
+    'refresh.release': '放開以更新',
+    'refresh.updating': '更新中…'
 };

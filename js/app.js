@@ -67,13 +67,26 @@ function getActivityStartTimeValue(activity) {
     return activity?.startTime || extractStartTimeFromPlayTime(activity?.playTime || activity?.displayTimeSlot);
 }
 
-function buildActivityEndsAtDate(playDate, startTimeValue) {
+function buildActivityStartAtDate(playDate, startTimeValue) {
     if (!playDate) return null;
     const parsed = parseActivityTimeValue(startTimeValue);
     if (!parsed) return null;
     const [y, m, d] = playDate.split('-').map(Number);
-    const startAt = new Date(y, m - 1, d, parsed.hours, parsed.minutes, 0, 0);
+    return new Date(y, m - 1, d, parsed.hours, parsed.minutes, 0, 0);
+}
+
+function buildActivityEndsAtDate(playDate, startTimeValue) {
+    const startAt = buildActivityStartAtDate(playDate, startTimeValue);
+    if (!startAt || Number.isNaN(startAt.getTime())) return null;
     return new Date(startAt.getTime() + ACTIVITY_JOIN_CUTOFF_MINUTES * 60 * 1000);
+}
+
+function isActivityStartInPast(activity, now = new Date()) {
+    if (!activity?.playDate) return false;
+    if (activity.playDate < formatDateISO(now)) return true;
+    const startAt = buildActivityStartAtDate(activity.playDate, getActivityStartTimeValue(activity));
+    if (!startAt || Number.isNaN(startAt.getTime())) return false;
+    return startAt.getTime() <= now.getTime();
 }
 
 function getActivityEndsAtDate(activity) {
@@ -109,8 +122,10 @@ function isActivityActive(activity, now = new Date()) {
 }
 
 window.parseActivityTimeValue = parseActivityTimeValue;
+window.buildActivityStartAtDate = buildActivityStartAtDate;
 window.buildActivityEndsAtDate = buildActivityEndsAtDate;
 window.getActivityEndsAtDate = getActivityEndsAtDate;
+window.isActivityStartInPast = isActivityStartInPast;
 window.isActivityEnded = isActivityEnded;
 window.isActivityActive = isActivityActive;
 
@@ -1252,6 +1267,12 @@ function initRegionFilter() {
 /* ---------- 分頁與啟動畫面（MUJI 毛玻璃路由過渡） ---------- */
 const PAGE_IDS = ['match', 'market', 'coach', 'profile', 'settings'];
 let currentPageId = 'match';
+
+function getCurrentAppPageId() {
+    return currentPageId;
+}
+
+window.getCurrentAppPageId = getCurrentAppPageId;
 let pageTransitionLock = false;
 
 function getAppPageEl(pageId) {

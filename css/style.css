@@ -253,6 +253,65 @@ button {
   transform: none;
 }
 
+/* ── 下拉刷新（首頁／我的場次） ── */
+.pull-refresh-indicator {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 35;
+  width: 100%;
+  max-width: 28rem;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 0.4rem);
+  padding-bottom: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-100%);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.pull-refresh-indicator.is-visible {
+  opacity: 1;
+}
+
+.pull-refresh-indicator__line {
+  width: 1.25rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--muji-border);
+  transition: width 180ms ease, background 180ms ease;
+}
+
+.pull-refresh-indicator.is-ready .pull-refresh-indicator__line {
+  width: 2rem;
+  background: var(--muji-muted);
+}
+
+.pull-refresh-indicator.is-refreshing .pull-refresh-indicator__line {
+  animation: pullRefreshPulse 0.85s ease-in-out infinite;
+}
+
+.pull-refresh-indicator__label {
+  font-size: 10px;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  color: var(--muji-muted);
+}
+
+@keyframes pullRefreshPulse {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scaleX(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
 /* 彈窗 / 底部面板 — 統一毛玻璃（grid 疊層，修正 iOS PWA 點擊穿透） */
 .muji-overlay {
   position: fixed;

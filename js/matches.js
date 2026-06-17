@@ -608,6 +608,7 @@
             } else {
                 formSelectedDate = iso;
                 document.getElementById('form-play-date').value = iso;
+                ensureValidPublishStartTimeForDate();
             }
             updateCalendarCollapsedText(mode);
             renderCalendar(mode);
@@ -693,6 +694,7 @@
             updateCalendarExpandUI('form');
             renderCalendar('home');
             renderCalendar('form');
+            ensureValidPublishStartTimeForDate();
         }
 
         function getFormPickerDisplayLabel(mode, val, label) {
@@ -727,7 +729,7 @@
                 }));
             }
             if (mode === 'startTime') {
-                return buildTimeSlotOptions(TIME_SLOT_DAY_START_MINUTES, TIME_SLOT_START_MAX_MINUTES);
+                return buildStartTimeSlotOptions();
             }
             if (mode === 'endTime') {
                 return buildEndTimeSlotOptions();
@@ -817,6 +819,49 @@
                 options.push({ val: value, label: value });
             }
             return options;
+        }
+
+        function getPublishPlayDate() {
+            return document.getElementById('form-play-date')?.value || formSelectedDate || todayISO;
+        }
+
+        function getEarliestPublishStartMinutes(playDate) {
+            if (!playDate || playDate > todayISO) {
+                return TIME_SLOT_DAY_START_MINUTES;
+            }
+            if (playDate < todayISO) {
+                return TIME_SLOT_START_MAX_MINUTES + TIME_SLOT_STEP_MINUTES;
+            }
+            const now = new Date();
+            const [y, m, d] = playDate.split('-').map(Number);
+            let minutes = TIME_SLOT_DAY_START_MINUTES;
+            while (minutes <= TIME_SLOT_START_MAX_MINUTES) {
+                const slotAt = new Date(y, m - 1, d, Math.floor(minutes / 60), minutes % 60, 0, 0);
+                if (slotAt.getTime() > now.getTime()) {
+                    return minutes;
+                }
+                minutes += TIME_SLOT_STEP_MINUTES;
+            }
+            return TIME_SLOT_START_MAX_MINUTES + TIME_SLOT_STEP_MINUTES;
+        }
+
+        function buildStartTimeSlotOptions() {
+            const minMinutes = getEarliestPublishStartMinutes(getPublishPlayDate());
+            if (minMinutes > TIME_SLOT_START_MAX_MINUTES) {
+                return [];
+            }
+            return buildTimeSlotOptions(minMinutes, TIME_SLOT_START_MAX_MINUTES);
+        }
+
+        function ensureValidPublishStartTimeForDate() {
+            const minMinutes = getEarliestPublishStartMinutes(getPublishPlayDate());
+            if (minMinutes > TIME_SLOT_START_MAX_MINUTES) return;
+            const startMinutes = parseTimeToMinutes(getPublishStartTimeValue());
+            if (startMinutes === null || startMinutes < minMinutes) {
+                setPublishStartTimeValue(formatMinutesToTimeValue(minMinutes));
+                ensureValidEndTimeAfterStartChange();
+                updateTimePreview();
+            }
         }
 
         function getPublishStartTimeValue() {
@@ -972,8 +1017,9 @@
             setPublishStartTimeValue('09:00');
             setPublishEndTimeValue('11:00');
             if (courtCountInput) courtCountInput.value = '1';
-            updateTimePreview();
             formSelectedDate = todayISO;
+            ensureValidPublishStartTimeForDate();
+            updateTimePreview();
             formCalendarExpanded = false;
             document.getElementById('form-play-date').value = todayISO;
             const n = new Date();
@@ -2733,6 +2779,10 @@
                     i18nAlert('alert.repickDateTime');
                     return;
                 }
+                if (err?.code === 'activity/start-in-past') {
+                    i18nAlert('alert.startInPast');
+                    return;
+                }
                 if (err?.code === 'permission-denied') {
                     i18nAlert('alert.publishDenied');
                     return;
@@ -2843,14 +2893,23 @@
             const visibility = document.querySelector('input[name="form-visibility"]:checked')?.value || 'public';
             const isPrivate = visibility === 'private';
 
+            if (getEarliestPublishStartMinutes(playDate) > TIME_SLOT_START_MAX_MINUTES) {
+                i18nAlert('alert.noFutureTimeToday');
+                return;
+            }
+            if (typeof window.isActivityStartInPast === 'function'
+                && window.isActivityStartInPast({ playDate, startTime: timeSlot.startTimeValue })) {
+                i18nAlert('alert.startInPast');
+                document.getElementById('form-start-time-btn')?.focus();
+                return;
+            }
+
+            const sessionStartsAt = typeof window.buildActivityStartAtDate === 'function'
+                ? window.buildActivityStartAtDate(playDate, timeSlot.startTimeValue)
+                : null;
             const sessionEndsAt = typeof window.buildActivityEndsAtDate === 'function'
                 ? window.buildActivityEndsAtDate(playDate, timeSlot.startTimeValue)
                 : null;
-            if (sessionEndsAt && typeof window.isActivityEnded === 'function'
-                && window.isActivityEnded({ playDate, startTime: timeSlot.startTime, sessionEndsAt })) {
-                i18nAlert('alert.startTooSoon');
-                return;
-            }
 
             const hostContact = await resolveHostPublishContact();
             const hostName = getHostDisplayName();
@@ -2865,6 +2924,7 @@
                 playTime: timeSlot.displayTimeSlot,
                 startTime: timeSlot.startTime,
                 endTime: timeSlot.endTime,
+                sessionStartsAt,
                 sessionEndsAt,
                 duration: timeSlot.duration,
                 courtCount: timeSlot.courtCount,

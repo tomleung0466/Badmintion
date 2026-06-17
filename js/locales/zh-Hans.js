@@ -308,6 +308,8 @@ window.I18N_ZH_HANS = {
     'alert.pickPlayDate': '请选择开场日期',
     'alert.pickTimeRange': '请选择开始与结束时间',
     'alert.endAfterStart': '结束时间须晚于开始时间',
+    'alert.startInPast': '不能发布已过去的时段，请选择较晚的开始时间。',
+    'alert.noFutureTimeToday': '今日的打球时段已全部过去，请选择其他日期。',
     'alert.startTooSoon': '开场已逾半小时，请选择较晚的时段。',
     'alert.dbOffline': '云端数据库暂时未连线，请稍后再试。',
     'alert.imageOnly': '请选择图片档案（JPG、PNG 等）。',
@@ -323,5 +325,9 @@ window.I18N_ZH_HANS = {
     'alert.bookingAlready': '你已提交报名申请。',
     'alert.bookingSuccess': '报名申请已提交，待场主批准后才会确认名额。',
     'alert.cancelPendingSuccess': '已取消报名申请。',
-    'alert.cancelApprovedSuccess': '已取消预约，名额已释放。\n如已付款，请私讯场主安排退款。'
+    'alert.cancelApprovedSuccess': '已取消预约，名额已释放。\n如已付款，请私讯场主安排退款。',
+
+    'refresh.pulling': '下拉更新',
+    'refresh.release': '放开以更新',
+    'refresh.updating': '更新中…'
 };
