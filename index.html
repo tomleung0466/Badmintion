@@ -410,23 +410,23 @@
                     </div>
                     <div>
                         <label class="block text-gray-500 mb-1 font-medium">體育館名稱</label>
-                        <button type="button" id="form-venue-btn" onclick="openFormPicker('venue')" disabled class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center opacity-50 cursor-not-allowed">
+                        <button type="button" id="form-venue-btn" onclick="openFormPicker('venue')" disabled class="publish-picker-btn opacity-50 cursor-not-allowed">
                             <span id="form-venue-text">請先選擇分區</span>
-                            <span class="text-gray-400">▼</span>
+                            <span class="publish-picker-chevron" aria-hidden="true">▼</span>
                         </button>
                         <input type="hidden" id="form-venue" required>
                     </div>
                     <div id="venue-note-wrap" class="hidden">
                         <label class="block text-gray-500 mb-1 font-medium">備註 / 具體地點</label>
-                        <input type="text" id="form-venue-note" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm">
+                        <input type="text" id="form-venue-note" class="publish-note-input">
                     </div>
                     <div>
                         <label class="block text-gray-500 mb-1 font-medium">開場日期</label>
-                        <button type="button" onclick="toggleCalendarExpand('form')" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center">
+                        <button type="button" onclick="toggleCalendarExpand('form')" class="publish-picker-btn">
                             <span id="form-calendar-collapsed-text"></span>
-                            <span id="form-calendar-chevron" class="text-gray-400 text-xs">▼</span>
+                            <span id="form-calendar-chevron" class="publish-picker-chevron text-xs" aria-hidden="true">▼</span>
                         </button>
-                        <div id="form-calendar-panel" class="no-scrollbar hidden mt-2 bg-gray-50 border border-gray-200 rounded-xl p-3">
+                        <div id="form-calendar-panel" class="publish-calendar-panel no-scrollbar hidden mt-2 rounded-xl p-3">
                             <div class="flex justify-between items-center mb-2 px-1">
                                 <button type="button" onclick="changeCalendarMonth('form', -1)" class="w-7 h-7 rounded-full text-gray-500 hover:bg-gray-200 text-base leading-none">‹</button>
                                 <span id="form-calendar-title" class="text-xs font-extrabold"></span>
@@ -466,14 +466,10 @@
                     </div>
                     <p id="timePreview" class="time-preview" aria-live="polite">0900-1100 (2小時，1個場地)</p>
                     <div>
-                        <label class="block text-gray-500 mb-1 font-medium">用球 <span class="text-gray-400 font-normal">（選填）</span></label>
-                        <input type="text" id="form-shuttle-info" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm">
-                    </div>
-                    <div>
                         <label class="block text-gray-500 mb-1 font-medium">球技要求</label>
-                        <button type="button" onclick="openFormPicker('skill')" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-left text-sm font-medium flex justify-between items-center">
+                        <button type="button" onclick="openFormPicker('skill')" class="publish-picker-btn">
                             <span id="form-skill-level-text">請滾動選擇球技要求</span>
-                            <span class="text-gray-400">▼</span>
+                            <span class="publish-picker-chevron" aria-hidden="true">▼</span>
                         </button>
                         <input type="hidden" id="form-skill-level" required>
                     </div>
@@ -506,7 +502,7 @@
                             </label>
                         </div>
                     </fieldset>
-                    <button type="submit" class="w-full bg-[#F4F4F2] text-[#333333] border border-[#E5E5E5] font-medium py-3.5 rounded-xl mt-4 text-sm tracking-wide">
+                    <button type="submit" class="publish-submit-btn">
                         確認發佈
                     </button>
                 </form>

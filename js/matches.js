@@ -1087,8 +1087,6 @@
             document.getElementById('form-venue-text').textContent = '請先選擇分區';
             document.getElementById('form-skill-level-text').textContent = getSkillLevelShortLabel(DEFAULT_SKILL_LEVEL);
             document.getElementById('form-venue-note').value = '';
-            const shuttleInfoInput = document.getElementById('form-shuttle-info');
-            if (shuttleInfoInput) shuttleInfoInput.value = '';
             const courtCountInput = document.getElementById('form-court-count');
             setPublishStartTimeValue('09:00');
             setPublishEndTimeValue('11:00');
@@ -3114,7 +3112,6 @@
             const region = document.getElementById('form-region').value;
             const venueValue = document.getElementById('form-venue').value;
             const venueNoteInput = document.getElementById('form-venue-note');
-            const shuttleInfo = (document.getElementById('form-shuttle-info')?.value || '').trim();
             const maxSlots = parseInt(document.getElementById('form-maxslots').value) || 6;
             const currentPlayersRaw = parseInt(document.getElementById('form-current-players').value, 10);
             const currentPlayers = Number.isNaN(currentPlayersRaw) ? 0 : Math.max(0, currentPlayersRaw);
@@ -3202,8 +3199,8 @@
                 fee: parseInt(document.getElementById('form-fee').value) || 50,
                 hostRating: "5.0",
                 contact: hostContact,
-                shuttleInfo: shuttleInfo || '',
-                shuttleBrand: shuttleInfo || '',
+                shuttleInfo: '',
+                shuttleBrand: '',
                 shuttleModel: '',
                 skillLevel: document.getElementById('form-skill-level').value || DEFAULT_SKILL_LEVEL,
                 joined: false,

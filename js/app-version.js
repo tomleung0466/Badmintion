@@ -3,9 +3,17 @@
  * 每次發佈請同步更新：version、build、changelog 第一筆，以及 sw.js 的 CACHE_NAME
  */
 window.APP_VERSION = {
-    version: '1.26.0',
-    build: 28,
+    version: '1.26.1',
+    build: 29,
     changelog: [
+        {
+            version: '1.26.1',
+            date: '2026-06-04',
+            items: [
+                '發佈頁面移除用球欄位',
+                '修正深色外觀下發佈表單膠囊與球局可見度對比不足'
+            ]
+        },
         {
             version: '1.26.0',
             date: '2026-06-04',
