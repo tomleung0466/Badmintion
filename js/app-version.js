@@ -3,9 +3,16 @@
  * 每次發佈請同步更新：version、build、changelog 第一筆，以及 sw.js 的 CACHE_NAME
  */
 window.APP_VERSION = {
-    version: '1.27.0',
-    build: 30,
+    version: '1.27.1',
+    build: 31,
     changelog: [
+        {
+            version: '1.27.1',
+            date: '2026-06-17',
+            items: [
+                '修正建立／加入社群時 Firestore 權限錯誤'
+            ]
+        },
         {
             version: '1.27.0',
             date: '2026-06-04',

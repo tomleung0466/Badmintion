@@ -35,7 +35,6 @@ import {
     updateDoc,
     deleteDoc,
     increment,
-    writeBatch,
     getCountFromServer,
     serverTimestamp,
     Timestamp
@@ -1599,25 +1598,39 @@ window.dbCreateCommunity = async function dbCreateCommunity(payload = {}) {
 
         await ensureUserProfileAndAttendance(user);
 
-        const communityRef = doc(collection(db, "communities"));
-        const memberProfile = buildCommunityMemberProfile(user, "owner");
-        const batch = writeBatch(db);
+        let communityRef;
+        try {
+            communityRef = await addDoc(collection(db, "communities"), {
+                name,
+                description,
+                ownerUid: user.uid,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            });
+        } catch (err) {
+            err.communityStep = "create-community";
+            throw err;
+        }
 
-        batch.set(communityRef, {
-            name,
-            description,
-            ownerUid: user.uid,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-        });
-        batch.set(doc(db, "communities", communityRef.id, "members", user.uid), memberProfile);
-        batch.set(doc(db, "users", user.uid, "communityMemberships", communityRef.id), {
-            communityId: communityRef.id,
-            name,
-            role: "owner",
-            joinedAt: serverTimestamp()
-        });
-        await batch.commit();
+        const memberProfile = buildCommunityMemberProfile(user, "owner");
+        try {
+            await setDoc(doc(db, "communities", communityRef.id, "members", user.uid), memberProfile);
+        } catch (err) {
+            err.communityStep = "create-member";
+            throw err;
+        }
+
+        try {
+            await setDoc(doc(db, "users", user.uid, "communityMemberships", communityRef.id), {
+                communityId: communityRef.id,
+                name,
+                role: "owner",
+                joinedAt: serverTimestamp()
+            });
+        } catch (err) {
+            err.communityStep = "create-membership-index";
+            throw err;
+        }
 
         return {
             communityId: communityRef.id,
@@ -1699,31 +1712,29 @@ window.dbJoinCommunity = async function dbJoinCommunity(communityId) {
         const memberRef = doc(db, "communities", id, "members", user.uid);
         const membershipRef = doc(db, "users", user.uid, "communityMemberships", id);
 
-        return await runTransaction(db, async transaction => {
-            const communitySnap = await transaction.get(communityRef);
-            if (!communitySnap.exists()) {
-                const error = new Error("社群不存在或連結已失效");
-                error.code = "community/not-found";
-                throw error;
-            }
+        const communitySnap = await getDoc(communityRef);
+        if (!communitySnap.exists()) {
+            const error = new Error("社群不存在或連結已失效");
+            error.code = "community/not-found";
+            throw error;
+        }
 
-            const community = communitySnap.data();
-            const memberSnap = await transaction.get(memberRef);
-            if (memberSnap.exists()) {
-                return { alreadyMember: true, communityId: id, name: community.name };
-            }
+        const community = communitySnap.data();
+        const memberSnap = await getDoc(memberRef);
+        if (memberSnap.exists()) {
+            return { alreadyMember: true, communityId: id, name: community.name };
+        }
 
-            const memberProfile = buildCommunityMemberProfile(user, "member");
-            transaction.set(memberRef, memberProfile);
-            transaction.set(membershipRef, {
-                communityId: id,
-                name: community.name,
-                role: "member",
-                joinedAt: serverTimestamp()
-            });
-
-            return { joined: true, communityId: id, name: community.name };
+        const memberProfile = buildCommunityMemberProfile(user, "member");
+        await setDoc(memberRef, memberProfile);
+        await setDoc(membershipRef, {
+            communityId: id,
+            name: community.name,
+            role: "member",
+            joinedAt: serverTimestamp()
         });
+
+        return { joined: true, communityId: id, name: community.name };
     } catch (err) {
         console.error("加入社群失敗:", err);
         throw err;
