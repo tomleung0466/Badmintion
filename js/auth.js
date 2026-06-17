@@ -1567,9 +1567,10 @@ window.dbSubmitFeedback = async function dbSubmitFeedback(payload = {}) {
 };
 
 function buildCommunityMemberProfile(user, role = "member") {
+    const rawName = user.displayName || user.email?.split("@")[0] || "波友";
     const profile = {
         uid: user.uid,
-        displayName: user.displayName || user.email?.split("@")[0] || "波友",
+        displayName: String(rawName).slice(0, 64),
         role,
         joinedAt: serverTimestamp()
     };
@@ -1595,8 +1596,6 @@ window.dbCreateCommunity = async function dbCreateCommunity(payload = {}) {
             error.code = "community/invalid-name";
             throw error;
         }
-
-        await ensureUserProfileAndAttendance(user);
 
         let communityRef;
         try {
@@ -1705,8 +1704,6 @@ window.dbJoinCommunity = async function dbJoinCommunity(communityId) {
             error.code = "community/missing-id";
             throw error;
         }
-
-        await ensureUserProfileAndAttendance(user);
 
         const communityRef = doc(db, "communities", id);
         const memberRef = doc(db, "communities", id, "members", user.uid);

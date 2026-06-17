@@ -312,11 +312,17 @@
             }
         } catch (err) {
             console.error('建立社群失敗:', err);
-            const message = err?.code === 'permission-denied'
-                ? i18n('community.rulesNotDeployed')
-                : err?.code === 'community/invalid-name'
-                    ? i18n('community.nameInvalid')
-                    : (err?.message || i18n('community.createFailed'));
+            const step = err?.communityStep;
+            let message;
+            if (err?.code === 'permission-denied') {
+                message = step
+                    ? `${i18n('community.permissionDenied')}（${step}）`
+                    : i18n('community.rulesNotDeployed');
+            } else if (err?.code === 'community/invalid-name') {
+                message = i18n('community.nameInvalid');
+            } else {
+                message = err?.message || i18n('community.createFailed');
+            }
             if (statusEl) {
                 statusEl.textContent = message;
                 statusEl.classList.remove('hidden');

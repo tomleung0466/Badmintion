@@ -129,6 +129,7 @@ window.I18N_ZH_HANT = {
     'community.nameInvalid': '社群名稱須為 1 至 40 字',
     'community.createFailed': '建立社群失敗，請稍後再試',
     'community.rulesNotDeployed': 'Firestore 權限不足。請到 Firebase Console → Firestore → 規則，貼上並發佈專案內的 firestore.rules 後再試。',
+    'community.permissionDenied': 'Firestore 權限不足',
     'community.loginRequired': '請先登入',
     'community.dbOffline': '雲端資料庫暫時未連線',
     'community.notFound': '社群不存在或連結已失效',
