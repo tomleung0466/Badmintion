@@ -4,9 +4,16 @@
  * changelog 的 date 請填實際發佈日（YYYY-MM-DD），勿用固定佔位日期
  */
 window.APP_VERSION = {
-    version: '1.32.0',
-    build: 37,
+    version: '1.32.1',
+    build: 38,
     changelog: [
+        {
+            version: '1.32.1',
+            date: '2026-06-17',
+            items: [
+                '搜尋邀請進社群：顯示載入中、已是成員／已邀請狀態，邀請成功不再彈窗打擾'
+            ]
+        },
         {
             version: '1.32.0',
             date: '2026-06-17',

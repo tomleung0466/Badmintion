@@ -3845,10 +3845,31 @@ html[data-appearance="dark"] .payment-new-host-tip {
   font-size: 10px;
 }
 
-.community-search-empty {
+.community-search-empty,
+.community-search-loading {
   margin: 0;
   font-size: 10px;
   color: var(--muji-muted);
+}
+
+.community-search-status {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--muji-muted);
+}
+
+.community-search-status--member {
+  color: var(--muji-text);
+}
+
+.community-search-status--invited {
+  color: #166534;
+}
+
+html[data-appearance="dark"] .community-search-status--invited {
+  color: #86efac;
 }
 
 .community-sessions-block {

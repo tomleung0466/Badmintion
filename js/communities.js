@@ -7,6 +7,54 @@
     let activeCommunityDetail = null;
     let pendingCommunityInviteId = null;
     let communitiesReturnPage = 'settings';
+    const sentInvitesByCommunity = new Map();
+
+    function getSentInviteStorageKey(communityId) {
+        return `plus1-community-sent-invites-${communityId}`;
+    }
+
+    function loadSentInviteUids(communityId) {
+        const id = String(communityId || '').trim();
+        if (!id) return new Set();
+        if (sentInvitesByCommunity.has(id)) {
+            return sentInvitesByCommunity.get(id);
+        }
+        let uids = new Set();
+        try {
+            const raw = sessionStorage.getItem(getSentInviteStorageKey(id));
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) uids = new Set(parsed.filter(Boolean));
+            }
+        } catch (_err) { /* ignore */ }
+        sentInvitesByCommunity.set(id, uids);
+        return uids;
+    }
+
+    function rememberSentInvite(communityId, targetUid) {
+        const id = String(communityId || '').trim();
+        const uid = String(targetUid || '').trim();
+        if (!id || !uid) return;
+        const uids = loadSentInviteUids(id);
+        uids.add(uid);
+        sentInvitesByCommunity.set(id, uids);
+        try {
+            sessionStorage.setItem(getSentInviteStorageKey(id), JSON.stringify([...uids]));
+        } catch (_err) { /* ignore */ }
+    }
+
+    function getCommunityMemberUidSet() {
+        const members = activeCommunityDetail?.members || [];
+        return new Set(members.map(member => String(member.uid || member.id || '').trim()).filter(Boolean));
+    }
+
+    function getSearchResultStatus(user, memberUids, sentUids) {
+        const uid = String(user?.id || '').trim();
+        if (!uid) return 'invite';
+        if (memberUids.has(uid)) return 'member';
+        if (sentUids.has(uid)) return 'invited';
+        return 'invite';
+    }
 
     function i18n(key, params) {
         if (typeof window.t === 'function') return window.t(key, params);
@@ -352,18 +400,36 @@
         }
     }
 
-    function renderSearchResultRow(user) {
+    function renderSearchResultRow(user, status = 'invite') {
         const initial = (user.displayName || '?').trim().charAt(0) || '?';
         const avatar = user.photoURL
             ? `<img src="${escapeHtml(user.photoURL)}" alt="" class="community-search-avatar">`
             : `<span class="community-search-avatar community-search-avatar--initial">${escapeHtml(initial)}</span>`;
+
+        let actionHtml;
+        if (status === 'member') {
+            actionHtml = `<span class="community-search-status community-search-status--member">${escapeHtml(i18n('directory.alreadyMemberShort'))}</span>`;
+        } else if (status === 'invited') {
+            actionHtml = `<span class="community-search-status community-search-status--invited">${escapeHtml(i18n('directory.alreadyInvited'))}</span>`;
+        } else {
+            actionHtml = `<button type="button" class="community-search-invite-btn" data-target-uid="${escapeHtml(user.id)}">${escapeHtml(i18n('directory.sendInvite'))}</button>`;
+        }
+
         return `
             <div class="community-search-result" role="listitem">
                 ${avatar}
                 <span class="community-search-result__name">${escapeHtml(user.displayName || i18n('community.unknownMember'))}</span>
-                <button type="button" class="community-search-invite-btn" data-target-uid="${escapeHtml(user.id)}">${escapeHtml(i18n('directory.sendInvite'))}</button>
+                ${actionHtml}
             </div>
         `;
+    }
+
+    function bindSearchResultInviteButtons(container) {
+        container?.querySelectorAll('.community-search-invite-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                sendCommunityInvite(btn.getAttribute('data-target-uid'), btn);
+            });
+        });
     }
 
     async function searchUsersForCommunityInvite() {
@@ -383,19 +449,42 @@
             return;
         }
 
+        const searchBtn = document.getElementById('community-user-search-btn');
+        const originalBtnText = searchBtn?.textContent;
+        if (searchBtn) {
+            searchBtn.disabled = true;
+            searchBtn.textContent = i18n('directory.searching');
+        }
+        resultsEl.innerHTML = `<p class="community-search-loading">${escapeHtml(i18n('directory.searchLoading'))}</p>`;
+
         try {
             const results = await window.dbSearchUserDirectory(queryText);
-            if (!results.length) {
+            const memberUids = getCommunityMemberUidSet();
+            const sentUids = loadSentInviteUids(activeCommunityId);
+            const visible = results.filter(user => {
+                const uid = String(user?.id || '').trim();
+                return uid && uid !== window.firebaseAuthUid;
+            });
+
+            if (!visible.length) {
                 resultsEl.innerHTML = `<p class="community-search-empty">${escapeHtml(i18n('directory.searchEmpty'))}</p>`;
                 return;
             }
-            resultsEl.innerHTML = results.map(renderSearchResultRow).join('');
-            resultsEl.querySelectorAll('.community-search-invite-btn').forEach(btn => {
-                btn.addEventListener('click', () => sendCommunityInvite(btn.getAttribute('data-target-uid'), btn));
-            });
+
+            resultsEl.innerHTML = visible.map(user => renderSearchResultRow(
+                user,
+                getSearchResultStatus(user, memberUids, sentUids)
+            )).join('');
+            bindSearchResultInviteButtons(resultsEl);
         } catch (err) {
             console.error('搜尋波友失敗:', err);
+            resultsEl.innerHTML = '';
             alert(i18n('directory.searchFailed'));
+        } finally {
+            if (searchBtn) {
+                searchBtn.disabled = false;
+                searchBtn.textContent = originalBtnText || i18n('directory.searchBtn');
+            }
         }
     }
 
@@ -408,8 +497,18 @@
         }
         try {
             await window.dbSendCommunityInvite(activeCommunityId, targetUid);
-            alert(i18n('directory.inviteSent'));
-            if (btn) btn.textContent = i18n('directory.inviteSentShort');
+            rememberSentInvite(activeCommunityId, targetUid);
+            if (btn) {
+                const row = btn.closest('.community-search-result');
+                if (row) {
+                    const span = document.createElement('span');
+                    span.className = 'community-search-status community-search-status--invited';
+                    span.textContent = i18n('directory.alreadyInvited');
+                    btn.replaceWith(span);
+                } else {
+                    btn.textContent = i18n('directory.inviteSentShort');
+                }
+            }
         } catch (err) {
             console.error('發送邀請失敗:', err);
             let message = i18n('directory.inviteSendFailed');
