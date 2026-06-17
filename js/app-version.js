@@ -3,9 +3,17 @@
  * 每次發佈請同步更新：version、build、changelog 第一筆，以及 sw.js 的 CACHE_NAME
  */
 window.APP_VERSION = {
-    version: '1.28.0',
-    build: 32,
+    version: '1.29.0',
+    build: 33,
     changelog: [
+        {
+            version: '1.29.0',
+            date: '2026-06-04',
+            items: [
+                '發佈場次可開啟「允許代報名」，場主可幫無 App 波友留位',
+                '場次管理新增「幫朋友留位」，代報名會佔用名額並顯示「代報」標籤'
+            ]
+        },
         {
             version: '1.28.0',
             date: '2026-06-04',

@@ -21,6 +21,7 @@
         'appearance-modal': 'modal',
         'feedback-modal': 'modal',
         'create-community-modal': 'modal',
+        'add-guest-modal': 'modal',
         'private-share-modal': 'modal',
         'host-qr-crop-modal': 'modal',
         'avatar-crop-modal': 'modal',

@@ -59,6 +59,9 @@ service cloud.firestore {
           == resource.data.get('audience', resource.data.isPrivate ? 'private' : 'public')
         && request.resource.data.get('communityId', '') == resource.data.get('communityId', '')
         && request.resource.data.get('communityName', '') == resource.data.get('communityName', '')
+        && request.resource.data.get('allowGuestSignupBy', 'none')
+          == resource.data.get('allowGuestSignupBy', 'none')
+        && request.resource.data.get('guestParticipants', {}) == resource.data.get('guestParticipants', {})
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.sessionEndsAt == resource.data.sessionEndsAt;
     }
@@ -81,19 +84,13 @@ service cloud.firestore {
       let data = request.resource.data;
       let aud = activityAudience(data);
       let communityId = data.get('communityId', '');
-      if (aud == 'public') {
-        return data.isPrivate == false && communityId == '';
-      }
-      if (aud == 'private') {
-        return data.isPrivate == true && communityId == '';
-      }
-      if (aud == 'community') {
-        return data.isPrivate == false
+      return (aud == 'public' && data.isPrivate == false && communityId == '')
+        || (aud == 'private' && data.isPrivate == true && communityId == '')
+        || (aud == 'community'
+          && data.isPrivate == false
           && communityId is string
           && communityId.size() > 0
-          && isCommunityMember(communityId);
-      }
-      return false;
+          && isCommunityMember(communityId));
     }
 
     function activityNotEnded() {
@@ -220,6 +217,71 @@ service cloud.firestore {
         && newPending.size() == oldPending.size() - 1;
     }
 
+    function allowsGuestSignup(data) {
+      let mode = data.get('allowGuestSignupBy', 'none');
+      return mode == 'host_only' || mode == 'host_and_participants';
+    }
+
+    function activityGuestHostFieldsUnchanged() {
+      return request.resource.data.hostUid == resource.data.hostUid
+        && request.resource.data.hostEmail == resource.data.hostEmail
+        && request.resource.data.maxSlots == resource.data.maxSlots
+        && request.resource.data.region == resource.data.region
+        && request.resource.data.venue == resource.data.venue
+        && request.resource.data.playDate == resource.data.playDate
+        && request.resource.data.playTime == resource.data.playTime
+        && request.resource.data.fee == resource.data.fee
+        && request.resource.data.isPrivate == resource.data.isPrivate
+        && request.resource.data.get('audience', resource.data.isPrivate ? 'private' : 'public')
+          == resource.data.get('audience', resource.data.isPrivate ? 'private' : 'public')
+        && request.resource.data.get('communityId', '') == resource.data.get('communityId', '')
+        && request.resource.data.get('communityName', '') == resource.data.get('communityName', '')
+        && request.resource.data.get('allowGuestSignupBy', 'none')
+          == resource.data.get('allowGuestSignupBy', 'none')
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.sessionEndsAt == resource.data.sessionEndsAt;
+    }
+
+    function isValidGuestAdd() {
+      let oldGuests = resource.data.get('guestParticipants', {});
+      let newGuests = request.resource.data.get('guestParticipants', {});
+      let guestDiff = newGuests.diff(oldGuests);
+
+      return isHost()
+        && activityNotEnded()
+        && allowsGuestSignup(resource.data)
+        && activityGuestHostFieldsUnchanged()
+        && guestDiff.addedKeys().size() == 1
+        && guestDiff.removedKeys().size() == 0
+        && guestDiff.changedKeys().size() == 0
+        && request.resource.data.currentPlayers == resource.data.currentPlayers + 1
+        && request.resource.data.currentPlayers <= request.resource.data.maxSlots
+        && participantListsEqual()
+        && pendingListsEqual()
+        && request.resource.data.get('pendingParticipantUids', [])
+          == resource.data.get('pendingParticipantUids', [])
+        && request.resource.data.get('waitlist', []) == resource.data.get('waitlist', []);
+    }
+
+    function isValidGuestRemove() {
+      let oldGuests = resource.data.get('guestParticipants', {});
+      let newGuests = request.resource.data.get('guestParticipants', {});
+      let guestDiff = newGuests.diff(oldGuests);
+
+      return isHost()
+        && activityGuestHostFieldsUnchanged()
+        && guestDiff.removedKeys().size() == 1
+        && guestDiff.addedKeys().size() == 0
+        && guestDiff.changedKeys().size() == 0
+        && request.resource.data.currentPlayers == resource.data.currentPlayers - 1
+        && request.resource.data.currentPlayers >= 0
+        && participantListsEqual()
+        && pendingListsEqual()
+        && request.resource.data.get('pendingParticipantUids', [])
+          == resource.data.get('pendingParticipantUids', [])
+        && request.resource.data.get('waitlist', []) == resource.data.get('waitlist', []);
+    }
+
     function isValidActivityCreate() {
       return request.resource.data.hostUid == request.auth.uid
         && request.resource.data.maxSlots is number
@@ -236,7 +298,12 @@ service cloud.firestore {
         && request.resource.data.sessionStartsAt > request.time
         && request.resource.data.sessionEndsAt is timestamp
         && request.resource.data.sessionEndsAt > request.time
-        && isValidActivityAudienceOnCreate();
+        && isValidActivityAudienceOnCreate()
+        && request.resource.data.get('guestParticipants', {}).size() == 0
+        && (
+          request.resource.data.get('allowGuestSignupBy', 'none') == 'none'
+          || request.resource.data.get('allowGuestSignupBy', 'none') == 'host_only'
+        );
     }
 
     function isCommunityMember(communityId) {
@@ -419,6 +486,8 @@ service cloud.firestore {
         || isValidCancelPending()
         || isValidHostApprove()
         || isValidHostReject()
+        || isValidGuestAdd()
+        || isValidGuestRemove()
       );
       allow delete: if isSignedIn() && resource.data.hostUid == request.auth.uid;
     }

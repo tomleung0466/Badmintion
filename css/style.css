@@ -2255,6 +2255,77 @@ button:hover {
   }
 }
 
+.publish-guest-signup-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.75rem;
+  background: var(--muji-soft);
+  cursor: pointer;
+}
+
+.publish-guest-signup-input {
+  margin-right: 0.35rem;
+}
+
+.publish-guest-signup-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--muji-text);
+}
+
+.publish-guest-signup-desc {
+  font-size: 9px;
+  line-height: 1.45;
+  letter-spacing: 0.03em;
+  color: var(--muji-muted);
+}
+
+.participant-proxy-tag,
+.session-manage-guest-tag {
+  display: inline-block;
+  margin-left: 0.25rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 9999px;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: var(--muji-muted);
+  vertical-align: middle;
+}
+
+.host-manage-add-guest-wrap {
+  margin-bottom: 0.75rem;
+}
+
+.host-manage-add-guest-btn {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--muji-border);
+  border-radius: 0.75rem;
+  background: var(--muji-card);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--muji-text);
+}
+
+.host-manage-add-guest-hint {
+  margin: 0.35rem 0 0;
+  font-size: 9px;
+  line-height: 1.45;
+  color: var(--muji-muted);
+}
+
+.session-manage-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
 .publish-community-wrap {
   margin-top: 0.75rem;
 }

@@ -569,6 +569,11 @@
                             <p class="publish-community-hint" data-i18n="publish.communityHint">此場次只會顯示在社群頁面，大廳不會出現。</p>
                         </div>
                     </fieldset>
+                    <label class="publish-guest-signup-option">
+                        <input type="checkbox" id="form-allow-guest-signup" class="publish-guest-signup-input">
+                        <span class="publish-guest-signup-label" data-i18n="publish.allowGuestSignup">允許代報名（幫無 App 波友留位）</span>
+                        <span class="publish-guest-signup-desc" data-i18n="publish.allowGuestSignupDesc">場主可在場次管理為朋友留位，對方無需安裝 App</span>
+                    </label>
                     <button type="submit" class="publish-submit-btn">
                         確認發佈
                     </button>
@@ -806,6 +811,10 @@
                 <button type="button" id="host-manage-close" class="session-modal-close" aria-label="關閉">✕</button>
             </div>
             <p class="session-manage-meta" id="host-manage-slots"></p>
+            <div id="host-manage-add-guest-wrap" class="host-manage-add-guest-wrap hidden">
+                <button type="button" id="host-manage-add-guest-btn" class="host-manage-add-guest-btn" data-i18n="guest.addBtn">幫朋友留位</button>
+                <p class="host-manage-add-guest-hint" data-i18n="guest.addHint">為沒有 App 的波友留位，會佔用名額</p>
+            </div>
             <div id="host-manage-share-wrap" class="host-manage-share hidden">
                 <p class="host-manage-share-kicker">🔒 私人球局專屬連結</p>
                 <p class="host-manage-share-hint">此球局不會顯示在大廳，複製連結分享給想邀請的朋友。</p>
@@ -818,6 +827,21 @@
                 <p class="host-manage-delete-hint">刪除後此場次將無法復原，已報名球友亦無法再查看。</p>
                 <button type="button" id="host-manage-delete-btn" class="host-manage-delete-btn">刪除此場次</button>
             </div>
+        </div>
+    </div>
+
+    <!-- 代報名 -->
+    <div id="add-guest-modal" class="hidden fixed inset-0 z-[93] flex items-end justify-center bg-black/45 p-4 sm:items-center">
+        <div class="session-modal-panel w-full max-w-md rounded-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl">
+            <h4 class="confirm-dialog-title" data-i18n="guest.addTitle">幫朋友留位</h4>
+            <p class="confirm-dialog-text" data-i18n="guest.addDesc">輸入球友名稱，對方無需安裝 App 即可佔位。</p>
+            <label for="add-guest-name" class="feedback-field-label" data-i18n="guest.nameLabel">球友名稱</label>
+            <input type="text" id="add-guest-name" maxlength="20" class="profile-field-input mb-3" data-i18n-placeholder="guest.namePlaceholder" placeholder="例如：阿強">
+            <label for="add-guest-note" class="feedback-field-label" data-i18n="guest.noteLabel">備註（選填）</label>
+            <input type="text" id="add-guest-note" maxlength="80" class="profile-field-input mb-3" data-i18n-placeholder="guest.notePlaceholder" placeholder="例如：幫朋友留位">
+            <p id="add-guest-status" class="feedback-status hidden" aria-live="polite"></p>
+            <button type="button" id="add-guest-submit-btn" class="confirm-dialog-primary-btn" data-i18n="guest.addSubmit">確認留位</button>
+            <button type="button" id="add-guest-cancel-btn" class="confirm-dialog-cancel-btn" data-i18n="common.cancel">取消</button>
         </div>
     </div>
 

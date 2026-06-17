@@ -469,9 +469,36 @@
                     uid,
                     name,
                     photoURL,
-                    initial: name.charAt(0) || '友'
+                    initial: name.charAt(0) || '友',
+                    isGuest: false
                 };
             });
+        }
+
+        function getActivityGuests(match) {
+            const guests = match?.guestParticipants && typeof match.guestParticipants === 'object'
+                ? match.guestParticipants
+                : {};
+            return Object.entries(guests).map(([guestId, profile]) => {
+                const name = String(profile?.displayName || '').trim() || '波友';
+                return {
+                    guestId,
+                    uid: null,
+                    name,
+                    photoURL: null,
+                    initial: name.charAt(0) || '友',
+                    isGuest: true
+                };
+            });
+        }
+
+        function getActivityRoster(match) {
+            return [...getActivityParticipants(match), ...getActivityGuests(match)];
+        }
+
+        function allowsGuestSignupForActivity(match) {
+            const mode = match?.allowGuestSignupBy || 'none';
+            return mode === 'host_only' || mode === 'host_and_participants';
         }
 
         function getActivityTimeCompactLabel(match) {
@@ -521,7 +548,7 @@
         }
 
         function renderParticipantsCompact(match) {
-            const participants = getActivityParticipants(match);
+            const participants = getActivityRoster(match);
             if (!participants.length) return '';
 
             const maxShow = 3;
@@ -546,7 +573,7 @@
         }
 
         function renderParticipantsBlock(match) {
-            const participants = getActivityParticipants(match);
+            const participants = getActivityRoster(match);
             if (!participants.length) return '';
 
             const chips = participants.map(participant => {
@@ -554,12 +581,18 @@
                 const avatarHtml = src
                     ? `<img src="${src}" alt="${escapeHtml(participant.name)}" class="participant-avatar-image" referrerpolicy="no-referrer" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'participant-avatar-initial',textContent:'${escapeHtml(participant.initial)}'}))">`
                     : `<span class="participant-avatar-initial">${escapeHtml(participant.initial)}</span>`;
-                const tooltip = formatAttendanceTooltip(participant.name, participant.uid);
+                const tooltip = participant.isGuest
+                    ? `${participant.name} · ${i18n('match.guestProxyTag')}`
+                    : formatAttendanceTooltip(participant.name, participant.uid);
+                const proxyTag = participant.isGuest
+                    ? `<span class="participant-proxy-tag">${escapeHtml(i18n('match.guestProxyTag'))}</span>`
+                    : '';
                 return `
                     <div class="participant-chip" title="${escapeHtml(tooltip)}">
                         <div class="participant-chip-inner">
                             <div class="participant-avatar" aria-hidden="true">${avatarHtml}</div>
                             <span class="participant-name">${escapeHtml(participant.name)}</span>
+                            ${proxyTag}
                             <span class="participant-attendance-tip">${escapeHtml(tooltip)}</span>
                         </div>
                     </div>
@@ -1173,6 +1206,8 @@
             updateVenueFieldState();
             const publicVisibility = document.querySelector('input[name="form-visibility"][value="public"]');
             if (publicVisibility) publicVisibility.checked = true;
+            const allowGuestSignup = document.getElementById('form-allow-guest-signup');
+            if (allowGuestSignup) allowGuestSignup.checked = false;
             const communityInput = document.getElementById('form-community');
             if (communityInput) communityInput.value = '';
             const communityText = document.getElementById('form-community-text');
@@ -2570,6 +2605,7 @@
 
         let currentHostPaymentActivityId = null;
         let currentHostManageActivityId = null;
+        let currentHostManageActivity = null;
 
         async function closeHostPaymentInfoModal() {
             const modal = document.getElementById('host-payment-info-modal');
@@ -2691,6 +2727,219 @@
             window.open(url, '_blank', 'noopener,noreferrer');
         };
 
+        function renderHostManageGuestRow(guest, { activityId } = {}) {
+            const name = escapeHtml(guest.name || '波友');
+            const guestId = escapeHtml(guest.guestId || '');
+            return `
+                <div class="session-manage-item">
+                    <div class="session-manage-user">
+                        <div class="session-manage-avatar">
+                            <span class="session-manage-avatar-initial">${escapeHtml((guest.name || '友').charAt(0))}</span>
+                        </div>
+                        <div class="session-manage-name-wrap">
+                            <span class="session-manage-name">${name}</span>
+                            <span class="session-manage-guest-tag">${escapeHtml(i18n('match.guestProxyTag'))}</span>
+                        </div>
+                    </div>
+                    <button type="button" class="session-manage-btn session-manage-btn--reject" onclick="handleRemoveGuestParticipant('${escapeHtml(activityId)}', '${guestId}')">${escapeHtml(i18n('guest.remove'))}</button>
+                </div>
+            `;
+        }
+
+        function renderHostManageContent(activity) {
+            const activityId = activity.firestoreId || activity.id;
+            const modal = document.getElementById('host-manage-modal');
+            const subtitle = document.getElementById('host-manage-subtitle');
+            const slotsEl = document.getElementById('host-manage-slots');
+            const shareWrap = document.getElementById('host-manage-share-wrap');
+            const shareUrlInput = document.getElementById('host-manage-share-url');
+            const listEl = document.getElementById('host-manage-participants');
+            const emptyEl = document.getElementById('host-manage-empty');
+            const addGuestWrap = document.getElementById('host-manage-add-guest-wrap');
+            if (!listEl) return;
+
+            const maxSlots = Number(activity.maxSlots ?? 6);
+            const currentPlayers = Number(activity.currentPlayers ?? 0);
+            const pendingList = getPendingParticipants(activity);
+            const approvedList = getActivityParticipants(activity);
+            const guestList = getActivityGuests(activity);
+            const canAddGuest = allowsGuestSignupForActivity(activity) && currentPlayers < maxSlots;
+
+            if (subtitle) {
+                subtitle.textContent = `${activity.venue || ''} · ${activity.region || ''}`;
+            }
+            if (slotsEl) {
+                slotsEl.textContent = i18n('guest.manageSlots', {
+                    current: currentPlayers,
+                    max: maxSlots,
+                    pending: pendingList.length
+                });
+            }
+
+            if (shareWrap && shareUrlInput) {
+                const isPrivate = activity.isPrivate === true;
+                shareWrap.classList.toggle('hidden', !isPrivate);
+                shareUrlInput.value = isPrivate ? buildPrivateShareUrl(activityId) : '';
+            }
+
+            if (addGuestWrap) {
+                addGuestWrap.classList.toggle('hidden', !canAddGuest);
+            }
+
+            const approvedHtml = approvedList.length
+                ? `<p class="session-manage-group-label">${i18n('guest.approvedGroup')}</p>${approvedList.map(p => renderHostManageParticipantRow(p, { pending: false, activityId })).join('')}`
+                : '';
+            const pendingHtml = pendingList.length
+                ? `<p class="session-manage-group-label">${i18n('guest.pendingGroup')}</p>${pendingList.map(p => renderHostManageParticipantRow(p, { pending: true, activityId })).join('')}`
+                : '';
+            const guestHtml = guestList.length
+                ? `<p class="session-manage-group-label">${i18n('guest.listLabel')}</p>${guestList.map(g => renderHostManageGuestRow(g, { activityId })).join('')}`
+                : '';
+
+            listEl.innerHTML = pendingHtml + approvedHtml + guestHtml;
+
+            if (emptyEl) {
+                const isEmpty = !pendingList.length && !approvedList.length && !guestList.length;
+                emptyEl.classList.toggle('hidden', !isEmpty);
+            }
+        }
+
+        async function openAddGuestModal() {
+            if (!currentHostManageActivityId) return;
+            const modal = document.getElementById('add-guest-modal');
+            const nameInput = document.getElementById('add-guest-name');
+            const noteInput = document.getElementById('add-guest-note');
+            const statusEl = document.getElementById('add-guest-status');
+            if (!modal) return;
+
+            if (nameInput) nameInput.value = '';
+            if (noteInput) noteInput.value = '';
+            statusEl?.classList.add('hidden');
+
+            if (typeof window.openMujiOverlay === 'function') {
+                await window.openMujiOverlay(modal);
+            } else {
+                modal.classList.remove('hidden');
+            }
+            nameInput?.focus();
+        }
+
+        async function closeAddGuestModal() {
+            const modal = document.getElementById('add-guest-modal');
+            if (!modal) return;
+            if (typeof window.closeMujiOverlay === 'function') {
+                await window.closeMujiOverlay(modal);
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        async function submitAddGuestParticipant() {
+            const activityId = currentHostManageActivityId;
+            if (!activityId) return;
+
+            const nameInput = document.getElementById('add-guest-name');
+            const noteInput = document.getElementById('add-guest-note');
+            const statusEl = document.getElementById('add-guest-status');
+            const submitBtn = document.getElementById('add-guest-submit-btn');
+            const displayName = nameInput?.value?.trim() || '';
+            const note = noteInput?.value?.trim() || '';
+
+            if (!displayName) {
+                if (statusEl) {
+                    statusEl.textContent = i18n('guest.nameRequired');
+                    statusEl.classList.remove('hidden');
+                }
+                return;
+            }
+
+            const bridgeReady = await waitForDbBridge();
+            if (!bridgeReady || typeof window.dbAddGuestParticipant !== 'function') {
+                i18nAlert('alert.dbOffline');
+                return;
+            }
+
+            const originalText = submitBtn?.textContent;
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = i18n('guest.adding');
+            }
+
+            try {
+                await window.dbAddGuestParticipant(activityId, { displayName, note });
+                await closeAddGuestModal();
+                await loadActivitiesFromCloud();
+
+                let activity = matches.find(
+                    m => String(m.firestoreId) === String(activityId) || String(m.id) === String(activityId)
+                );
+                if (!activity && typeof window.dbFetchActivityById === 'function') {
+                    activity = await window.dbFetchActivityById(activityId);
+                }
+                if (activity) {
+                    currentHostManageActivity = activity;
+                    renderHostManageContent(activity);
+                }
+
+                await renderMatches();
+                await renderMyActivities();
+                i18nAlert('guest.added');
+            } catch (err) {
+                console.error('代報名失敗:', err);
+                let message = i18n('guest.addFailed');
+                if (err?.code === 'guest/duplicate-name') message = i18n('guest.duplicateName');
+                else if (err?.code === 'guest/limit-reached') message = i18n('guest.limitReached');
+                else if (err?.code === 'activity/full') message = i18n('match.fullLabel');
+                else if (err?.code === 'guest/not-allowed') message = i18n('guest.notAllowed');
+                if (statusEl) {
+                    statusEl.textContent = message;
+                    statusEl.classList.remove('hidden');
+                } else {
+                    i18nAlert('guest.addFailed');
+                }
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText || i18n('guest.addSubmit');
+                }
+            }
+        }
+
+        async function handleRemoveGuestParticipant(activityId, guestId) {
+            if (!activityId || !guestId) return;
+            if (!confirm(i18n('guest.removeConfirm'))) return;
+
+            const bridgeReady = await waitForDbBridge();
+            if (!bridgeReady || typeof window.dbRemoveGuestParticipant !== 'function') {
+                i18nAlert('alert.dbOffline');
+                return;
+            }
+
+            try {
+                await window.dbRemoveGuestParticipant(activityId, guestId);
+                await loadActivitiesFromCloud();
+
+                let activity = matches.find(
+                    m => String(m.firestoreId) === String(activityId) || String(m.id) === String(activityId)
+                );
+                if (!activity && typeof window.dbFetchActivityById === 'function') {
+                    activity = await window.dbFetchActivityById(activityId);
+                }
+                if (activity) {
+                    currentHostManageActivity = activity;
+                    renderHostManageContent(activity);
+                }
+
+                await renderMatches();
+                await renderMyActivities();
+            } catch (err) {
+                console.error('移除代報名失敗:', err);
+                i18nAlert('guest.removeFailed');
+            }
+        }
+
+        window.handleRemoveGuestParticipant = handleRemoveGuestParticipant;
+
         function renderHostManageParticipantRow(participant, { pending = false, activityId } = {}) {
             const name = escapeHtml(participant.name || '波友');
             const uid = escapeHtml(participant.uid || '');
@@ -2746,12 +2995,7 @@
             }
 
             const modal = document.getElementById('host-manage-modal');
-            const subtitle = document.getElementById('host-manage-subtitle');
-            const slotsEl = document.getElementById('host-manage-slots');
-            const shareWrap = document.getElementById('host-manage-share-wrap');
-            const shareUrlInput = document.getElementById('host-manage-share-url');
             const listEl = document.getElementById('host-manage-participants');
-            const emptyEl = document.getElementById('host-manage-empty');
             if (!modal || !listEl) return;
 
             currentHostManageActivityId = activityId;
@@ -2777,37 +3021,8 @@
                 return;
             }
 
-            const maxSlots = Number(activity.maxSlots ?? 6);
-            const currentPlayers = Number(activity.currentPlayers ?? 0);
-            const pendingList = getPendingParticipants(activity);
-            const approvedList = getActivityParticipants(activity);
-
-            if (subtitle) {
-                subtitle.textContent = `${activity.venue || ''} · ${activity.region || ''}`;
-            }
-            if (slotsEl) {
-                slotsEl.textContent = `已批准 ${currentPlayers} / ${maxSlots} 位 · ${pendingList.length} 人待批准`;
-            }
-
-            if (shareWrap && shareUrlInput) {
-                const isPrivate = activity.isPrivate === true;
-                shareWrap.classList.toggle('hidden', !isPrivate);
-                shareUrlInput.value = isPrivate ? buildPrivateShareUrl(activityId) : '';
-            }
-
-            const approvedHtml = approvedList.length
-                ? `<p class="session-manage-group-label">已批准</p>${approvedList.map(p => renderHostManageParticipantRow(p, { pending: false, activityId })).join('')}`
-                : '';
-            const pendingHtml = pendingList.length
-                ? `<p class="session-manage-group-label">待批准</p>${pendingList.map(p => renderHostManageParticipantRow(p, { pending: true, activityId })).join('')}`
-                : '';
-
-            listEl.innerHTML = pendingHtml + approvedHtml;
-
-            if (emptyEl) {
-                const isEmpty = !pendingList.length && !approvedList.length;
-                emptyEl.classList.toggle('hidden', !isEmpty);
-            }
+            currentHostManageActivity = activity;
+            renderHostManageContent(activity);
 
             if (typeof window.openMujiOverlay === 'function') {
                 await window.openMujiOverlay(modal);
@@ -2960,6 +3175,14 @@
                 copyShareUrlToClipboard(document.getElementById('host-manage-share-url'));
             });
             document.getElementById('host-manage-delete-btn')?.addEventListener('click', handleDeleteHostedActivity);
+            document.getElementById('host-manage-add-guest-btn')?.addEventListener('click', openAddGuestModal);
+            document.getElementById('add-guest-submit-btn')?.addEventListener('click', submitAddGuestParticipant);
+            document.getElementById('add-guest-cancel-btn')?.addEventListener('click', closeAddGuestModal);
+            document.getElementById('add-guest-modal')?.addEventListener('click', event => {
+                if (event.target.id === 'add-guest-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
+                    closeAddGuestModal();
+                }
+            });
             document.getElementById('delete-activity-confirm-btn')?.addEventListener('click', confirmDeleteHostedActivity);
             document.getElementById('delete-activity-cancel-btn')?.addEventListener('click', closeDeleteActivityConfirmModal);
             document.getElementById('delete-activity-confirm-modal')?.addEventListener('click', event => {
@@ -3361,6 +3584,8 @@
                 audience: isCommunity ? 'community' : (isPrivate ? 'private' : 'public'),
                 communityId: isCommunity ? formSelectedCommunityId : '',
                 communityName: isCommunity ? formSelectedCommunityName : '',
+                allowGuestSignupBy: document.getElementById('form-allow-guest-signup')?.checked ? 'host_only' : 'none',
+                guestParticipants: {},
                 region,
                 venue: finalVenue,
                 playDate,

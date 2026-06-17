@@ -236,9 +236,84 @@ function buildActivityPublishPayload(activityData = {}, user) {
         participantUids: [],
         pendingParticipantUids: [],
         waitlist: [],
+        guestParticipants: {},
+        allowGuestSignupBy: normalizeAllowGuestSignupBy(activityData.allowGuestSignupBy),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
     };
+}
+
+const GUEST_SIGNUP_MAX_PER_USER = 2;
+const GUEST_DISPLAY_NAME_MAX = 20;
+const GUEST_NOTE_MAX = 80;
+
+function normalizeAllowGuestSignupBy(value) {
+    const raw = String(value || "none");
+    if (raw === "host_only" || raw === "host_and_participants") return raw;
+    return "none";
+}
+
+function getGuestParticipantsMap(activity = {}) {
+    const guests = activity.guestParticipants;
+    return guests && typeof guests === "object" ? guests : {};
+}
+
+function generateGuestParticipantId() {
+    return `guest_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function countGuestsAddedBy(activity = {}, uid = "") {
+    return Object.values(getGuestParticipantsMap(activity))
+        .filter(guest => guest?.addedByUid === uid).length;
+}
+
+function normalizeGuestDisplayName(raw) {
+    const name = String(raw || "").trim();
+    if (!name) {
+        const error = new Error("請輸入球友名稱");
+        error.code = "guest/invalid-name";
+        throw error;
+    }
+    if (name.length > GUEST_DISPLAY_NAME_MAX) {
+        const error = new Error(`名稱不能超過 ${GUEST_DISPLAY_NAME_MAX} 字`);
+        error.code = "guest/invalid-name";
+        throw error;
+    }
+    return name;
+}
+
+function assertGuestNameNotDuplicate(activity = {}, displayName = "") {
+    const normalized = displayName.trim().toLowerCase();
+    const guests = Object.values(getGuestParticipantsMap(activity));
+    const participants = activity.participants && typeof activity.participants === "object"
+        ? activity.participants
+        : {};
+    const participantUids = Array.isArray(activity.participantUids) ? activity.participantUids : [];
+
+    const existingNames = [
+        ...guests.map(guest => String(guest.displayName || "").trim().toLowerCase()),
+        ...participantUids.map(uid => String(participants[uid]?.displayName || "").trim().toLowerCase())
+    ].filter(Boolean);
+
+    if (existingNames.includes(normalized)) {
+        const error = new Error("此場次已有同名球友");
+        error.code = "guest/duplicate-name";
+        throw error;
+    }
+}
+
+function assertHostCanManageGuests(activity = {}, user) {
+    const mode = normalizeAllowGuestSignupBy(activity.allowGuestSignupBy);
+    if (mode === "none") {
+        const error = new Error("此場次未開放代報名");
+        error.code = "guest/not-allowed";
+        throw error;
+    }
+    if (activity.hostUid !== user.uid) {
+        const error = new Error("只有場主可以代報名");
+        error.code = "guest/not-host";
+        throw error;
+    }
 }
 
 function byId(id) {
@@ -971,6 +1046,128 @@ window.dbJoinWaitlist = async function dbJoinWaitlist(activityData) {
         });
     } catch (err) {
         console.error("加入後補名單失敗:", err);
+        throw err;
+    }
+};
+
+window.dbAddGuestParticipant = async function dbAddGuestParticipant(activityId, payload = {}) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入後再代報名");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+
+        const id = String(activityId || "").trim();
+        if (!id) {
+            const error = new Error("缺少 Firestore 場次 ID");
+            error.code = "activity/missing-firestore-id";
+            throw error;
+        }
+
+        const displayName = normalizeGuestDisplayName(payload.displayName);
+        const note = String(payload.note || "").trim().slice(0, GUEST_NOTE_MAX);
+        const activityRef = doc(db, "activities", id);
+        const activitySnap = await getDoc(activityRef);
+        if (!activitySnap.exists()) {
+            const error = new Error("場次不存在");
+            error.code = "activity/not-found";
+            throw error;
+        }
+
+        const activity = activitySnap.data();
+        assertActivityNotEnded(activity);
+        assertHostCanManageGuests(activity, user);
+
+        if (countGuestsAddedBy(activity, user.uid) >= GUEST_SIGNUP_MAX_PER_USER) {
+            const error = new Error(`每場最多代報 ${GUEST_SIGNUP_MAX_PER_USER} 人`);
+            error.code = "guest/limit-reached";
+            throw error;
+        }
+
+        const currentPlayers = Number(activity.currentPlayers ?? 0);
+        const maxSlots = Number(activity.maxSlots ?? 6);
+        if (currentPlayers >= maxSlots) {
+            const error = new Error("場次已滿額");
+            error.code = "activity/full";
+            throw error;
+        }
+
+        assertGuestNameNotDuplicate(activity, displayName);
+
+        const guestId = generateGuestParticipantId();
+        const guestEntry = {
+            id: guestId,
+            displayName,
+            note,
+            addedByUid: user.uid,
+            addedByRole: "host",
+            status: "reserved",
+            createdAt: serverTimestamp()
+        };
+
+        await updateDoc(activityRef, {
+            [`guestParticipants.${guestId}`]: guestEntry,
+            currentPlayers: currentPlayers + 1,
+            updatedAt: serverTimestamp()
+        });
+
+        return { guestId, guest: guestEntry };
+    } catch (err) {
+        console.error("代報名失敗:", err);
+        throw err;
+    }
+};
+
+window.dbRemoveGuestParticipant = async function dbRemoveGuestParticipant(activityId, guestId) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            const error = new Error("請先登入");
+            error.code = "auth/not-signed-in";
+            throw error;
+        }
+
+        const id = String(activityId || "").trim();
+        const guestKey = String(guestId || "").trim();
+        if (!id || !guestKey) {
+            const error = new Error("缺少場次或代報名資料");
+            error.code = "guest/missing-id";
+            throw error;
+        }
+
+        const activityRef = doc(db, "activities", id);
+        const activitySnap = await getDoc(activityRef);
+        if (!activitySnap.exists()) {
+            const error = new Error("場次不存在");
+            error.code = "activity/not-found";
+            throw error;
+        }
+
+        const activity = activitySnap.data();
+        if (activity.hostUid !== user.uid) {
+            const error = new Error("只有場主可以移除代報名");
+            error.code = "guest/not-host";
+            throw error;
+        }
+
+        const guests = getGuestParticipantsMap(activity);
+        if (!guests[guestKey]) {
+            const error = new Error("找不到此代報名球友");
+            error.code = "guest/not-found";
+            throw error;
+        }
+
+        await updateDoc(activityRef, {
+            [`guestParticipants.${guestKey}`]: deleteField(),
+            currentPlayers: Math.max(0, Number(activity.currentPlayers ?? 0) - 1),
+            updatedAt: serverTimestamp()
+        });
+
+        return { removed: true, guestId: guestKey };
+    } catch (err) {
+        console.error("移除代報名失敗:", err);
         throw err;
     }
 };
