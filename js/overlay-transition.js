@@ -3,9 +3,8 @@
  * 供分頁切換、彈窗、底部面板共用。
  */
 (function initMujiTransitions(global) {
-    const OVERLAY_MS = 300;
-    const PAGE_LEAVE_MS = 300;
-    const PAGE_ENTER_MS = 400;
+    const OVERLAY_MS = 220;
+    const PAGE_CROSSFADE_MS = 180;
 
     const OVERLAY_VARIANTS = {
         'disclaimer-modal': 'modal',
@@ -19,6 +18,7 @@
         'version-modal': 'modal',
         'language-modal': 'modal',
         'font-size-modal': 'modal',
+        'appearance-modal': 'modal',
         'feedback-modal': 'modal',
         'private-share-modal': 'modal',
         'host-qr-crop-modal': 'modal',
@@ -412,6 +412,34 @@
         }
     }
 
+    async function playPageCrossfade(fromEl, toEl) {
+        if (!toEl) return;
+
+        if (!fromEl || prefersReducedMotion()) {
+            fromEl?.classList.add('hidden');
+            fromEl?.classList.remove('app-page--leaving', 'app-page--entering', 'app-page--active');
+            toEl.classList.remove('hidden', 'app-page--preenter', 'app-page--leaving', 'app-page--entering');
+            toEl.classList.add('app-page--active');
+            return;
+        }
+
+        toEl.classList.remove('hidden', 'app-page--preenter');
+        fromEl.classList.remove('app-page--active');
+        toEl.classList.add('app-page--entering');
+        fromEl.classList.add('app-page--leaving');
+        void toEl.offsetWidth;
+
+        await Promise.all([
+            waitAnimation(fromEl, 'mujiPageFadeOut', PAGE_CROSSFADE_MS + 30),
+            waitAnimation(toEl, 'mujiPageFadeIn', PAGE_CROSSFADE_MS + 30)
+        ]);
+
+        fromEl.classList.remove('app-page--leaving');
+        fromEl.classList.add('hidden');
+        toEl.classList.remove('app-page--entering');
+        toEl.classList.add('app-page--active');
+    }
+
     async function playPageEnter(pageEl) {
         if (!pageEl || prefersReducedMotion()) {
             pageEl?.classList.add('app-page--active');
@@ -421,7 +449,7 @@
         pageEl.classList.remove('app-page--active', 'hidden');
         pageEl.classList.add('app-page--entering');
         void pageEl.offsetWidth;
-        await waitAnimation(pageEl, 'mujiPageEnter', PAGE_ENTER_MS + 20);
+        await waitAnimation(pageEl, 'mujiPageFadeIn', PAGE_CROSSFADE_MS + 30);
         pageEl.classList.remove('app-page--entering');
         pageEl.classList.add('app-page--active');
     }
@@ -432,16 +460,17 @@
         pageEl.classList.remove('app-page--active');
         pageEl.classList.add('app-page--leaving');
         void pageEl.offsetWidth;
-        await waitAnimation(pageEl, 'mujiPageLeave', PAGE_LEAVE_MS + 20);
+        await waitAnimation(pageEl, 'mujiPageFadeOut', PAGE_CROSSFADE_MS + 30);
         pageEl.classList.remove('app-page--leaving');
         pageEl.classList.add('hidden');
     }
 
-    global.MUJI_TRANSITION_MS = { OVERLAY_MS, PAGE_LEAVE_MS, PAGE_ENTER_MS };
+    global.MUJI_TRANSITION_MS = { OVERLAY_MS, PAGE_CROSSFADE_MS };
     global.openMujiOverlay = openMujiOverlay;
     global.closeMujiOverlay = closeMujiOverlay;
     global.showPageVeil = showPageVeil;
     global.hidePageVeil = hidePageVeil;
+    global.playPageCrossfade = playPageCrossfade;
     global.playPageEnter = playPageEnter;
     global.playPageLeave = playPageLeave;
     global.prefersReducedMotion = prefersReducedMotion;

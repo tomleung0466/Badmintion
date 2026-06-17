@@ -10,6 +10,19 @@
   --muji-border: #e5e5e5;
   --muji-soft: #f4f4f2;
   --muji-hover: #e9e9e6;
+  --muji-overlay-backdrop: rgba(0, 0, 0, 0.45);
+}
+
+html[data-appearance="dark"] {
+  color-scheme: dark;
+  --muji-bg: #111111;
+  --muji-card: #1a1a1a;
+  --muji-text: #ececec;
+  --muji-muted: #a3a3a3;
+  --muji-border: #333333;
+  --muji-soft: #262626;
+  --muji-hover: #323232;
+  --muji-overlay-backdrop: rgba(0, 0, 0, 0.62);
 }
 
 html {
@@ -43,12 +56,20 @@ body {
 }
 
 /* PWA 全螢幕：白底延伸至狀態列，內容避開瀏海 / 動態島 */
+.app-body {
+  background: var(--muji-bg) !important;
+  color: var(--muji-text) !important;
+}
+
 .app-shell {
   min-height: 100dvh;
   min-height: -webkit-fill-available;
   padding-top: env(safe-area-inset-top, 0px);
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
+  background: var(--muji-card);
+  border-left: 1px solid var(--muji-border);
+  border-right: 1px solid var(--muji-border);
 }
 
 .app-footer {
@@ -64,7 +85,8 @@ body {
 }
 
 @media (display-mode: standalone) {
-  body {
+  body,
+  .app-body {
     background: var(--muji-card) !important;
   }
 
@@ -177,51 +199,34 @@ button {
 }
 
 .page-transition-veil {
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  z-index: 30;
-  opacity: 0;
-  background: rgba(255, 255, 255, 0.5);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  transition: opacity 300ms ease-in-out;
-}
-
-.page-transition-veil.is-visible {
-  opacity: 1;
+  display: none;
 }
 
 .app-page {
   flex: 1 1 auto;
   width: 100%;
   min-height: 0;
-  will-change: opacity, transform;
 }
 
 .app-page.hidden {
   display: none !important;
 }
 
-@keyframes mujiPageLeave {
+@keyframes mujiPageFadeOut {
   from {
     opacity: 1;
-    transform: scale(1);
   }
   to {
     opacity: 0;
-    transform: scale(0.98);
   }
 }
 
-@keyframes mujiPageEnter {
+@keyframes mujiPageFadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -231,26 +236,21 @@ button {
   z-index: 20;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  animation: mujiPageLeave 300ms ease-in-out forwards;
+  animation: mujiPageFadeOut 180ms ease-out forwards;
   pointer-events: none;
-  transform-origin: center top;
 }
 
 .app-page.app-page--preenter {
   opacity: 0;
-  transform: translateY(20px);
 }
 
 .app-page.app-page--entering {
   opacity: 0;
-  transform: translateY(20px);
-  animation: mujiPageEnter 400ms ease-out forwards;
-  transform-origin: center top;
+  animation: mujiPageFadeIn 180ms ease-out forwards;
 }
 
 .app-page.app-page--active:not(.app-page--leaving):not(.app-page--entering) {
   opacity: 1;
-  transform: none;
 }
 
 /* ── 下拉刷新（首頁／我的場次） ── */
@@ -351,11 +351,9 @@ button {
   z-index: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  background: rgba(0, 0, 0, 0.1);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  background: var(--muji-overlay-backdrop, rgba(0, 0, 0, 0.35));
   opacity: 0;
-  transition: opacity 300ms ease-in-out;
+  transition: opacity 220ms ease-out;
   pointer-events: auto;
 }
 
@@ -374,7 +372,7 @@ button {
   pointer-events: none;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
-  transition: opacity 300ms ease-out, transform 300ms ease-out;
+  transition: opacity 220ms ease-out, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .muji-overlay.is-open .muji-overlay__panel {
@@ -384,13 +382,13 @@ button {
 .muji-overlay--sheet .muji-overlay__panel {
   align-self: end;
   max-width: 28rem;
-  transform: translateY(20px) translateZ(0);
+  transform: translateY(12px) translateZ(0);
   transform-origin: center bottom;
 }
 
 .muji-overlay--modal .muji-overlay__panel {
   align-self: center;
-  transform: scale(0.95) translateY(10px) translateZ(0);
+  transform: scale(0.98) translateY(6px) translateZ(0);
   transform-origin: center center;
 }
 
@@ -2290,19 +2288,19 @@ button:hover {
   display: inline-block;
   max-width: 100%;
   padding: 0.4rem 0.875rem;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--muji-border);
   border-radius: 9999px;
-  background: #fff;
+  background: var(--muji-card);
   font-size: 0.875rem;
   font-weight: 500;
   letter-spacing: 0.05em;
   line-height: 1.625;
-  color: #333333;
+  color: var(--muji-text);
   white-space: nowrap;
 }
 
 .match-card-capsule--time {
-  color: #777777;
+  color: var(--muji-muted);
   white-space: normal;
 }
 
@@ -2322,14 +2320,14 @@ button:hover {
   flex-shrink: 0;
   align-self: flex-start;
   padding: 0.35rem 0.8rem;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--muji-border);
   border-radius: 9999px;
-  background: #fff;
+  background: var(--muji-card);
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.08em;
   line-height: 1.4;
-  color: #777777;
+  color: var(--muji-muted);
   white-space: nowrap;
 }
 
@@ -2341,6 +2339,25 @@ button:hover {
 /* ── 場次卡片精簡列 + 展開詳情 ── */
 .match-card {
   overflow: hidden;
+  background: var(--muji-card);
+  border-color: var(--muji-border);
+}
+
+.match-card:hover {
+  background: var(--muji-hover);
+}
+
+.match-field-label {
+  color: var(--muji-muted);
+}
+
+.match-field-value {
+  color: var(--muji-text);
+  font-weight: 500;
+}
+
+.match-card-divider {
+  border-top: 1px solid var(--muji-border);
 }
 
 .match-card-compact {
@@ -3207,4 +3224,177 @@ button:hover {
   letter-spacing: 0.03em;
   color: #166534;
   text-align: center;
+}
+
+/* ── 外觀主題：共用表面與深色覆寫 ── */
+#loginBtn,
+#auth-logout-btn {
+  background: var(--muji-soft) !important;
+  color: var(--muji-text) !important;
+  border-color: var(--muji-border) !important;
+}
+
+#loginBtn:hover,
+#auth-logout-btn:hover {
+  background: var(--muji-hover) !important;
+}
+
+#page-match h1,
+#page-match .text-\[\#333333\],
+#splash-screen h1 {
+  color: var(--muji-text) !important;
+}
+
+#page-match .text-\[\#777777\] {
+  color: var(--muji-muted) !important;
+}
+
+#page-match .border-\[\#E5E5E5\],
+#page-match .bg-\[\#F9F9F9\] {
+  border-color: var(--muji-border) !important;
+}
+
+#page-match .bg-\[\#F9F9F9\] {
+  background: var(--muji-soft) !important;
+}
+
+#page-match .bg-white {
+  background: var(--muji-card) !important;
+}
+
+.app-footer {
+  background: color-mix(in srgb, var(--muji-card) 92%, transparent) !important;
+  border-color: var(--muji-border) !important;
+  color: var(--muji-muted) !important;
+}
+
+.app-footer button {
+  color: var(--muji-text);
+}
+
+.disclaimer-panel,
+.version-modal-panel,
+.confirm-dialog-panel,
+.payment-sheet-panel,
+.session-modal-panel,
+.muji-overlay__panel .version-modal-panel {
+  background: var(--muji-card) !important;
+  border-color: var(--muji-border) !important;
+}
+
+.region-filter-btn {
+  background: var(--muji-soft);
+  border-color: var(--muji-border);
+  color: var(--muji-muted);
+}
+
+.region-filter-btn.is-active {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+html[data-appearance="dark"] .region-filter-btn.is-active {
+  background: #163321;
+  border-color: #2f6b45;
+  color: #9fe3b3;
+}
+
+.district-picker-btn,
+.publish-picker-btn,
+.publish-time-trigger,
+.matches-load-more-btn,
+.match-book-btn,
+.profile-action-btn,
+.settings-about-btn,
+.confirm-dialog-primary-btn,
+.language-modal-option,
+.disclaimer-ack-btn {
+  background: var(--muji-soft);
+  border-color: var(--muji-border);
+  color: var(--muji-text);
+}
+
+.district-picker-btn:hover,
+.publish-picker-btn:hover,
+.publish-time-trigger:hover,
+.matches-load-more-btn:hover,
+.match-book-btn:hover:not(:disabled),
+.profile-action-btn:hover,
+.settings-about-btn:hover,
+.confirm-dialog-primary-btn:hover,
+.language-modal-option:hover,
+.disclaimer-ack-btn:hover {
+  background: var(--muji-hover);
+}
+
+.language-modal-option.is-active-profile-action,
+.settings-about-btn:focus-visible {
+  background: var(--muji-card);
+  border-color: #c8c8c4;
+}
+
+html[data-appearance="dark"] .language-modal-option.is-active-profile-action {
+  border-color: #555555;
+}
+
+.settings-card,
+#page-profile .bg-white,
+#page-profile .bg-gray-50,
+#page-settings .settings-card {
+  background: var(--muji-card) !important;
+  border-color: var(--muji-border) !important;
+}
+
+html[data-appearance="dark"] #page-profile .text-gray-900,
+html[data-appearance="dark"] #page-profile .text-gray-800,
+html[data-appearance="dark"] #page-profile h1,
+html[data-appearance="dark"] #page-profile h3 {
+  color: var(--muji-text) !important;
+}
+
+html[data-appearance="dark"] #page-profile .text-gray-500,
+html[data-appearance="dark"] #page-profile .text-gray-400 {
+  color: var(--muji-muted) !important;
+}
+
+html[data-appearance="dark"] #page-profile .border-gray-100,
+html[data-appearance="dark"] #page-profile .border-gray-200 {
+  border-color: var(--muji-border) !important;
+}
+
+html[data-appearance="dark"] #page-profile .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--muji-border);
+}
+
+#publish-fab-btn {
+  background: var(--muji-card) !important;
+  color: var(--muji-text) !important;
+  border-color: var(--muji-border) !important;
+}
+
+.pwa-install-hint {
+  background: color-mix(in srgb, var(--muji-card) 92%, transparent);
+  border-color: var(--muji-border);
+}
+
+.profile-field-input,
+.publish-time-input {
+  background: var(--muji-bg);
+  color: var(--muji-text);
+  border-color: var(--muji-border);
+}
+
+html[data-appearance="dark"] .muji-overlay__backdrop,
+html[data-appearance="dark"] #disclaimer-modal,
+html[data-appearance="dark"] #appearance-modal,
+html[data-appearance="dark"] #language-modal,
+html[data-appearance="dark"] #font-size-modal {
+  background: var(--muji-overlay-backdrop) !important;
+}
+
+html[data-appearance="dark"] .payment-new-host-tip {
+  background: #163321;
+  border-color: #2f6b45;
+  color: #9fe3b3;
 }

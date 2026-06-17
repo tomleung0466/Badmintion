@@ -772,6 +772,28 @@ async function closeFontSizeModal() {
 
 window.closeFontSizeModal = closeFontSizeModal;
 
+async function openAppearanceModal() {
+    const modal = document.getElementById('appearance-modal');
+    if (!modal) return;
+    if (typeof window.openMujiOverlay === 'function') {
+        await window.openMujiOverlay(modal);
+    } else {
+        modal.classList.remove('hidden');
+    }
+}
+
+async function closeAppearanceModal() {
+    const modal = document.getElementById('appearance-modal');
+    if (!modal) return;
+    if (typeof window.closeMujiOverlay === 'function') {
+        await window.closeMujiOverlay(modal);
+    } else {
+        modal.classList.add('hidden');
+    }
+}
+
+window.closeAppearanceModal = closeAppearanceModal;
+
 function setFeedbackStatus(message, tone = '') {
     const statusEl = document.getElementById('feedback-status');
     if (!statusEl) return;
@@ -881,11 +903,16 @@ function bindSettingsPageUI() {
     if (typeof window.updateSettingsFontSizeLabel === 'function') {
         window.updateSettingsFontSizeLabel();
     }
+    if (typeof window.updateSettingsAppearanceLabel === 'function') {
+        window.updateSettingsAppearanceLabel();
+    }
     document.getElementById('settings-language-btn')?.addEventListener('click', openLanguageModal);
+    document.getElementById('settings-appearance-btn')?.addEventListener('click', openAppearanceModal);
     document.getElementById('settings-font-size-btn')?.addEventListener('click', openFontSizeModal);
     document.getElementById('settings-version-btn')?.addEventListener('click', openVersionModal);
     document.getElementById('settings-feedback-btn')?.addEventListener('click', openFeedbackModal);
     document.getElementById('language-modal-close')?.addEventListener('click', closeLanguageModal);
+    document.getElementById('appearance-modal-close')?.addEventListener('click', closeAppearanceModal);
     document.getElementById('font-size-modal-close')?.addEventListener('click', closeFontSizeModal);
     document.getElementById('version-modal-close')?.addEventListener('click', closeVersionModal);
     document.getElementById('feedback-submit-btn')?.addEventListener('click', submitFeedback);
@@ -893,6 +920,11 @@ function bindSettingsPageUI() {
     document.getElementById('language-modal')?.addEventListener('click', event => {
         if (event.target.id === 'language-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
             closeLanguageModal();
+        }
+    });
+    document.getElementById('appearance-modal')?.addEventListener('click', event => {
+        if (event.target.id === 'appearance-modal' || event.target.classList.contains('muji-overlay__backdrop')) {
+            closeAppearanceModal();
         }
     });
     document.getElementById('font-size-modal')?.addEventListener('click', event => {
@@ -1334,13 +1366,11 @@ async function playInitialPageEnter() {
     }
 
     page.classList.remove('app-page--preenter');
-    if (typeof window.showPageVeil === 'function') await window.showPageVeil();
     if (typeof window.playPageEnter === 'function') {
         await window.playPageEnter(page);
     } else {
         page.classList.add('app-page--active');
     }
-    if (typeof window.hidePageVeil === 'function') await window.hidePageVeil();
 }
 
 async function switchPage(pageId, options = {}) {
@@ -1360,24 +1390,11 @@ async function switchPage(pageId, options = {}) {
     try {
         if (!animate || !fromEl || fromEl.classList.contains('hidden')) {
             showAppPageInstant(pageId);
-        } else {
-            if (typeof window.showPageVeil === 'function') await window.showPageVeil();
-
-            if (typeof window.playPageLeave === 'function') {
-                await window.playPageLeave(fromEl);
-            } else {
-                fromEl.classList.add('hidden');
-            }
-
-            if (typeof window.playPageEnter === 'function') {
-                await window.playPageEnter(toEl);
-            } else {
-                toEl.classList.remove('hidden');
-                toEl.classList.add('app-page--active');
-            }
+        } else if (typeof window.playPageCrossfade === 'function') {
             currentPageId = pageId;
-
-            if (typeof window.hidePageVeil === 'function') await window.hidePageVeil();
+            await window.playPageCrossfade(fromEl, toEl);
+        } else {
+            showAppPageInstant(pageId);
         }
 
         if (pageId === 'profile' && typeof window.renderMyActivities === 'function') {

@@ -1408,8 +1408,8 @@
             if (!note) return '';
             return `
                         <div class="flex justify-between gap-4">
-                            <span class="text-[#777777] shrink-0">${i18n('match.note')}</span>
-                            <span class="text-right font-medium text-[#333333]">${escapeHtml(note)}</span>
+                            <span class="match-field-label shrink-0">${i18n('match.note')}</span>
+                            <span class="match-field-value text-right">${escapeHtml(note)}</span>
                         </div>`;
         }
 
@@ -1607,7 +1607,7 @@
                     data-book-id="${escapeHtml(String(bookId))}"
                     data-play-date="${escapeHtml(match.playDate || '')}"
                     ${hostOwnAttr}
-                    class="match-card bg-white rounded-xl border border-[#E5E5E5] relative transition-colors hover:bg-[#FCFCFC]${isExpanded ? ' match-card--expanded' : ''}"
+                    class="match-card rounded-xl border relative transition-colors${isExpanded ? ' match-card--expanded' : ''}"
                 >
                     <div class="match-card-compact" role="button" tabindex="0" aria-expanded="${isExpanded ? 'true' : 'false'}">
                         <div class="match-card-compact-top">
@@ -1633,25 +1633,25 @@
                     </div>
 
                     <div class="match-card-details${isExpanded ? '' : ' hidden'}">
-                        <div class="match-card-details-inner border-t border-[#E5E5E5]">
+                        <div class="match-card-details-inner match-card-divider">
                             ${renderHostPublisherBlock(match)}
                             <div class="match-card-details-rows space-y-3 text-sm tracking-[0.05em] leading-relaxed">
                                 <div class="flex justify-between gap-4">
-                                    <span class="text-[#777777]">${i18n('match.location')}</span>
-                                    <span class="text-right font-medium text-[#333333]">${escapeHtml(regionVenue)}</span>
+                                    <span class="match-field-label">${i18n('match.location')}</span>
+                                    <span class="match-field-value text-right">${escapeHtml(regionVenue)}</span>
                                 </div>
                                 ${renderHostNoteRow(match)}
                                 <div class="flex justify-between gap-4">
-                                    <span class="text-[#777777]">${i18n('match.fee')}</span>
-                                    <span class="font-medium text-[#333333]">${i18n('match.feePerPerson', { fee: match.fee })}</span>
+                                    <span class="match-field-label">${i18n('match.fee')}</span>
+                                    <span class="match-field-value">${i18n('match.feePerPerson', { fee: match.fee })}</span>
                                 </div>
                                 <div class="flex justify-between gap-4">
-                                    <span class="text-[#777777]">${i18n('match.skill')}</span>
-                                    <span class="text-right font-medium text-[#333333]">${escapeHtml(getSkillLevelShortLabel(match.skillLevel))}</span>
+                                    <span class="match-field-label">${i18n('match.skill')}</span>
+                                    <span class="match-field-value text-right">${escapeHtml(getSkillLevelShortLabel(match.skillLevel))}</span>
                                 </div>
                                 <div class="flex justify-between gap-4">
-                                    <span class="text-[#777777]">${i18n('match.slotsLabel')}</span>
-                                    <span class="font-medium text-[#333333]">${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}</span>
+                                    <span class="match-field-label">${i18n('match.slotsLabel')}</span>
+                                    <span class="match-field-value">${isFull ? i18n('match.fullLabel') : i18n('match.remaining', { n: remainingSlots })}</span>
                                 </div>
                                 ${renderParticipantsBlock(match)}
                             </div>

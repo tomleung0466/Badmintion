@@ -17,9 +17,24 @@
     <!-- 引入美化畫面的工具 Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="css/style.css">
+    <script>
+        (function applyStoredAppearanceEarly() {
+            try {
+                const preference = localStorage.getItem('plus1_appearance') || 'light';
+                const resolved = preference === 'dark'
+                    || (preference === 'system'
+                        && window.matchMedia
+                        && window.matchMedia('(prefers-color-scheme: dark)').matches)
+                    ? 'dark'
+                    : 'light';
+                document.documentElement.setAttribute('data-appearance', resolved);
+                document.documentElement.setAttribute('data-appearance-preference', preference);
+            } catch (_err) { /* ignore */ }
+        }());
+    </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
 </head>
-<body class="bg-[#F9F9F9] min-h-screen flex justify-center text-[#333333] font-sans">
+<body class="app-body min-h-screen flex justify-center font-sans">
 
     <!-- ==================== App 啟動畫面 (Splash Screen) ==================== -->
     <div id="splash-screen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white opacity-100 transition-opacity duration-1000 ease-out">
@@ -35,7 +50,7 @@
     </div>
 
     <!-- 手機寬度容器 (Uber 極簡風格) -->
-    <div class="app-shell w-full max-w-md bg-white min-h-screen relative flex flex-col border-x border-[#E5E5E5]">
+    <div class="app-shell w-full max-w-md min-h-screen relative flex flex-col">
 
         <div id="pull-refresh-indicator" class="pull-refresh-indicator" aria-hidden="true">
             <span class="pull-refresh-indicator__line" aria-hidden="true"></span>
@@ -306,6 +321,13 @@
                         <span id="settings-language-label" class="settings-about-btn-value">繁體</span>
                     </button>
                     <p class="profile-field-hint settings-language-hint" data-i18n="settings.languageHint">僅切換介面語言，場次內容維持原樣</p>
+                </div>
+                <div class="settings-language-block">
+                    <button type="button" id="settings-appearance-btn" class="settings-about-btn settings-about-btn--single">
+                        <span class="settings-about-btn-label" data-i18n="settings.appearance">外觀</span>
+                        <span id="settings-appearance-label" class="settings-about-btn-value">淺色</span>
+                    </button>
+                    <p class="profile-field-hint settings-language-hint" data-i18n="settings.appearanceHint">切換淺色、深色或跟隨系統</p>
                 </div>
                 <div class="settings-language-block">
                     <button type="button" id="settings-font-size-btn" class="settings-about-btn settings-about-btn--single">
@@ -605,6 +627,24 @@
         </div>
     </div>
 
+    <!-- 外觀 -->
+    <div id="appearance-modal" class="hidden fixed inset-0 z-[92] flex items-end justify-center bg-black/45 p-4 sm:items-center">
+        <div class="version-modal-panel w-full max-w-sm rounded-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl">
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <div>
+                    <h4 class="confirm-dialog-title text-left" data-i18n="settings.appearance">外觀</h4>
+                    <p class="version-modal-current" data-i18n="settings.appearanceHint">切換淺色、深色或跟隨系統</p>
+                </div>
+                <button type="button" id="appearance-modal-close" class="session-modal-close" data-i18n-aria="common.close" aria-label="關閉">✕</button>
+            </div>
+            <div class="language-modal-options" role="radiogroup" data-i18n-aria="settings.appearance" aria-label="外觀">
+                <button type="button" class="language-modal-option" data-appearance-option="light" aria-pressed="true" data-i18n="settings.appearanceLight">淺色</button>
+                <button type="button" class="language-modal-option" data-appearance-option="dark" aria-pressed="false" data-i18n="settings.appearanceDark">深色</button>
+                <button type="button" class="language-modal-option" data-appearance-option="system" aria-pressed="false" data-i18n="settings.appearanceSystem">跟隨系統</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 字體大小 -->
     <div id="font-size-modal" class="hidden fixed inset-0 z-[92] flex items-end justify-center bg-black/45 p-4 sm:items-center">
         <div class="version-modal-panel w-full max-w-sm rounded-2xl border border-[#E5E5E5] bg-white p-5 shadow-2xl">
@@ -789,6 +829,7 @@
     <script src="js/locales/zh-Hans.js"></script>
     <script src="js/i18n.js"></script>
     <script src="js/font-size.js"></script>
+    <script src="js/appearance.js"></script>
     <script src="js/display-name.js"></script>
     <script src="js/overlay-transition.js"></script>
     <script src="js/pwa.js"></script>
