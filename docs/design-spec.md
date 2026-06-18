@@ -2,6 +2,8 @@
 
 修改 UI 時，可直接引用本文件的**區域名稱**、**類名**或**變數名**告訴開發者要改什麼。
 
+功能與業務規則見 [product-spec.md](./product-spec.md)。
+
 ---
 
 ## 一、全局基礎
@@ -62,6 +64,13 @@
 | 地區篩選 | `.region-filter-btn` |
 | 底部導航 | `.app-footer` |
 | 彈窗 | `.confirm-dialog-*`、`.language-modal-option` |
+| 發佈頁可見度 | `.session-visibility-field`、`.session-visibility-option` |
+| 發佈頁場主參與 | `.publish-host-participate-field` |
+| 發佈頁代報名 | `.publish-guest-signup-option`、`.publish-guest-signup-modes` |
+| 社群列表 | `.community-list-item`／`js/communities.js` |
+| 社群詳情 | `.community-detail-card`、`.community-search-*` |
+| 場次管理彈窗 | `.session-manage-*`、`#host-manage-modal` |
+| 代報標籤 | `.session-manage-guest-tag` |
 
 ---
 
@@ -165,13 +174,53 @@
 | 主操作按鈕 | `12px` | 字 `#333`／底 `#F4F4F2` | `.confirm-dialog-primary-btn` |
 | 取消連結 | `10px` | `--muji-muted` | `.confirm-dialog-cancel-btn` |
 
-### 9. 發佈場次頁（仍較多 Tailwind 灰系）
+### 9. 發佈場次頁（`#page-publish`）
 
-| 位置 | 字號 | 顏色 | 說明 |
+| 位置 | 字號 | 顏色 | 類名／說明 |
+|------|------|------|-----------|
+| 表單標籤 | `12px` | `gray-500` | `label`、`.block.text-gray-500` |
+| 數字輸入（名額、費用） | `14px` | 預設黑 | `.publish-number-input` |
+| 滾筒選擇器按鈕 | `14px` | 字 `#333`／底 `#F4F4F2` | `.publish-picker-btn` |
+| 時段預覽 | `12px` | `--muji-muted` | `#timePreview`、`.time-preview` |
+| **球局可見度** | 標題 `12px` | `--muji-text`／`--muji-muted` | `.session-visibility-legend`、`.session-visibility-label`、`.session-visibility-desc` |
+| 可見度選中態 | — | 邊 `#C8C8C4`／底 `#FFF` | `.session-visibility-option:has(:checked)` |
+| 社群選擇區 | `12px` | `gray-500` | `#publish-community-wrap`、`.publish-community-hint` |
+| **場主參與** | 同可見度區塊樣式 | 同上 | `.publish-host-participate-field` |
+| **代報名勾選** | 標題 `12px`／說明 `10px` | `--muji-text`／`--muji-muted` | `.publish-guest-signup-label`、`.publish-guest-signup-desc` |
+| 代報名模式（單選） | `11px` | `--muji-text` | `.publish-guest-signup-mode` |
+| 確認發佈 | `12px` | 字 `#333`／底 `#F4F4F2` | `.publish-submit-btn` |
+
+### 10. 社群頁（`js/communities.js` + `css/style.css`）
+
+| 位置 | 字號 | 顏色 | 類名 |
 |------|------|------|------|
-| 表單標籤 | `12px` | `gray-500` | `label` |
-| 輸入框／選擇器 | `14px` | 預設黑／底 `gray-50` | `text-sm` |
-| 確認發佈按鈕 | — | 見 `.profile-subpanel-btn` | `style.css` |
+| 建立社群按鈕 | `12px` | 字 `#333`／底 `#F4F4F2` | `.community-create-btn` |
+| 社群列表項 | 名稱 `14px`／meta `10px` | `--muji-text`／`--muji-muted` | `.community-list-item__name`、`.community-list-item__meta` |
+| 詳情卡片 | 名稱 `1.125rem`／簡介 `12px` | `--muji-text`／`--muji-muted` | `.community-detail-name`、`.community-detail-desc` |
+| 搜尋邀請區 | 標題 `12px`／提示 `10px` | `--muji-text`／`--muji-muted` | `.community-search-title`、`.community-search-hint` |
+| 搜尋結果列 | 名稱 `14px` | `--muji-text` | `.community-search-result__name` |
+| 邀請橫幅 | `12px` | `--muji-text` | `.community-invite-card` |
+| 成員列 | 名稱 `14px` | `--muji-text` | `.community-member-name` |
+| 踢出按鈕 | `10px` | `#B91C1C` | `.community-member-kick-btn` |
+
+### 11. 場次管理彈窗（場主）
+
+| 位置 | 字號 | 顏色 | 類名 |
+|------|------|------|------|
+| 分組標題 | `10px` | `--muji-muted` | `.session-manage-group-label` |
+| 待審／已批准列 | 名稱 `14px` | `--muji-text` | `.session-manage-name` |
+| 批准／拒絕 | `11px` | 批准 `#166534`／拒絕 `#B91C1C` | `.session-manage-btn--approve`、`.session-manage-btn--reject` |
+| 已批准標籤 | `10px` | `#166534` | `.session-manage-approved-tag` |
+| 代報標籤 | `9px` | `--muji-muted`／底 `--muji-soft` | `.session-manage-guest-tag` |
+| 幫朋友留位 | `11px` | 字 `#333`／底 `#F4F4F2` | `.host-manage-add-guest-btn` |
+
+### 12. 場次卡片標籤（補充）
+
+| 位置 | 字號 | 顏色 | 類名 |
+|------|------|------|------|
+| 社群限定 | `9px` | `--muji-muted` | `.session-community-badge` |
+| 待場主批准（球友視角） | `10px` | 琥珀色系 | `.match-compact-status--pending` |
+| 代報（參加者列表） | `9px` | `--muji-muted` | `.session-manage-guest-tag` |
 
 ---
 
@@ -182,8 +231,10 @@
 把全局次要文字 --muji-muted 從 #777 改成 #888
 場主發佈行 .host-publisher-line 改成 11px，顏色跟地點標籤一樣
 設定頁 .settings-about-btn-label 加大到 12px
+發佈頁場主參與區 .publish-host-participate-field 選中邊框加深
+社群搜尋結果 .community-search-result__name 改成 13px
 ```
 
 ---
 
-*最後更新：2026-06-11*
+*最後更新：2026-06-04 · 對應 App v1.33.1*

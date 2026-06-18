@@ -4,9 +4,17 @@
  * changelog 的 date 請填實際發佈日（YYYY-MM-DD），勿用固定佔位日期
  */
 window.APP_VERSION = {
-    version: '1.33.1',
-    build: 48,
+    version: '1.33.2',
+    build: 49,
     changelog: [
+        {
+            version: '1.33.2',
+            date: '2026-06-04',
+            items: [
+                '修正深色外觀下「我的場次」膠囊與按鈕仍顯示白底',
+                '統一狀態標籤／操作按鈕主題色，並加強按壓時的視覺回饋'
+            ]
+        },
         {
             version: '1.33.1',
             date: '2026-06-04',

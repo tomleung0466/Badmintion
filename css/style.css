@@ -8,9 +8,24 @@
   --muji-text: #333333;
   --muji-muted: #777777;
   --muji-border: #e5e5e5;
+  --muji-border-strong: #c8c8c4;
   --muji-soft: #f4f4f2;
   --muji-hover: #e9e9e6;
+  --muji-pressed: #deded9;
   --muji-overlay-backdrop: rgba(0, 0, 0, 0.45);
+  --muji-badge-pending-bg: #fff7ed;
+  --muji-badge-pending-text: #c2410c;
+  --muji-badge-pending-border: #fed7aa;
+  --muji-badge-success-bg: #f0fdf4;
+  --muji-badge-success-text: #15803d;
+  --muji-badge-success-border: #bbf7d0;
+  --muji-badge-warn-bg: #fffbeb;
+  --muji-badge-warn-text: #b45309;
+  --muji-badge-warn-border: #fde68a;
+  --muji-danger-text: #b91c1c;
+  --muji-danger-border: #fecaca;
+  --muji-danger-surface: #fff5f5;
+  --muji-danger-surface-hover: #fee2e2;
 }
 
 html[data-appearance="dark"] {
@@ -20,9 +35,24 @@ html[data-appearance="dark"] {
   --muji-text: #ececec;
   --muji-muted: #a3a3a3;
   --muji-border: #333333;
+  --muji-border-strong: #4a4a4a;
   --muji-soft: #262626;
   --muji-hover: #323232;
+  --muji-pressed: #404040;
   --muji-overlay-backdrop: rgba(0, 0, 0, 0.62);
+  --muji-badge-pending-bg: #2a1f14;
+  --muji-badge-pending-text: #fdba74;
+  --muji-badge-pending-border: #7c4a1a;
+  --muji-badge-success-bg: #163321;
+  --muji-badge-success-text: #9fe3b3;
+  --muji-badge-success-border: #2f6b45;
+  --muji-badge-warn-bg: #2a2418;
+  --muji-badge-warn-text: #fbbf24;
+  --muji-badge-warn-border: #6b5424;
+  --muji-danger-text: #fca5a5;
+  --muji-danger-border: #7f1d1d;
+  --muji-danger-surface: #2a1818;
+  --muji-danger-surface-hover: #3f1f1f;
 }
 
 html {
@@ -455,7 +485,7 @@ body.muji-overlay-open {
   padding: 1.25rem;
   border: 1px solid var(--muji-border);
   border-radius: 1rem;
-  background: #fff;
+  background: var(--muji-card);
 }
 
 .settings-member-row {
@@ -522,8 +552,8 @@ body.muji-overlay-open {
 }
 
 .settings-logout-btn:hover {
-  background: #fef2f2 !important;
-  color: #991b1b !important;
+  background: var(--muji-danger-surface-hover) !important;
+  color: var(--muji-danger-text) !important;
 }
 
 /* 設定頁：關於與回饋（對齊 profile-action-btn） */
@@ -617,8 +647,8 @@ body.muji-overlay-open {
 }
 
 .language-modal-option.is-active-profile-action {
-  border-color: #c8c8c4;
-  background: #fff;
+  border-color: var(--muji-border-strong);
+  background: var(--muji-card);
 }
 
 .version-modal-current {
@@ -910,7 +940,7 @@ body.publish-page-open {
   padding: 0.5rem 1rem;
   border: 1px solid var(--muji-border);
   border-radius: 9999px;
-  background: #f9fafb;
+  background: var(--muji-soft);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
@@ -919,14 +949,14 @@ body.publish-page-open {
 }
 
 .region-filter-btn:hover:not(.is-active) {
-  background: #f3f4f6;
-  border-color: #e5e7eb;
+  background: var(--muji-hover);
+  border-color: var(--muji-border);
 }
 
 .region-filter-btn.is-active {
-  border-color: #bbf7d0;
-  background: #f0fdf4;
-  color: #166534;
+  border-color: var(--muji-badge-success-border);
+  background: var(--muji-badge-success-bg);
+  color: var(--muji-badge-success-text);
   letter-spacing: 0.12em;
 }
 
@@ -944,18 +974,23 @@ body.publish-page-open {
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--muji-border);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--muji-soft);
   font-size: 0.875rem;
   font-weight: 500;
   letter-spacing: 0.04em;
-  color: #333333;
-  transition: background-color 0.15s ease;
+  color: var(--muji-text);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .district-picker-btn:hover:not(:disabled) {
-  background: var(--muji-soft);
+  background: var(--muji-hover);
+}
+
+.district-picker-btn:active:not(:disabled) {
+  background: var(--muji-pressed);
+  border-color: var(--muji-border-strong);
 }
 
 .district-picker-btn--disabled,
@@ -1348,7 +1383,7 @@ button:hover {
 
 /* 場主 QR Code 裁切 */
 .host-qr-crop-panel {
-  background: #fff;
+  background: var(--muji-card);
 }
 
 .host-qr-crop-close {
@@ -1384,12 +1419,17 @@ button:hover {
 
 .host-qr-crop-btn--ghost {
   border: 1px solid var(--muji-border);
-  background: #fff;
+  background: var(--muji-soft);
   color: var(--muji-muted);
 }
 
 .host-qr-crop-btn--ghost:hover {
-  background: var(--muji-soft);
+  background: var(--muji-hover);
+}
+
+.host-qr-crop-btn--ghost:active {
+  background: var(--muji-pressed);
+  border-color: var(--muji-border-strong);
 }
 
 .host-qr-crop-btn--primary {
@@ -1553,21 +1593,26 @@ button:hover {
   background: var(--muji-hover);
 }
 
+.match-book-btn:active:not(:disabled) {
+  background: var(--muji-pressed);
+  border-color: var(--muji-border-strong);
+}
+
 .match-book-btn-reserved {
-  background: #fff;
-  color: #777777;
+  background: var(--muji-soft);
+  color: var(--muji-muted);
   cursor: default;
 }
 
 .match-book-btn-waitlist {
   background: transparent;
-  color: #777777;
+  color: var(--muji-muted);
 }
 
 .match-book-btn-waitlist.is-active,
 .match-book-btn-waitlist:disabled {
   background: var(--muji-soft);
-  color: #777777;
+  color: var(--muji-muted);
   cursor: default;
 }
 
@@ -1732,7 +1777,7 @@ button:hover {
   padding: 0.75rem;
   border: 1px solid var(--muji-border);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--muji-card);
 }
 
 .payment-qr-heading {
@@ -1784,7 +1829,7 @@ button:hover {
   height: 100%;
   object-fit: contain;
   padding: 0.625rem;
-  background: #fff;
+  background: var(--muji-card);
 }
 
 .payment-qr-action {
@@ -1943,8 +1988,8 @@ button:hover {
 }
 
 .profile-action-btn.is-active-profile-action {
-  border-color: #c8c8c4;
-  background: #fff !important;
+  border-color: var(--muji-border-strong);
+  background: var(--muji-card) !important;
 }
 
 .profile-subpanel {
@@ -1955,7 +2000,7 @@ button:hover {
   padding: 0.875rem;
   border: 1px solid var(--muji-border);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--muji-card);
 }
 
 .profile-subpanel.hidden {
@@ -2080,19 +2125,24 @@ button:hover {
 .profile-delete-account-btn {
   width: 100%;
   padding: 0.625rem 0.75rem;
-  border: 1px solid #fecaca;
+  border: 1px solid var(--muji-danger-border);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--muji-danger-surface);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.06em;
-  color: #b91c1c;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  color: var(--muji-danger-text);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .profile-delete-account-btn:hover:not(:disabled) {
-  background: #fef2f2 !important;
-  color: #991b1b !important;
+  background: var(--muji-danger-surface-hover) !important;
+  color: var(--muji-danger-text) !important;
+}
+
+.profile-delete-account-btn:active:not(:disabled) {
+  background: var(--muji-danger-surface-hover) !important;
+  border-color: var(--muji-danger-border);
 }
 
 .profile-delete-account-btn:disabled {
@@ -2105,17 +2155,22 @@ button:hover {
   padding: 0.625rem 0.75rem;
   border: 1px solid var(--muji-border);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--muji-soft);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
   color: var(--muji-muted);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .profile-logout-btn:hover {
-  background: var(--muji-soft) !important;
+  background: var(--muji-hover) !important;
   color: var(--muji-text) !important;
+}
+
+.profile-logout-btn:active {
+  background: var(--muji-pressed) !important;
+  border-color: var(--muji-border-strong);
 }
 
 /* 本地預覽與上傳遮罩 */
@@ -2810,8 +2865,14 @@ button:hover {
 
 .private-share-done-btn {
   margin-top: 0.5rem;
-  background: #fff;
+  background: var(--muji-soft);
   color: var(--muji-muted);
+}
+
+.private-share-copy-btn:active,
+.private-share-done-btn:active {
+  background: var(--muji-pressed);
+  border-color: var(--muji-border-strong);
 }
 
 /* ── 平台免責聲明 ── */
@@ -2876,25 +2937,35 @@ button:hover {
 }
 
 .session-status-badge--pending {
-  background: #fff7ed;
-  color: #c2410c;
-  border: 1px solid #fed7aa;
+  background: var(--muji-badge-pending-bg);
+  color: var(--muji-badge-pending-text);
+  border: 1px solid var(--muji-badge-pending-border);
 }
 
 .session-status-badge--approved {
-  background: #f0fdf4;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
+  background: var(--muji-badge-success-bg);
+  color: var(--muji-badge-success-text);
+  border: 1px solid var(--muji-badge-success-border);
 }
 
 .session-action-btn {
   padding: 0.4rem 0.75rem;
   border: 1px solid var(--muji-border);
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--muji-soft);
   font-size: 11px;
   letter-spacing: 0.04em;
   color: var(--muji-text);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.session-action-btn:hover:not(:disabled) {
+  background: var(--muji-hover);
+}
+
+.session-action-btn:active:not(:disabled) {
+  background: var(--muji-pressed);
+  border-color: var(--muji-border-strong);
 }
 
 .session-action-btn--primary {
@@ -2902,15 +2973,24 @@ button:hover {
 }
 
 .session-action-btn--cancel {
-  color: #b91c1c;
-  border-color: #fecaca;
-  background: #fff;
+  color: var(--muji-danger-text);
+  border-color: var(--muji-danger-border);
+  background: var(--muji-danger-surface);
+}
+
+.session-action-btn--cancel:hover:not(:disabled) {
+  background: var(--muji-danger-surface-hover);
+}
+
+.session-action-btn--cancel:active:not(:disabled) {
+  background: var(--muji-danger-surface-hover);
+  border-color: var(--muji-danger-border);
 }
 
 .match-book-btn-pending {
-  background: #fff7ed;
-  color: #c2410c;
-  border-color: #fed7aa;
+  background: var(--muji-badge-pending-bg);
+  color: var(--muji-badge-pending-text);
+  border-color: var(--muji-badge-pending-border);
 }
 
 /* ── 場次管理 / 付費資料彈窗 ── */
@@ -3048,17 +3128,32 @@ button:hover {
   font-size: 10px;
   letter-spacing: 0.04em;
   border: 1px solid var(--muji-border);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .session-manage-btn--approve {
-  background: #f0fdf4;
-  color: #15803d;
-  border-color: #bbf7d0;
+  background: var(--muji-badge-success-bg);
+  color: var(--muji-badge-success-text);
+  border-color: var(--muji-badge-success-border);
+}
+
+.session-manage-btn--approve:active:not(:disabled) {
+  filter: brightness(0.92);
+  border-color: var(--muji-border-strong);
 }
 
 .session-manage-btn--reject {
-  background: #fff;
+  background: var(--muji-soft);
   color: var(--muji-muted);
+}
+
+.session-manage-btn--reject:hover:not(:disabled) {
+  background: var(--muji-hover);
+}
+
+.session-manage-btn--reject:active:not(:disabled) {
+  background: var(--muji-pressed);
+  border-color: var(--muji-border-strong);
 }
 
 .session-manage-approved-tag {
@@ -3094,17 +3189,22 @@ button:hover {
   padding: 0.625rem 0.75rem;
   border: 1px solid var(--muji-border);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--muji-soft);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.06em;
   color: var(--muji-muted);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .host-manage-delete-btn:hover {
-  background: var(--muji-soft);
+  background: var(--muji-hover);
   color: var(--muji-text);
+}
+
+.host-manage-delete-btn:active:not(:disabled) {
+  background: var(--muji-pressed);
+  border-color: var(--muji-border-strong);
 }
 
 .host-manage-delete-btn:disabled {
@@ -3201,16 +3301,35 @@ button:hover {
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--muji-border);
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--muji-soft);
   width: 100%;
   justify-content: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.host-info-action:hover {
+  background: var(--muji-hover);
+}
+
+.host-info-action:active {
+  background: var(--muji-pressed);
+  border-color: var(--muji-border-strong);
 }
 
 .host-info-action--whatsapp {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
-  color: #15803d;
+  background: var(--muji-badge-success-bg);
+  border-color: var(--muji-badge-success-border);
+  color: var(--muji-badge-success-text);
   text-decoration: none;
+}
+
+.host-info-action--whatsapp:hover {
+  filter: brightness(0.96);
+}
+
+.host-info-action--whatsapp:active {
+  filter: brightness(0.9);
+  border-color: var(--muji-border-strong);
 }
 
 .host-info-empty {
@@ -3292,7 +3411,7 @@ button:hover {
   font-weight: 500;
   letter-spacing: 0.06em;
   line-height: 1.4;
-  color: #777777;
+  color: var(--muji-muted);
 }
 
 /* ── 場主分級與雙向出席率 ── */
@@ -3321,15 +3440,15 @@ button:hover {
 }
 
 .host-badge--newbie {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
+  background: var(--muji-badge-success-bg);
+  color: var(--muji-badge-success-text);
+  border: 1px solid var(--muji-badge-success-border);
 }
 
 .host-badge--quality {
-  background: #fffbeb;
-  color: #b45309;
-  border: 1px solid #fde68a;
+  background: var(--muji-badge-warn-bg);
+  color: var(--muji-badge-warn-text);
+  border: 1px solid var(--muji-badge-warn-border);
 }
 
 .host-attendance-meta {
@@ -3342,12 +3461,12 @@ button:hover {
   margin-top: 0.5rem;
   padding: 0.625rem 0.75rem;
   border-radius: 0.75rem;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: var(--muji-badge-success-bg);
+  border: 1px solid var(--muji-badge-success-border);
   font-size: 11px;
   line-height: 1.55;
   letter-spacing: 0.03em;
-  color: #166534;
+  color: var(--muji-badge-success-text);
   text-align: center;
 }
 
@@ -3414,15 +3533,9 @@ button:hover {
 }
 
 .region-filter-btn.is-active {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
-  color: #166534;
-}
-
-html[data-appearance="dark"] .region-filter-btn.is-active {
-  background: #163321;
-  border-color: #2f6b45;
-  color: #9fe3b3;
+  background: var(--muji-badge-success-bg);
+  border-color: var(--muji-badge-success-border);
+  color: var(--muji-badge-success-text);
 }
 
 .district-picker-btn,
@@ -3434,8 +3547,21 @@ html[data-appearance="dark"] .region-filter-btn.is-active {
 .profile-action-btn,
 .settings-about-btn,
 .confirm-dialog-primary-btn,
+.confirm-dialog-cancel-btn,
 .language-modal-option,
-.disclaimer-ack-btn {
+.disclaimer-ack-btn,
+.session-action-btn,
+.session-manage-btn--reject,
+.host-manage-delete-btn,
+.host-info-action:not(.host-info-action--whatsapp),
+.private-share-copy-btn,
+.private-share-done-btn,
+.community-invite-card__accept,
+.community-invite-card__decline,
+.community-search-btn,
+.community-search-invite-btn,
+.match-add-guest-btn,
+.host-manage-add-guest-btn {
   background: var(--muji-soft);
   border-color: var(--muji-border);
   color: var(--muji-text);
@@ -3450,19 +3576,60 @@ html[data-appearance="dark"] .region-filter-btn.is-active {
 .profile-action-btn:hover,
 .settings-about-btn:hover,
 .confirm-dialog-primary-btn:hover,
+.confirm-dialog-cancel-btn:hover,
 .language-modal-option:hover,
-.disclaimer-ack-btn:hover {
+.disclaimer-ack-btn:hover,
+.session-action-btn:hover:not(:disabled),
+.session-manage-btn--reject:hover:not(:disabled),
+.host-manage-delete-btn:hover,
+.host-info-action:not(.host-info-action--whatsapp):hover,
+.private-share-copy-btn:hover,
+.private-share-done-btn:hover,
+.community-invite-card__accept:hover,
+.community-invite-card__decline:hover,
+.community-search-btn:hover,
+.community-search-invite-btn:hover,
+.match-add-guest-btn:hover,
+.host-manage-add-guest-btn:hover {
   background: var(--muji-hover);
+}
+
+.district-picker-btn:active:not(:disabled),
+.publish-picker-btn:active:not(:disabled),
+.publish-time-trigger:active,
+.publish-submit-btn:active,
+.matches-load-more-btn:active,
+.match-book-btn:active:not(:disabled),
+.profile-action-btn:active,
+.settings-about-btn:active,
+.confirm-dialog-primary-btn:active,
+.confirm-dialog-cancel-btn:active,
+.language-modal-option:active,
+.disclaimer-ack-btn:active,
+.session-action-btn:active:not(:disabled),
+.session-manage-btn--reject:active:not(:disabled),
+.host-manage-delete-btn:active:not(:disabled),
+.host-info-action:not(.host-info-action--whatsapp):active,
+.private-share-copy-btn:active,
+.private-share-done-btn:active,
+.community-invite-card__accept:active,
+.community-invite-card__decline:active,
+.community-search-btn:active,
+.community-search-invite-btn:active,
+.match-add-guest-btn:active,
+.host-manage-add-guest-btn:active {
+  background: var(--muji-pressed);
+  border-color: var(--muji-border-strong);
 }
 
 .language-modal-option.is-active-profile-action,
 .settings-about-btn:focus-visible {
   background: var(--muji-card);
-  border-color: #c8c8c4;
+  border-color: var(--muji-border-strong);
 }
 
 html[data-appearance="dark"] .language-modal-option.is-active-profile-action {
-  border-color: #555555;
+  border-color: var(--muji-border-strong);
 }
 
 .settings-card,
@@ -3518,12 +3685,6 @@ html[data-appearance="dark"] #appearance-modal,
 html[data-appearance="dark"] #language-modal,
 html[data-appearance="dark"] #font-size-modal {
   background: var(--muji-overlay-backdrop) !important;
-}
-
-html[data-appearance="dark"] .payment-new-host-tip {
-  background: #163321;
-  border-color: #2f6b45;
-  color: #9fe3b3;
 }
 
 #form-picker > div.bg-white,
@@ -3865,11 +4026,7 @@ html[data-appearance="dark"] .payment-new-host-tip {
 }
 
 .community-search-status--invited {
-  color: #166534;
-}
-
-html[data-appearance="dark"] .community-search-status--invited {
-  color: #86efac;
+  color: var(--muji-badge-success-text);
 }
 
 .community-sessions-block {
