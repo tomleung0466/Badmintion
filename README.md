@@ -4,7 +4,7 @@
 
 球友可在大廳瀏覽場次、報名留位；場主可發佈公開、私人或社群限定球局，管理報名、代報名與收款資料。
 
-**目前版本：** v1.33.1 · [更新紀錄](js/app-version.js) · [產品規格](docs/product-spec.md) · [UI 設計規格](docs/design-spec.md)
+**目前版本：** v1.33.2 · [更新紀錄](js/app-version.js) · [產品規格](docs/product-spec.md) · [API 流程](docs/api-flows.md) · [測試清單](docs/testing-checklist.md) · [UI 設計規格](docs/design-spec.md)
 
 ---
 
@@ -60,6 +60,8 @@ badminton/
 │   └── overlay-transition.js
 ├── docs/
 │   ├── product-spec.md     # 產品與資料模型規格
+│   ├── api-flows.md        # API、架構與流程圖（接手必讀）
+│   ├── testing-checklist.md # 補測／發版驗收清單
 │   └── design-spec.md      # UI 字級、顏色、類名規格
 ├── sw.js                   # Service Worker 快取
 ├── firestore.rules         # Firestore 安全規則
@@ -150,7 +152,20 @@ npx firebase-tools deploy --only hosting --project badminton-app-b08cc
 | `hostPublicPayment` | 場主收款 QR（報名頁顯示） |
 | `feedback` | 用戶意見（僅後台 Console 查看） |
 
-完整欄位與業務規則見 [docs/product-spec.md](docs/product-spec.md#七firestore-資料模型摘要)。
+完整欄位與業務規則見 [docs/product-spec.md](docs/product-spec.md#七firestore-資料模型摘要)。  
+流程圖與 `window.db*` API 見 [docs/api-flows.md](docs/api-flows.md)。  
+發版前驗收見 [docs/testing-checklist.md](docs/testing-checklist.md)。
+
+---
+
+## 文件索引（接手同事）
+
+| 文件 | 內容 |
+|------|------|
+| [product-spec.md](docs/product-spec.md) | 功能、Phase、資料模型、規則摘要 |
+| [api-flows.md](docs/api-flows.md) | 模組架構、API 表、Mermaid 流程圖 |
+| [testing-checklist.md](docs/testing-checklist.md) | 手動測試與迴歸清單 |
+| [design-spec.md](docs/design-spec.md) | UI 區塊、類名、字級 |
 
 ---
 

@@ -1,8 +1,8 @@
 # +1 產品規格
 
-功能、資料模型與業務規則說明。UI 字級與類名見 [design-spec.md](./design-spec.md)。
+功能、資料模型與業務規則說明。UI 字級與類名見 [design-spec.md](./design-spec.md)。流程與 API 見 [api-flows.md](./api-flows.md)。測試見 [testing-checklist.md](./testing-checklist.md)。
 
-**目前版本：** v1.33.1（見 `js/app-version.js`）
+**目前版本：** v1.33.2（見 `js/app-version.js`）
 
 ---
 
@@ -172,6 +172,8 @@ feedback/{id}         → 僅 create，後台 Console 查看
 | **版本同步** | `js/app-version.js` + `sw.js` 的 `CACHE_NAME` |
 | **規則與前端** | 改 `firestore.rules` 後必須 deploy 規則；改 `js/` 後 deploy Hosting 或等 CI |
 
+詳細流程圖見 [api-flows.md](./api-flows.md)；發版驗收見 [testing-checklist.md](./testing-checklist.md)。
+
 ---
 
 ## 十、產品邊界（刻意不做或 MVP 簡化）
@@ -184,4 +186,4 @@ feedback/{id}         → 僅 create，後台 Console 查看
 
 ---
 
-*最後更新：2026-06-04*
+*最後更新：2026-06-04 · v1.33.2*

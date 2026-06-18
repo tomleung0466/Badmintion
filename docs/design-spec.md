@@ -2,7 +2,7 @@
 
 修改 UI 時，可直接引用本文件的**區域名稱**、**類名**或**變數名**告訴開發者要改什麼。
 
-功能與業務規則見 [product-spec.md](./product-spec.md)。
+功能與業務規則見 [product-spec.md](./product-spec.md)。流程與 API 見 [api-flows.md](./api-flows.md)。
 
 ---
 
