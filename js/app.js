@@ -662,6 +662,19 @@ function updateSettingsVersionLabel() {
     label.textContent = info.version ? `v${info.version}` : '—';
 }
 
+function formatChangelogDate(iso) {
+    if (!iso || typeof iso !== 'string') return '';
+    const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return iso;
+    const year = match[1];
+    const month = parseInt(match[2], 10);
+    const day = parseInt(match[3], 10);
+    if (typeof window.t === 'function') {
+        return window.t('date.display', { year, month, day });
+    }
+    return `${year}年${month}月${day}日`;
+}
+
 function renderVersionChangelog() {
     const list = document.getElementById('version-changelog-list');
     const current = document.getElementById('version-modal-current');
@@ -698,7 +711,7 @@ function renderVersionChangelog() {
             <section class="version-changelog-entry${isCurrent ? ' is-current' : ''}">
                 <div class="version-changelog-head">
                     <span class="version-changelog-version">v${escapeHtml(entry.version || '—')}${isCurrent ? escapeHtml(nowLabel) : ''}</span>
-                    <span class="version-changelog-date">${escapeHtml(entry.date || '')}</span>
+                    <span class="version-changelog-date">${escapeHtml(formatChangelogDate(entry.date))}</span>
                 </div>
                 <ul class="version-changelog-items">
                     ${items.map(item => `<li>${escapeHtml(translateItem(item))}</li>`).join('')}

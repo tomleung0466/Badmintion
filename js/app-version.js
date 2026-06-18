@@ -2,14 +2,27 @@
  * app-version.js — 版本號與更新內容
  * 每次發佈請同步更新：version、build、changelog 第一筆，以及 sw.js 的 CACHE_NAME
  * changelog 的 date 請填實際發佈日（YYYY-MM-DD），勿用固定佔位日期
+ *
+ * bump 新版本時：
+ * 1. 更新 CURRENT_RELEASE_DATE 為當日（香港時間）
+ * 2. 新 changelog 第一筆的 date 使用 CURRENT_RELEASE_DATE
  */
+const CURRENT_RELEASE_DATE = '2026-06-18';
+
 window.APP_VERSION = {
-    version: '1.34.1',
-    build: 51,
+    version: '1.34.2',
+    build: 52,
     changelog: [
         {
+            version: '1.34.2',
+            date: CURRENT_RELEASE_DATE,
+            items: [
+                '再次修正取消預約 permission-denied（client 改寫入完整陣列、rules 獨立 allow）'
+            ]
+        },
+        {
             version: '1.34.1',
-            date: '2026-06-04',
+            date: '2026-06-18',
             items: [
                 '修正「我的場次」只顯示最遠日期、近場次被漏掉',
                 '修正取消預約 permission-denied（Firestore 取消規則）',
@@ -18,7 +31,7 @@ window.APP_VERSION = {
         },
         {
             version: '1.34.0',
-            date: '2026-06-04',
+            date: '2026-06-18',
             items: [
                 '加入墨綠品牌主色：主按鈕、發佈 FAB、底部導航選中、地區篩選',
                 '發佈頁選項、設定選中態改用 accent 淡底'
@@ -26,7 +39,7 @@ window.APP_VERSION = {
         },
         {
             version: '1.33.2',
-            date: '2026-06-04',
+            date: '2026-06-18',
             items: [
                 '修正深色外觀下「我的場次」膠囊與按鈕仍顯示白底',
                 '統一狀態標籤／操作按鈕主題色，並加強按壓時的視覺回饋'
@@ -34,7 +47,7 @@ window.APP_VERSION = {
         },
         {
             version: '1.33.1',
-            date: '2026-06-04',
+            date: '2026-06-18',
             items: [
                 '發佈場次預設場主參加（佔 1 位），可選「我只約球，不參加」',
                 'Firestore 規則支援發佈時場主自報名'
@@ -42,7 +55,7 @@ window.APP_VERSION = {
         },
         {
             version: '1.33.0',
-            date: '2026-06-04',
+            date: '2026-06-18',
             items: [
                 '修正發佈場次 permission-denied（新建場次 currentPlayers 固定為 0，符合 Firestore 規則）',
                 '發佈表單移除「現時人數」欄位，新場次一律從 0 人開始'
@@ -50,7 +63,7 @@ window.APP_VERSION = {
         },
         {
             version: '1.32.9',
-            date: '2026-06-04',
+            date: '2026-06-18',
             items: [
                 '修正 participantUids 為 null 時規則評估錯誤導致批准/拒絕全失敗',
                 '場主批准/拒絕改為獨立 allow 規則，並以明確陣列寫入 pending 名單'
@@ -58,7 +71,7 @@ window.APP_VERSION = {
         },
         {
             version: '1.32.8',
-            date: '2026-06-04',
+            date: '2026-06-18',
             items: [
                 '大幅簡化場主批准／拒絕 Firestore 規則，對齊實際寫入',
                 '管理場次固定使用 Firestore document ID，並加強除錯 log'
@@ -66,7 +79,7 @@ window.APP_VERSION = {
         },
         {
             version: '1.32.7',
-            date: '2026-06-04',
+            date: '2026-06-17',
             items: [
                 '修正社群場次場主批准／拒絕 permission-denied（放寬 pending 更新規則）',
                 '管理場次一律使用 Firestore document ID，避免誤用本地 id'
@@ -74,14 +87,14 @@ window.APP_VERSION = {
         },
         {
             version: '1.32.6',
-            date: '2026-06-04',
+            date: '2026-06-17',
             items: [
                 '修正 v1.32.0 規則加固後場主批准 permission-denied（規則與 dbApproveParticipant 對齊）'
             ]
         },
         {
             version: '1.32.5',
-            date: '2026-06-04',
+            date: '2026-06-17',
             items: [
                 '放寬場主批准 Firestore 規則（移除已結束場次限制、修正數值比對）',
                 '合併批准／清理重複資料為同一規則路徑，與拒絕邏輯對齊'

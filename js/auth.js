@@ -1242,19 +1242,35 @@ window.dbCancelReservation = async function dbCancelReservation(activityData) {
                 throw error;
             }
 
-            const currentPlayers = Number(activity.currentPlayers ?? 0);
+            const currentPlayers = Math.trunc(Number(activity.currentPlayers ?? 0));
+            const participants = activity.participants && typeof activity.participants === "object"
+                ? { ...activity.participants }
+                : {};
+            delete participants[user.uid];
+
             const updatePayload = {
-                [`participants.${user.uid}`]: deleteField(),
+                participants,
                 updatedAt: serverTimestamp()
             };
 
             if (isApproved) {
+                updatePayload.participantUids = participantUids.filter(uid => uid !== user.uid);
                 updatePayload.currentPlayers = Math.max(0, currentPlayers - 1);
-                updatePayload.participantUids = arrayRemove(user.uid);
             }
             if (isPending) {
-                updatePayload.pendingParticipantUids = arrayRemove(user.uid);
+                updatePayload.pendingParticipantUids = pendingUids.filter(uid => uid !== user.uid);
             }
+
+            console.info("[+1] dbCancelReservation", {
+                activityId: activityData.firestoreId,
+                authUid: user.uid,
+                isApproved,
+                isPending,
+                currentPlayers,
+                nextCurrentPlayers: updatePayload.currentPlayers,
+                participantUids: updatePayload.participantUids,
+                pendingParticipantUids: updatePayload.pendingParticipantUids
+            });
 
             transaction.update(activityRef, updatePayload);
 
