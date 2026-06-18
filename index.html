@@ -127,7 +127,7 @@
             </div>
 
             <!-- 懸浮發佈按鈕 (+) -->
-            <button id="publish-fab-btn" type="button" class="fixed bottom-24 right-6 bg-white text-[#333333] border border-[#E5E5E5] w-14 h-14 rounded-full flex items-center justify-center text-2xl font-light transition-colors z-40" data-i18n-aria="publish.fabAria" aria-label="發佈場次">
+            <button id="publish-fab-btn" type="button" class="fixed bottom-24 right-6 w-14 h-14 rounded-full flex items-center justify-center text-2xl font-light transition-colors z-40" data-i18n-aria="publish.fabAria" aria-label="發佈場次">
                 ＋
             </button>
         </div>
@@ -441,7 +441,7 @@
 
         <!-- ==================== 底部固定導航欄 (Uber風格) ==================== -->
         <footer class="app-footer bg-white/90 backdrop-blur border-t border-gray-100 py-2 flex justify-around text-[9px] font-medium text-gray-400 fixed bottom-0 w-full max-w-md z-50 shadow-lg">
-            <button id="nav-match" onclick="switchPage('match')" class="text-black flex flex-col items-center gap-0.5 min-w-0 flex-1 px-0.5">
+            <button id="nav-match" onclick="switchPage('match')" class="is-nav-active flex flex-col items-center gap-0.5 min-w-0 flex-1 px-0.5">
                 <span class="text-base">🏸</span><span data-i18n="nav.matches">場次</span>
             </button>
             <button id="nav-market" onclick="switchPage('market')" class="hidden flex flex-col items-center gap-0.5 min-w-0 flex-1 px-0.5">
@@ -641,7 +641,7 @@
                 <div class="flex justify-between items-center px-5 py-4 border-b border-[#E5E5E5]">
                     <button type="button" onclick="toggleScrollPicker(false)" class="text-sm text-[#777777]">取消</button>
                     <span id="picker-scroller-title" class="text-sm font-medium tracking-[0.05em] text-[#333333]">選擇分區</span>
-                    <button type="button" onclick="confirmPickerRegion()" class="text-sm font-medium text-[#333333]">完成</button>
+                    <button type="button" onclick="confirmPickerRegion()" class="text-sm font-medium text-emerald-600">完成</button>
                 </div>
                 <div class="relative">
                     <div class="pointer-events-none absolute inset-x-4 top-1/2 z-10 h-10 -translate-y-1/2 rounded-lg border-y border-[#E5E5E5] bg-[#F4F4F2]/60"></div>

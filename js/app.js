@@ -1375,7 +1375,7 @@ function getAppPageEl(pageId) {
 
 function updatePageNavActive(pageId) {
     PAGE_IDS.forEach(id => {
-        document.getElementById(`nav-${id}`)?.classList.toggle('text-black', id === pageId);
+        document.getElementById(`nav-${id}`)?.classList.toggle('is-nav-active', id === pageId);
     });
 }
 

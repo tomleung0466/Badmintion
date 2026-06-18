@@ -4,9 +4,17 @@
  * changelog 的 date 請填實際發佈日（YYYY-MM-DD），勿用固定佔位日期
  */
 window.APP_VERSION = {
-    version: '1.33.2',
-    build: 49,
+    version: '1.34.0',
+    build: 50,
     changelog: [
+        {
+            version: '1.34.0',
+            date: '2026-06-04',
+            items: [
+                '加入墨綠品牌主色：主按鈕、發佈 FAB、底部導航選中、地區篩選',
+                '發佈頁選項、設定選中態改用 accent 淡底'
+            ]
+        },
         {
             version: '1.33.2',
             date: '2026-06-04',

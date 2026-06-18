@@ -794,15 +794,15 @@
                 if (disabled) {
                     cls += 'text-gray-300 cursor-not-allowed';
                 } else if (isSelected) {
-                    cls += 'bg-black text-white font-bold shadow-sm';
+                    cls += 'calendar-day calendar-day--selected';
                 } else if (isToday) {
-                    cls += 'ring-1 ring-black/20 text-black bg-white';
+                    cls += 'calendar-day calendar-day--today';
                 } else {
                     cls += 'text-gray-700 hover:bg-gray-200 cursor-pointer';
                 }
 
                 const dot = hasMatch && !isSelected
-                    ? '<span class="absolute bottom-1 w-1 h-1 rounded-full bg-emerald-500"></span>'
+                    ? '<span class="absolute bottom-1 w-1 h-1 rounded-full calendar-day-dot"></span>'
                     : hasMatch && isSelected
                         ? '<span class="absolute bottom-1 w-1 h-1 rounded-full bg-white"></span>'
                         : '';
