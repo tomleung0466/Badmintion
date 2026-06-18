@@ -26,8 +26,11 @@ index_backup*.html
 .next/
 out/
 
-# Editor / IDE
-.idea/
-.vscode/
+# Capacitor / iOS (TestFlight)
+ios/App/Pods/
+ios/App/App/public/
+ios/DerivedData/
+*.xcuserstate
+xcuserdata/
 *.swp
 *~

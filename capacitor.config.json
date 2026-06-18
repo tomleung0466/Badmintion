@@ -1,0 +1,30 @@
+{
+  "appId": "hk.plusone.badminton",
+  "appName": "+1",
+  "webDir": "www",
+  "server": {
+    "url": "https://badminton-app-b08cc.web.app",
+    "cleartext": false,
+    "allowNavigation": [
+      "badminton-app-b08cc.web.app",
+      "badminton-app-b08cc.firebaseapp.com",
+      "accounts.google.com",
+      "google.com",
+      "googleapis.com",
+      "gstatic.com"
+    ]
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#f9f9f9",
+    "allowsLinkPreview": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 1200,
+      "backgroundColor": "#f9f9f9",
+      "showSpinner": false
+    }
+  }
+}
