@@ -389,13 +389,15 @@ service cloud.firestore {
       let uid = request.auth.uid;
       let oldUids = safeList(resource.data, 'participantUids');
       let newUids = safeList(request.resource.data, 'participantUids');
+      let oldPlayers = safeInt(resource.data, 'currentPlayers');
+      let newPlayers = safeInt(request.resource.data, 'currentPlayers');
 
-      return activityHostFieldsUnchanged()
+      return activityGuestHostFieldsUnchanged()
         && uid in oldUids
         && !(uid in newUids)
         && newUids.size() == oldUids.size() - 1
-        && request.resource.data.currentPlayers == resource.data.currentPlayers - 1
-        && request.resource.data.currentPlayers >= 0
+        && newPlayers == oldPlayers - 1
+        && newPlayers >= 0
         && pendingListsEqual()
         && waitlistAndGuestsUnchanged()
         && !(uid in request.resource.data.get('participants', {}))
@@ -407,12 +409,14 @@ service cloud.firestore {
       let uid = request.auth.uid;
       let oldPending = safeList(resource.data, 'pendingParticipantUids');
       let newPending = safeList(request.resource.data, 'pendingParticipantUids');
+      let oldPlayers = safeInt(resource.data, 'currentPlayers');
+      let newPlayers = safeInt(request.resource.data, 'currentPlayers');
 
-      return activityHostFieldsUnchanged()
+      return activityGuestHostFieldsUnchanged()
         && uid in oldPending
         && !(uid in newPending)
         && newPending.size() == oldPending.size() - 1
-        && request.resource.data.currentPlayers == resource.data.currentPlayers
+        && newPlayers == oldPlayers
         && participantListsEqual()
         && waitlistAndGuestsUnchanged()
         && !(uid in request.resource.data.get('participants', {}))

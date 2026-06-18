@@ -1475,12 +1475,14 @@
             }
         }
 
-        const MY_SESSIONS_LIMIT = 3;
+        const MY_SESSIONS_LIMIT = 10;
 
         function sortActivitiesByRecency(list) {
             return [...list].sort((a, b) => {
-                const dateCompare = (b.playDate || "").localeCompare(a.playDate || "");
+                const dateCompare = String(a.playDate || '').localeCompare(String(b.playDate || ''));
                 if (dateCompare !== 0) return dateCompare;
+                const startCompare = String(a.startTime || a.playTime || '').localeCompare(String(b.startTime || b.playTime || ''));
+                if (startCompare !== 0) return startCompare;
                 const aCreated = a.createdAt?.seconds || a.createdAt?.toMillis?.() || 0;
                 const bCreated = b.createdAt?.seconds || b.createdAt?.toMillis?.() || 0;
                 return bCreated - aCreated;
@@ -3557,6 +3559,7 @@
                 if (typeof window.openCommunityDetail === 'function') {
                     await window.openCommunityDetail(communityId);
                 }
+                await renderMyActivities();
                 return;
             }
 
@@ -3684,8 +3687,8 @@
             const sessionStartsAt = typeof window.buildActivityStartAtDate === 'function'
                 ? window.buildActivityStartAtDate(playDate, timeSlot.startTimeValue)
                 : null;
-            const sessionEndsAt = typeof window.buildActivityEndsAtDate === 'function'
-                ? window.buildActivityEndsAtDate(playDate, timeSlot.startTimeValue)
+            const sessionEndsAt = typeof window.buildActivityStartAtDate === 'function'
+                ? window.buildActivityStartAtDate(playDate, timeSlot.endTimeValue)
                 : null;
 
             const hostContact = await resolveHostPublishContact();

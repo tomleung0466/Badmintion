@@ -89,10 +89,12 @@ function isActivityStartInPast(activity, now = new Date()) {
     return startAt.getTime() <= now.getTime();
 }
 
+function getActivityEndTimeValue(activity) {
+    return activity?.endTime || activity?.endTimeValue || extractStartTimeFromPlayTime(activity?.playTime || activity?.displayTimeSlot);
+}
+
 function getActivityEndsAtDate(activity) {
     if (!activity) return null;
-    const fromStart = buildActivityEndsAtDate(activity.playDate, getActivityStartTimeValue(activity));
-    if (fromStart && !Number.isNaN(fromStart.getTime())) return fromStart;
     if (activity.sessionEndsAt) {
         if (typeof activity.sessionEndsAt.toDate === 'function') {
             return activity.sessionEndsAt.toDate();
@@ -100,6 +102,13 @@ function getActivityEndsAtDate(activity) {
         const fromStored = new Date(activity.sessionEndsAt);
         if (!Number.isNaN(fromStored.getTime())) return fromStored;
     }
+    const endTimeValue = getActivityEndTimeValue(activity);
+    if (activity.playDate && endTimeValue) {
+        const fromEndTime = buildActivityStartAtDate(activity.playDate, endTimeValue);
+        if (fromEndTime && !Number.isNaN(fromEndTime.getTime())) return fromEndTime;
+    }
+    const fromJoinCutoff = buildActivityEndsAtDate(activity.playDate, getActivityStartTimeValue(activity));
+    if (fromJoinCutoff && !Number.isNaN(fromJoinCutoff.getTime())) return fromJoinCutoff;
     if (activity.playDate) {
         const [y, m, d] = activity.playDate.split('-').map(Number);
         return new Date(y, m - 1, d, 23, 59, 59, 999);

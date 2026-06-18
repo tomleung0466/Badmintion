@@ -4,9 +4,18 @@
  * changelog 的 date 請填實際發佈日（YYYY-MM-DD），勿用固定佔位日期
  */
 window.APP_VERSION = {
-    version: '1.34.0',
-    build: 50,
+    version: '1.34.1',
+    build: 51,
     changelog: [
+        {
+            version: '1.34.1',
+            date: '2026-06-04',
+            items: [
+                '修正「我的場次」只顯示最遠日期、近場次被漏掉',
+                '修正取消預約 permission-denied（Firestore 取消規則）',
+                '場次「已結束」改以收場時間判斷；新發佈寫入正確 sessionEndsAt'
+            ]
+        },
         {
             version: '1.34.0',
             date: '2026-06-04',

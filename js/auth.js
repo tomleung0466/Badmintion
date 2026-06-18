@@ -122,6 +122,15 @@ function resolveSessionEndsAtTimestamp(activityData = {}) {
     if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
         return Timestamp.fromDate(raw);
     }
+    if (typeof window.buildActivityStartAtDate === "function") {
+        const endTimeValue = activityData.endTime || activityData.endTimeValue;
+        if (endTimeValue) {
+            const endsAt = window.buildActivityStartAtDate(activityData.playDate, endTimeValue);
+            if (endsAt && !Number.isNaN(endsAt.getTime())) {
+                return Timestamp.fromDate(endsAt);
+            }
+        }
+    }
     if (typeof window.buildActivityEndsAtDate === "function") {
         const endsAt = window.buildActivityEndsAtDate(
             activityData.playDate,
@@ -1468,47 +1477,58 @@ window.dbFetchMyHostedPrivateActivities = async function dbFetchMyHostedPrivateA
     }
 };
 
-window.dbFetchMyHostedActivities = async function dbFetchMyHostedActivities(limit = 3) {
+function sortUpcomingActivities(activities = [], limit = 10) {
+    return filterActiveActivities(activities
+        .filter(activity => activity.playDate && activity.playDate >= getTodayISO()))
+        .sort((a, b) => {
+            const dateCompare = String(a.playDate || "").localeCompare(String(b.playDate || ""));
+            if (dateCompare !== 0) return dateCompare;
+            const startCompare = String(a.startTime || a.playTime || "").localeCompare(String(b.startTime || b.playTime || ""));
+            if (startCompare !== 0) return startCompare;
+            const aCreated = a.createdAt?.seconds || a.createdAt?.toMillis?.() || 0;
+            const bCreated = b.createdAt?.seconds || b.createdAt?.toMillis?.() || 0;
+            return bCreated - aCreated;
+        })
+        .slice(0, limit);
+}
+
+window.dbFetchMyHostedActivities = async function dbFetchMyHostedActivities(limit = 10) {
     const user = auth.currentUser;
     if (!user) return [];
     const todayISO = getTodayISO();
+    const queryLimit = Math.max(limit * 3, 30);
     try {
         const snapshot = await getDocs(query(
             collection(db, "activities"),
             where("hostUid", "==", user.uid),
             where("playDate", ">=", todayISO),
-            orderBy("playDate", "desc"),
-            limit(limit)
+            orderBy("playDate", "asc"),
+            limit(queryLimit)
         ));
-        return filterActiveActivities(snapshot.docs.map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id })));
+        return sortUpcomingActivities(snapshot.docs.map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id })), limit);
     } catch (err) {
         console.error("讀取我發佈的場次失敗，改為前端篩選:", err);
         const snapshot = await getDocs(query(
             collection(db, "activities"),
             where("hostUid", "==", user.uid)
         ));
-        return filterActiveActivities(snapshot.docs
-            .map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }))
-            .filter(activity => activity.playDate && activity.playDate >= todayISO))
-            .sort((a, b) => (b.playDate || "").localeCompare(a.playDate || ""))
-            .slice(0, limit);
+        return sortUpcomingActivities(snapshot.docs
+            .map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id })), limit);
     }
 };
 
-window.dbFetchMyJoinedActivities = async function dbFetchMyJoinedActivities(limit = 3) {
+window.dbFetchMyJoinedActivities = async function dbFetchMyJoinedActivities(limit = 10) {
     const user = auth.currentUser;
     if (!user) return [];
     const todayISO = getTodayISO();
+    const queryLimit = Math.max(limit * 3, 30);
 
     const mergeActivities = docs => {
         const map = new Map();
         docs.forEach(docSnap => {
             map.set(docSnap.id, { ...docSnap.data(), firestoreId: docSnap.id });
         });
-        return filterActiveActivities([...map.values()]
-            .filter(activity => activity.playDate && activity.playDate >= todayISO))
-            .sort((a, b) => (b.playDate || "").localeCompare(a.playDate || ""))
-            .slice(0, limit);
+        return sortUpcomingActivities([...map.values()], limit);
     };
 
     try {
@@ -1517,30 +1537,28 @@ window.dbFetchMyJoinedActivities = async function dbFetchMyJoinedActivities(limi
                 collection(db, "activities"),
                 where("participantUids", "array-contains", user.uid),
                 where("playDate", ">=", todayISO),
-                orderBy("playDate", "desc"),
-                limit(limit)
+                orderBy("playDate", "asc"),
+                limit(queryLimit)
             )),
             getDocs(query(
                 collection(db, "activities"),
                 where("pendingParticipantUids", "array-contains", user.uid),
                 where("playDate", ">=", todayISO),
-                orderBy("playDate", "desc"),
-                limit(limit)
+                orderBy("playDate", "asc"),
+                limit(queryLimit)
             ))
         ]);
         return mergeActivities([...reservedSnap.docs, ...pendingSnap.docs]);
     } catch (err) {
         console.error("讀取我參加的場次失敗，改為前端篩選:", err);
         const snapshot = await getDocs(collection(db, "activities"));
-        return filterActiveActivities(snapshot.docs
+        return sortUpcomingActivities(snapshot.docs
             .map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }))
             .filter(activity => {
                 const reserved = Array.isArray(activity.participantUids) && activity.participantUids.includes(user.uid);
                 const pending = Array.isArray(activity.pendingParticipantUids) && activity.pendingParticipantUids.includes(user.uid);
-                return (reserved || pending) && activity.playDate && activity.playDate >= todayISO;
-            }))
-            .sort((a, b) => (b.playDate || "").localeCompare(a.playDate || ""))
-            .slice(0, limit);
+                return reserved || pending;
+            }), limit);
     }
 };
 
@@ -2000,11 +2018,7 @@ window.dbFetchCommunityActivities = async function dbFetchCommunityActivities(co
             }))
             .filter(activity => activity.playDate && activity.playDate >= todayISO);
 
-        return filterActiveActivities(mapped).sort((a, b) => {
-            const dateCompare = String(a.playDate || "").localeCompare(String(b.playDate || ""));
-            if (dateCompare !== 0) return dateCompare;
-            return String(a.startTime || "").localeCompare(String(b.startTime || ""));
-        });
+        return sortUpcomingActivities(mapped, 50);
     } catch (err) {
         console.error("讀取社群場次失敗:", err);
         throw err;
