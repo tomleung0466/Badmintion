@@ -63,6 +63,13 @@ function extractStartTimeFromPlayTime(playTime) {
     return match ? match[1] : '';
 }
 
+function extractEndTimeFromPlayTime(playTime) {
+    const raw = String(playTime || '');
+    const range = raw.match(/(\d{3,4})\s*[-–—]\s*(\d{3,4})/);
+    if (range) return range[2];
+    return extractStartTimeFromPlayTime(raw);
+}
+
 function getActivityStartTimeValue(activity) {
     return activity?.startTime || extractStartTimeFromPlayTime(activity?.playTime || activity?.displayTimeSlot);
 }
@@ -90,25 +97,37 @@ function isActivityStartInPast(activity, now = new Date()) {
 }
 
 function getActivityEndTimeValue(activity) {
-    return activity?.endTime || activity?.endTimeValue || extractStartTimeFromPlayTime(activity?.playTime || activity?.displayTimeSlot);
+    return activity?.endTime
+        || activity?.endTimeValue
+        || extractEndTimeFromPlayTime(activity?.playTime || activity?.displayTimeSlot);
 }
 
 function getActivityEndsAtDate(activity) {
     if (!activity) return null;
-    if (activity.sessionEndsAt) {
-        if (typeof activity.sessionEndsAt.toDate === 'function') {
-            return activity.sessionEndsAt.toDate();
-        }
-        const fromStored = new Date(activity.sessionEndsAt);
-        if (!Number.isNaN(fromStored.getTime())) return fromStored;
-    }
+    const candidates = [];
+
     const endTimeValue = getActivityEndTimeValue(activity);
     if (activity.playDate && endTimeValue) {
         const fromEndTime = buildActivityStartAtDate(activity.playDate, endTimeValue);
-        if (fromEndTime && !Number.isNaN(fromEndTime.getTime())) return fromEndTime;
+        if (fromEndTime && !Number.isNaN(fromEndTime.getTime())) candidates.push(fromEndTime);
     }
+
+    if (activity.sessionEndsAt) {
+        if (typeof activity.sessionEndsAt.toDate === 'function') {
+            candidates.push(activity.sessionEndsAt.toDate());
+        } else {
+            const fromStored = new Date(activity.sessionEndsAt);
+            if (!Number.isNaN(fromStored.getTime())) candidates.push(fromStored);
+        }
+    }
+
     const fromJoinCutoff = buildActivityEndsAtDate(activity.playDate, getActivityStartTimeValue(activity));
-    if (fromJoinCutoff && !Number.isNaN(fromJoinCutoff.getTime())) return fromJoinCutoff;
+    if (fromJoinCutoff && !Number.isNaN(fromJoinCutoff.getTime())) candidates.push(fromJoinCutoff);
+
+    if (candidates.length) {
+        return candidates.reduce((latest, next) => (next.getTime() > latest.getTime() ? next : latest));
+    }
+
     if (activity.playDate) {
         const [y, m, d] = activity.playDate.split('-').map(Number);
         return new Date(y, m - 1, d, 23, 59, 59, 999);
@@ -130,7 +149,8 @@ function isActivityActive(activity, now = new Date()) {
     return !isActivityEnded(activity, now);
 }
 
-window.parseActivityTimeValue = parseActivityTimeValue;
+window.extractStartTimeFromPlayTime = extractStartTimeFromPlayTime;
+window.extractEndTimeFromPlayTime = extractEndTimeFromPlayTime;
 window.buildActivityStartAtDate = buildActivityStartAtDate;
 window.buildActivityEndsAtDate = buildActivityEndsAtDate;
 window.getActivityEndsAtDate = getActivityEndsAtDate;

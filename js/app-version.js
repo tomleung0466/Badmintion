@@ -10,12 +10,20 @@
 const CURRENT_RELEASE_DATE = '2026-06-18';
 
 window.APP_VERSION = {
-    version: '1.34.2',
-    build: 52,
+    version: '1.34.3',
+    build: 53,
     changelog: [
         {
-            version: '1.34.2',
+            version: '1.34.3',
             date: CURRENT_RELEASE_DATE,
+            items: [
+                '已結束場次不再留在大廳（移除場主例外）',
+                '收場時間改以 endTime／時段結尾（如 1700-1800 的 1800）判斷'
+            ]
+        },
+        {
+            version: '1.34.2',
+            date: '2026-06-18',
             items: [
                 '再次修正取消預約 permission-denied（client 改寫入完整陣列、rules 獨立 allow）'
             ]

@@ -2143,9 +2143,9 @@
             listContainer.innerHTML = '';
 
             let filtered = matches.filter(m => canShowMatchInLobby(m));
-            filtered = filtered.filter(m => isMatchActive(m) || isOwnHostedMatch(m));
+            filtered = filtered.filter(m => isMatchActive(m));
             if (homeSelectedDate) {
-                filtered = filtered.filter(m => m.playDate === homeSelectedDate || isOwnHostedMatch(m));
+                filtered = filtered.filter(m => m.playDate === homeSelectedDate);
             }
 
             if (filtered.length === 0) {

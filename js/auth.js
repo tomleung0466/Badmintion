@@ -1440,9 +1440,9 @@ window.dbFetchMyHostedLobbyActivities = async function dbFetchMyHostedLobbyActiv
     if (!user) return [];
     const todayISO = getTodayISO();
 
-    const mapHosted = docs => docs
+    const mapHosted = docs => filterActiveActivities(docs
         .map(docSnap => ({ ...docSnap.data(), firestoreId: docSnap.id }))
-        .filter(activity => activity.playDate && activity.playDate >= todayISO);
+        .filter(activity => activity.playDate && activity.playDate >= todayISO));
 
     try {
         const snapshot = await getDocs(query(
