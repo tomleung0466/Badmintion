@@ -30,7 +30,7 @@ jobs:
           fi
           echo "FIREBASE_TOKEN is set."
 
-      - name: Deploy Firestore rules and Hosting
+      - name: Deploy Firestore rules, Storage rules, and Hosting
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        run: npx firebase-tools@15.20.0 deploy --only firestore:rules,hosting --project badminton-app-b08cc --non-interactive --token "$FIREBASE_TOKEN"
+        run: npx firebase-tools@15.20.0 deploy --only firestore:rules,storage,hosting --project badminton-app-b08cc --non-interactive --token "$FIREBASE_TOKEN"

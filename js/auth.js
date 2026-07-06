@@ -405,12 +405,30 @@ function updateAuthHeader(user) {
     avatar.classList.add("hidden");
 }
 
-function mapAuthError(errorCode) {
+function isCapacitorNative() {
+    return typeof window.Capacitor !== "undefined"
+        && typeof window.Capacitor.isNativePlatform === "function"
+        && window.Capacitor.isNativePlatform();
+}
+
+function isMobileWebDevice() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
+}
+
+function prefersRedirectLogin() {
+    return isCapacitorNative() || isMobileWebDevice();
+}
+
+function mapAuthError(errorCode, message = "") {
+    const raw = String(message || "");
+    if (raw.includes("missing initial state")) {
+        return "登入狀態已失效，請關閉 App 後重開再試，或使用 Safari／Chrome 開啟";
+    }
     const map = {
         "auth/popup-closed-by-user": "你已關閉 Google 登入視窗",
         "auth/cancelled-popup-request": "登入流程已取消",
-        "auth/popup-blocked": "彈出視窗被封鎖，正在改用跳轉登入",
-        "auth/operation-not-supported-in-this-environment": "目前環境不支援彈窗，正在改用跳轉登入",
+        "auth/popup-blocked": "彈出視窗被封鎖，正在改用 Google 跳轉登入",
+        "auth/operation-not-supported-in-this-environment": "目前環境不支援彈窗，正在改用 Google 跳轉登入",
         "auth/unauthorized-domain": "此網域尚未加入 Firebase 授權清單",
         "auth/too-many-requests": "嘗試次數過多，請稍後再試",
         "auth/requires-recent-login": "為保障帳戶安全，請重新登入後再注銷帳號"
@@ -519,16 +537,26 @@ async function loginWithGoogle() {
         setAuthError("");
         if (googleBtn) googleBtn.disabled = true;
         if (loginBtn) loginBtn.disabled = true;
-        const result = await signInWithPopup(auth, provider);
-        closeAuthModal();
-        showWelcomeMessage(result.user);
-    } catch (err) {
-        if (err?.code === "auth/popup-blocked" || err?.code === "auth/operation-not-supported-in-this-environment") {
-            setAuthError("彈窗受限，正在改用 Google 跳轉登入...");
+
+        if (prefersRedirectLogin()) {
             await signInWithRedirect(auth, provider);
             return;
         }
-        setAuthError(mapAuthError(err?.code));
+
+        try {
+            const result = await signInWithPopup(auth, provider);
+            closeAuthModal();
+            showWelcomeMessage(result.user);
+        } catch (err) {
+            if (err?.code === "auth/popup-blocked" || err?.code === "auth/operation-not-supported-in-this-environment") {
+                setAuthError("彈窗受限，正在改用 Google 跳轉登入...");
+                await signInWithRedirect(auth, provider);
+                return;
+            }
+            throw err;
+        }
+    } catch (err) {
+        setAuthError(mapAuthError(err?.code, err?.message));
     } finally {
         if (googleBtn) googleBtn.disabled = false;
         if (loginBtn) loginBtn.disabled = false;
@@ -570,11 +598,13 @@ function initAuth() {
     bindAuthUI();
 
     getRedirectResult(auth)
-        .then(result => {
-            if (result?.user) showWelcomeMessage(result.user);
+        .then(async result => {
+            if (!result?.user) return;
+            await closeAuthModal();
+            showWelcomeMessage(result.user);
         })
         .catch(err => {
-            setAuthError(mapAuthError(err?.code));
+            setAuthError(mapAuthError(err?.code, err?.message));
         });
 
     let authStateInitialSettled = false;

@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isImageUpload() {
+      return request.resource != null
+        && request.resource.contentType.matches('image/.*')
+        && request.resource.size > 0
+        && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // 大頭照：大廳／場次卡片會顯示（含訪客瀏覽）
+    match /avatars/{userId} {
+      allow read: if true;
+      allow create, update: if isOwner(userId) && isImageUpload();
+      allow delete: if isOwner(userId);
+    }
+
+    // 場主收款 QR：僅登入用戶可讀（報名付款頁）
+    match /payment-qr/{userId}/{qrType} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId)
+        && isImageUpload()
+        && qrType in ['payme', 'fps'];
+      allow delete: if isOwner(userId);
+    }
+  }
+}
