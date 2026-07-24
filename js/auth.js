@@ -9,6 +9,7 @@ import {
     getAuth,
     signInWithPopup,
     signInWithRedirect,
+    signInWithCredential,
     getRedirectResult,
     GoogleAuthProvider,
     signOut,
@@ -416,13 +417,58 @@ function isMobileWebDevice() {
 }
 
 function prefersRedirectLogin() {
-    return isCapacitorNative() || isMobileWebDevice();
+    return isMobileWebDevice() && !isCapacitorNative();
+}
+
+function getFirebaseAuthenticationPlugin() {
+    if (!isCapacitorNative()) return null;
+    const cap = window.Capacitor;
+    if (!cap?.registerPlugin) return null;
+    return cap.registerPlugin("FirebaseAuthentication");
+}
+
+async function signInWithGoogleNative() {
+    const FirebaseAuthentication = getFirebaseAuthenticationPlugin();
+    if (!FirebaseAuthentication) {
+        const error = new Error("Capacitor Firebase Authentication 未就緒");
+        error.code = "auth/native-plugin-unavailable";
+        throw error;
+    }
+
+    const result = await FirebaseAuthentication.signInWithGoogle();
+    const idToken = result?.credential?.idToken;
+    if (!idToken) {
+        const error = new Error("Google 登入未取得 idToken");
+        error.code = "auth/google-native-no-token";
+        throw error;
+    }
+
+    const credential = GoogleAuthProvider.credential(idToken);
+    return signInWithCredential(auth, credential);
+}
+
+async function reauthenticateWithGoogle() {
+    if (getFirebaseAuthenticationPlugin()) {
+        await signInWithGoogleNative();
+        return;
+    }
+
+    const user = auth.currentUser;
+    if (!user) {
+        const error = new Error("請先登入");
+        error.code = "auth/not-signed-in";
+        throw error;
+    }
+    await reauthenticateWithPopup(user, provider);
 }
 
 function mapAuthError(errorCode, message = "") {
     const raw = String(message || "");
     if (raw.includes("missing initial state")) {
         return "登入狀態已失效，請關閉 App 後重開再試，或使用 Safari／Chrome 開啟";
+    }
+    if (raw.includes("disallowed_useragent") || raw.includes("403")) {
+        return "Google 不允許在此環境登入，請更新 App 至最新 TestFlight 版本";
     }
     const map = {
         "auth/popup-closed-by-user": "你已關閉 Google 登入視窗",
@@ -431,7 +477,9 @@ function mapAuthError(errorCode, message = "") {
         "auth/operation-not-supported-in-this-environment": "目前環境不支援彈窗，正在改用 Google 跳轉登入",
         "auth/unauthorized-domain": "此網域尚未加入 Firebase 授權清單",
         "auth/too-many-requests": "嘗試次數過多，請稍後再試",
-        "auth/requires-recent-login": "為保障帳戶安全，請重新登入後再注銷帳號"
+        "auth/requires-recent-login": "為保障帳戶安全，請重新登入後再注銷帳號",
+        "auth/native-plugin-unavailable": "原生 Google 登入未設定，請更新 App 或聯絡開發者",
+        "auth/google-native-no-token": "Google 登入未完成，請再試一次"
     };
     return map[errorCode] || "操作失敗，請稍後再試";
 }
@@ -537,6 +585,13 @@ async function loginWithGoogle() {
         setAuthError("");
         if (googleBtn) googleBtn.disabled = true;
         if (loginBtn) loginBtn.disabled = true;
+
+        if (getFirebaseAuthenticationPlugin()) {
+            const result = await signInWithGoogleNative();
+            await closeAuthModal();
+            showWelcomeMessage(result.user);
+            return;
+        }
 
         if (prefersRedirectLogin()) {
             await signInWithRedirect(auth, provider);
@@ -1789,7 +1844,7 @@ window.dbDeleteUserAccount = async function dbDeleteUserAccount() {
 
     const uid = user.uid;
 
-    await reauthenticateWithPopup(user, provider);
+    await reauthenticateWithGoogle();
     await deleteUserHostedActivities(uid);
     await deleteUserFirestoreData(uid);
     await deleteUserStorageAssets(uid);

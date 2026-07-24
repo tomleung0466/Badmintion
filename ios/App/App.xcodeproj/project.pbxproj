@@ -309,7 +309,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 51;
+				CURRENT_PROJECT_VERSION = 52;
 				DEVELOPMENT_TEAM = 29QNTUYB45;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
@@ -317,7 +317,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.34.4;
+				MARKETING_VERSION = 1.34.5;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = hk.plusone.badminton;
 				PRODUCT_NAME = "PlusOne Club";
@@ -334,7 +334,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 51;
+				CURRENT_PROJECT_VERSION = 52;
 				DEVELOPMENT_TEAM = 29QNTUYB45;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
@@ -342,7 +342,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.34.4;
+				MARKETING_VERSION = 1.34.5;
 				PRODUCT_BUNDLE_IDENTIFIER = hk.plusone.badminton;
 				PRODUCT_NAME = "PlusOne Club";
 				PROVISIONING_PROFILE_SPECIFIER = "";

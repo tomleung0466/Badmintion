@@ -7,18 +7,18 @@
  * 1. 更新 CURRENT_RELEASE_DATE 為當日（香港時間）
  * 2. 新 changelog 第一筆的 date 使用 CURRENT_RELEASE_DATE
  */
-const CURRENT_RELEASE_DATE = '2026-07-06';
+const CURRENT_RELEASE_DATE = '2026-07-10';
 
 window.APP_VERSION = {
-    version: '1.34.4',
-    build: 54,
+    version: '1.34.5',
+    build: 55,
     changelog: [
         {
-            version: '1.34.4',
+            version: '1.34.5',
             date: CURRENT_RELEASE_DATE,
             items: [
-                '手機與 Capacitor App 改為 Google 跳轉登入（唔再依賴彈窗）',
-                '新增 Firebase Storage 安全規則（頭像、收款 QR）'
+                'TestFlight：改用原生 Google 登入（修復 WebView 403 封鎖）',
+                'Capacitor Firebase Authentication 插件'
             ]
         },
         {
